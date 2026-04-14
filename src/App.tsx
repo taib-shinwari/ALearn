@@ -51,7 +51,7 @@ function AppRoutes() {
       <Route path="/courses" element={<CoursesPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
-      <Route path="/lesson/:lessonId" element={<LessonPage />} />
+      <Route path="/lesson" element={<LessonPage />} />
       <Route path="*" element={<Navigate to="/home" />} />
     </Routes>
   );

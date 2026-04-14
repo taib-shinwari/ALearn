@@ -12,13 +12,11 @@ export default function AuthPage() {
   const { login, signup } = useApp();
   const navigate = useNavigate();
 
-  // Sign In state
   const [siStep, setSiStep] = useState(0);
   const [siEmail, setSiEmail] = useState("");
   const [siPassword, setSiPassword] = useState("");
   const [siError, setSiError] = useState("");
 
-  // Sign Up state
   const [suStep, setSuStep] = useState(0);
   const [suFirstName, setSuFirstName] = useState("");
   const [suEmail, setSuEmail] = useState("");
@@ -41,11 +39,9 @@ export default function AuthPage() {
   if (mode === "signin") {
     const steps = [
       <div key="email" className="flex flex-col gap-3">
-        <label className="text-sm font-medium">Email</label>
         <Input value={siEmail} onChange={e => setSiEmail(e.target.value)} placeholder="Email" />
       </div>,
       <div key="password" className="flex flex-col gap-3">
-        <label className="text-sm font-medium">Password</label>
         <Input type="password" value={siPassword} onChange={e => setSiPassword(e.target.value)} placeholder="Password" />
       </div>,
     ];
@@ -63,7 +59,7 @@ export default function AuthPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col gap-4 w-80">
-          <h2 className="text-xl font-semibold text-center">Sign In — Step {siStep + 1}/{steps.length}</h2>
+          <h2 className="text-xl font-semibold text-center">Sign In</h2>
           {steps[siStep]}
           {siError && <p className="text-sm text-destructive">{siError}</p>}
           <Button onClick={handleContinue}>Continue</Button>
@@ -73,22 +69,17 @@ export default function AuthPage() {
     );
   }
 
-  // Sign Up
   const suSteps = [
     <div key="fname" className="flex flex-col gap-3">
-      <label className="text-sm font-medium">First Name</label>
       <Input value={suFirstName} onChange={e => setSuFirstName(e.target.value)} placeholder="First Name" />
     </div>,
     <div key="email" className="flex flex-col gap-3">
-      <label className="text-sm font-medium">Email</label>
       <Input value={suEmail} onChange={e => setSuEmail(e.target.value)} placeholder="Email" />
     </div>,
     <div key="password" className="flex flex-col gap-3">
-      <label className="text-sm font-medium">Password</label>
       <Input type="password" value={suPassword} onChange={e => setSuPassword(e.target.value)} placeholder="Password" />
     </div>,
     <div key="confirm" className="flex flex-col gap-3">
-      <label className="text-sm font-medium">Confirm Password</label>
       <Input type="password" value={suConfirm} onChange={e => setSuConfirm(e.target.value)} placeholder="Confirm Password" />
     </div>,
     <div key="terms" className="flex items-center gap-2">
@@ -118,7 +109,7 @@ export default function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col gap-4 w-80">
-        <h2 className="text-xl font-semibold text-center">Sign Up — Step {suStep + 1}/{suSteps.length}</h2>
+        <h2 className="text-xl font-semibold text-center">Sign Up</h2>
         {suSteps[suStep]}
         {suError && <p className="text-sm text-destructive">{suError}</p>}
         <Button onClick={handleSuContinue}>Continue</Button>
