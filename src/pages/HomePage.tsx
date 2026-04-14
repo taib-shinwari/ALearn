@@ -8,7 +8,8 @@ export default function HomePage() {
   const { learningLanguage, introductionCompleted } = useApp();
   const navigate = useNavigate();
 
-  const langLabel = learningLanguage === "nl" ? "Nederlands" : "English";
+  const langLabels: Record<string, string> = { nl: "Nederlands", en: "English" };
+  const langLabel = langLabels[learningLanguage || ""] || learningLanguage || "Course";
 
   return (
     <div className="min-h-screen pt-16">
