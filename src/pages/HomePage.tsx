@@ -27,7 +27,7 @@ export default function HomePage() {
             Start Introduction
           </Button>
         ) : (
-          <Button onClick={() => navigate("/lesson/greetings")} className="w-64">
+          <Button onClick={() => navigate("/lesson")} className="w-64">
             Start
           </Button>
         )}
