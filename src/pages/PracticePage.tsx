@@ -10,8 +10,11 @@ import {
   getWordById,
   globalLearningOrder,
   WordDetail,
+  getWordText,
+  getTranslation,
 } from "@/data/courseData";
 import { getNextWordsForPractice } from "@/lib/spacedRepetition";
+import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 
 interface Exercise {
   wordId: string;
@@ -20,21 +23,27 @@ interface Exercise {
   correct: number;
 }
 
-function generateExercises(words: WordDetail[], allWords: WordDetail[]): Exercise[] {
+function generateExercises(
+  words: WordDetail[],
+  allWords: WordDetail[],
+  courseLang: "nl" | "en",
+  uiLang: "nl" | "en",
+  tWhatDoes: string
+): Exercise[] {
   return words.map(word => {
-    // Pick 3 random wrong answers from allWords
     const wrongOptions = allWords
       .filter(w => w.id !== word.id)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
-      .map(w => w.translation);
+      .map(w => getWordText(w, uiLang)); // answers in user's native lang
 
-    const options = [...wrongOptions, word.translation].sort(() => Math.random() - 0.5);
-    const correct = options.indexOf(word.translation);
+    const correctAnswer = getWordText(word, uiLang);
+    const options = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
+    const correct = options.indexOf(correctAnswer);
 
     return {
       wordId: word.id,
-      question: `What does "${word.word}" mean?`,
+      question: `${tWhatDoes} "${getWordText(word, courseLang)}"?`,
       options,
       correct,
     };
@@ -44,6 +53,7 @@ function generateExercises(words: WordDetail[], allWords: WordDetail[]): Exercis
 export default function PracticePage() {
   const navigate = useNavigate();
   const { practiceScope, reviews, recordReview } = useApp();
+  const { courseLang, uiLang, t } = useCourseLanguage();
 
   const exercises = useMemo(() => {
     const allWords = getAllWords();
@@ -56,11 +66,9 @@ export default function PracticePage() {
     } else if (practiceScope.type === "subcategory") {
       scopeWordIds = getWordsForSubcategory(practiceScope.id!).map(w => w.id);
     } else {
-      // single word
       scopeWordIds = [practiceScope.id!];
     }
 
-    // Get next words using spaced repetition
     const nextWordIds = getNextWordsForPractice(reviews, scopeWordIds, 5);
 
     const words = nextWordIds
@@ -68,17 +76,16 @@ export default function PracticePage() {
       .filter((w): w is WordDetail => !!w);
 
     if (words.length === 0) {
-      // Fallback: if all words are reviewed and none due, pick random ones
       const fallback = scopeWordIds
         .sort(() => Math.random() - 0.5)
         .slice(0, 5)
         .map(id => getWordById(id))
         .filter((w): w is WordDetail => !!w);
-      return generateExercises(fallback, allWords);
+      return generateExercises(fallback, allWords, courseLang, uiLang, t("whatDoes"));
     }
 
-    return generateExercises(words, allWords);
-  }, [practiceScope, reviews]);
+    return generateExercises(words, allWords, courseLang, uiLang, t("whatDoes"));
+  }, [practiceScope, reviews, courseLang, uiLang]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -88,8 +95,8 @@ export default function PracticePage() {
   if (exercises.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p>No words available for practice.</p>
-        <Button onClick={() => navigate("/home")}>Back to Home</Button>
+        <p>{t("noWords")}</p>
+        <Button onClick={() => navigate("/home")}>{t("backToHome")}</Button>
       </div>
     );
   }
@@ -168,13 +175,13 @@ export default function PracticePage() {
 
         {checked && !isCorrect && (
           <div className="mt-4 p-3 rounded-md bg-destructive/10 border border-destructive/20">
-            <p className="text-sm font-medium text-destructive">Incorrect</p>
-            <p className="text-sm mt-1">Correct answer: <span className="font-medium">{current.options[current.correct]}</span></p>
+            <p className="text-sm font-medium text-destructive">{t("incorrect")}</p>
+            <p className="text-sm mt-1">{t("correctAnswer")}: <span className="font-medium">{current.options[current.correct]}</span></p>
           </div>
         )}
         {checked && isCorrect && (
           <div className="mt-4 p-3 rounded-md bg-primary/10 border border-primary/20">
-            <p className="text-sm font-medium text-primary">Correct!</p>
+            <p className="text-sm font-medium text-primary">{t("correct")}</p>
           </div>
         )}
       </div>
@@ -183,15 +190,15 @@ export default function PracticePage() {
         {!checked ? (
           <>
             <Button className="w-full" disabled={selected === null} onClick={handleCheck}>
-              Check
+              {t("check")}
             </Button>
             <Button variant="ghost" className="w-full" onClick={handleSkip}>
-              Skip
+              {t("skip")}
             </Button>
           </>
         ) : (
           <Button className="w-full" onClick={handleContinue}>
-            {isLast ? "Finish" : "Continue"}
+            {isLast ? t("finish") : t("continue")}
           </Button>
         )}
       </div>

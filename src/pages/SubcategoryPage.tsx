@@ -1,13 +1,15 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Play } from "lucide-react";
-import { categories, getCategoryForSubcategory } from "@/data/courseData";
+import { categories, getWordText } from "@/data/courseData";
 import { useApp } from "@/context/AppContext";
+import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 
 export default function SubcategoryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setPracticeScope } = useApp();
+  const { uiLang, courseLang, t } = useCourseLanguage();
 
   let subcategory = null;
   let parentCategory = null;
@@ -37,13 +39,13 @@ export default function SubcategoryPage() {
   return (
     <div className="min-h-screen p-6 max-w-md mx-auto">
       <Button variant="ghost" onClick={() => navigate(`/category/${parentCategory!.id}`)} className="mb-4">
-        <ArrowLeft className="h-4 w-4 mr-1" /> {parentCategory.name}
+        <ArrowLeft className="h-4 w-4 mr-1" /> {parentCategory.name[uiLang]}
       </Button>
 
-      <h1 className="text-2xl font-semibold mb-4">{subcategory.name}</h1>
+      <h1 className="text-2xl font-semibold mb-4">{subcategory.name[uiLang]}</h1>
 
       <Button onClick={handlePractice} className="w-full mb-6 gap-2">
-        <Play className="h-4 w-4" /> Practice {subcategory.name}
+        <Play className="h-4 w-4" /> {t("practice")} {subcategory.name[uiLang]}
       </Button>
 
       <div className="space-y-2">
@@ -54,8 +56,7 @@ export default function SubcategoryPage() {
             className="w-full justify-between"
             onClick={() => navigate(`/word/${word.id}`)}
           >
-            <span>{word.word}</span>
-            <span className="text-muted-foreground text-sm">{word.translation}</span>
+            <span>{getWordText(word, courseLang)}</span>
           </Button>
         ))}
       </div>
