@@ -11,7 +11,10 @@ import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import SettingsPage from "./pages/SettingsPage";
 import IntroductionPage from "./pages/IntroductionPage";
-import LessonPage from "./pages/LessonPage";
+import CategoryPage from "./pages/CategoryPage";
+import SubcategoryPage from "./pages/SubcategoryPage";
+import WordDetailPage from "./pages/WordDetailPage";
+import PracticePage from "./pages/PracticePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,7 +54,10 @@ function AppRoutes() {
       <Route path="/courses" element={<CoursesPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
-      <Route path="/lesson" element={<LessonPage />} />
+      <Route path="/category/:id" element={<CategoryPage />} />
+      <Route path="/subcategory/:id" element={<SubcategoryPage />} />
+      <Route path="/word/:id" element={<WordDetailPage />} />
+      <Route path="/practice" element={<PracticePage />} />
       <Route path="*" element={<Navigate to="/home" />} />
     </Routes>
   );

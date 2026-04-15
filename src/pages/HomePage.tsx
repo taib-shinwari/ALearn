@@ -2,14 +2,30 @@ import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ScrollNavbar from "@/components/ScrollNavbar";
-import { Settings } from "lucide-react";
+import { Settings, Play } from "lucide-react";
+import { categories } from "@/data/courseData";
+import { useEffect } from "react";
 
 export default function HomePage() {
-  const { learningLanguage, introductionCompleted } = useApp();
+  const { learningLanguage, introductionCompleted, setPracticeScope } = useApp();
   const navigate = useNavigate();
 
   const langLabels: Record<string, string> = { nl: "Nederlands", en: "English" };
   const langLabel = langLabels[learningLanguage || ""] || learningLanguage || "Course";
+
+  // Auto-start introduction if not completed
+  useEffect(() => {
+    if (!introductionCompleted) {
+      navigate("/introduction");
+    }
+  }, [introductionCompleted, navigate]);
+
+  const handleGlobalPractice = () => {
+    setPracticeScope({ type: "global" });
+    navigate("/practice");
+  };
+
+  if (!introductionCompleted) return null;
 
   return (
     <div className="min-h-screen pt-16">
@@ -20,25 +36,24 @@ export default function HomePage() {
         </Button>
       </ScrollNavbar>
 
-      <div className="flex flex-col items-center gap-6 p-6">
-        <h1 className="text-2xl font-semibold">Learn {langLabel}</h1>
+      <div className="p-6 max-w-md mx-auto w-full">
+        <h1 className="text-2xl font-semibold mb-4">Learn {langLabel}</h1>
 
-        {!introductionCompleted ? (
-          <Button onClick={() => navigate("/introduction")} className="w-64">
-            Start Introduction
-          </Button>
-        ) : (
-          <Button onClick={() => navigate("/lesson")} className="w-64">
-            Start
-          </Button>
-        )}
+        <Button onClick={handleGlobalPractice} className="w-full mb-6 gap-2">
+          <Play className="h-4 w-4" /> Practice
+        </Button>
 
-        {/* Filler content to enable scrolling */}
-        <div className="mt-8 space-y-4 w-full max-w-md">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i} className="p-4 border rounded-md">
-              <p className="text-muted-foreground">Lesson placeholder {i + 1}</p>
-            </div>
+        <h2 className="text-lg font-medium mb-3">Categories</h2>
+        <div className="space-y-2">
+          {categories.map(cat => (
+            <Button
+              key={cat.id}
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => navigate(`/category/${cat.id}`)}
+            >
+              {cat.name}
+            </Button>
           ))}
         </div>
       </div>
