@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
 
 export interface Course {
   fromLang: string;
@@ -13,8 +14,9 @@ interface AppState {
   selectedConcept: string | null;
   learningLanguage: string | null;
   introductionCompleted: boolean;
-  currentLesson: string | null;
   courses: Course[];
+  reviews: ReviewState[];
+  practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
 }
 
 interface AppContextType extends AppState {
@@ -25,9 +27,11 @@ interface AppContextType extends AppState {
   setSelectedConcept: (concept: string) => void;
   setLearningLanguage: (lang: string) => void;
   completeIntroduction: () => void;
-  setCurrentLesson: (lesson: string | null) => void;
   addCourse: (course: Course) => boolean;
   setActiveCourse: (course: Course) => void;
+  getReview: (wordId: string) => ReviewState;
+  recordReview: (wordId: string, correct: boolean) => void;
+  setPracticeScope: (scope: AppState["practiceScope"]) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -43,8 +47,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      // migrate old state
       if (!parsed.courses) parsed.courses = [];
+      if (!parsed.reviews) parsed.reviews = [];
+      if (!parsed.practiceScope) parsed.practiceScope = null;
       return parsed;
     }
     return {
@@ -54,8 +59,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       selectedConcept: null,
       learningLanguage: null,
       introductionCompleted: false,
-      currentLesson: null,
       courses: [],
+      reviews: [],
+      practiceScope: null,
     };
   });
 
@@ -84,19 +90,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       selectedConcept: null,
       learningLanguage: null,
       introductionCompleted: false,
-      currentLesson: null,
       courses: [],
+      reviews: [],
+      practiceScope: null,
     });
   };
 
   const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
-  const setSelectedConcept = (concept: string) => {
-    setState(s => {
-      const newCourse: Course = { fromLang: s.interfaceLanguage!, concept, toLang: "" };
-      // toLang set later via setLearningLanguage
-      return { ...s, selectedConcept: concept };
-    });
-  };
+  const setSelectedConcept = (concept: string) => setState(s => ({ ...s, selectedConcept: concept }));
   const setLearningLanguage = (lang: string) => {
     setState(s => {
       const course: Course = { fromLang: s.interfaceLanguage!, concept: s.selectedConcept!, toLang: lang };
@@ -106,7 +107,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
   const completeIntroduction = () => setState(s => ({ ...s, introductionCompleted: true }));
-  const setCurrentLesson = (lesson: string | null) => setState(s => ({ ...s, currentLesson: lesson }));
 
   const addCourse = (course: Course): boolean => {
     const exists = state.courses.some(c => c.fromLang === course.fromLang && c.concept === course.concept && c.toLang === course.toLang);
@@ -130,8 +130,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const getReview = (wordId: string): ReviewState => {
+    const existing = state.reviews.find(r => r.wordId === wordId);
+    return existing || createReviewState(wordId);
+  };
+
+  const recordReview = (wordId: string, correct: boolean) => {
+    setState(s => {
+      const existing = s.reviews.find(r => r.wordId === wordId);
+      const current = existing || createReviewState(wordId);
+      const updated = updateReview(current, correct);
+      const reviews = existing
+        ? s.reviews.map(r => r.wordId === wordId ? updated : r)
+        : [...s.reviews, updated];
+      return { ...s, reviews };
+    });
+  };
+
+  const setPracticeScope = (scope: AppState["practiceScope"]) => {
+    setState(s => ({ ...s, practiceScope: scope }));
+  };
+
   return (
-    <AppContext.Provider value={{ ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept, setLearningLanguage, completeIntroduction, setCurrentLesson, addCourse, setActiveCourse }}>
+    <AppContext.Provider value={{
+      ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
+      setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
+      getReview, recordReview, setPracticeScope,
+    }}>
       {children}
     </AppContext.Provider>
   );

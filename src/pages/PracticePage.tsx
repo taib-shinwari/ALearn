@@ -1,56 +1,109 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import ScrollNavbar from "@/components/ScrollNavbar";
 import { X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import {
+  getAllWords,
+  getWordsForCategory,
+  getWordsForSubcategory,
+  getWordById,
+  globalLearningOrder,
+  WordDetail,
+} from "@/data/courseData";
+import { getNextWordsForPractice } from "@/lib/spacedRepetition";
 
 interface Exercise {
+  wordId: string;
   question: string;
   options: string[];
   correct: number;
-  explanation?: string;
 }
 
-const lessonData: Record<string, { title: string; exercises: Exercise[] }> = {
-  greetings: {
-    title: "Greetings",
-    exercises: [
-      { question: 'How do you say "Good morning" in Dutch?', options: ["Goedemorgen", "Goedenavond", "Goedenacht", "Hallo"], correct: 0, explanation: '"Goedemorgen" literally means "Good morning". "Goedenavond" = Good evening, "Goedenacht" = Good night.' },
-      { question: 'What does "Tot ziens" mean?', options: ["Hello", "Thank you", "Goodbye", "Please"], correct: 2, explanation: '"Tot ziens" is a formal way to say "Goodbye" in Dutch. "Tot" means "until" and "ziens" means "seeing".' },
-      { question: 'Translate: "Hoe gaat het?"', options: ["What is your name?", "How are you?", "Where are you?", "How old are you?"], correct: 1, explanation: '"Hoe" means "How", "gaat" means "goes", "het" means "it". Together: "How goes it?" = "How are you?"' },
-    ],
-  },
-};
+function generateExercises(words: WordDetail[], allWords: WordDetail[]): Exercise[] {
+  return words.map(word => {
+    // Pick 3 random wrong answers from allWords
+    const wrongOptions = allWords
+      .filter(w => w.id !== word.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map(w => w.translation);
 
-export default function LessonPage() {
+    const options = [...wrongOptions, word.translation].sort(() => Math.random() - 0.5);
+    const correct = options.indexOf(word.translation);
+
+    return {
+      wordId: word.id,
+      question: `What does "${word.word}" mean?`,
+      options,
+      correct,
+    };
+  });
+}
+
+export default function PracticePage() {
   const navigate = useNavigate();
-  const { currentLesson } = useApp();
-  const lessonId = currentLesson || "greetings";
-  const lesson = lessonData[lessonId];
+  const { practiceScope, reviews, recordReview } = useApp();
+
+  const exercises = useMemo(() => {
+    const allWords = getAllWords();
+    let scopeWordIds: string[];
+
+    if (!practiceScope || practiceScope.type === "global") {
+      scopeWordIds = globalLearningOrder;
+    } else if (practiceScope.type === "category") {
+      scopeWordIds = getWordsForCategory(practiceScope.id!).map(w => w.id);
+    } else if (practiceScope.type === "subcategory") {
+      scopeWordIds = getWordsForSubcategory(practiceScope.id!).map(w => w.id);
+    } else {
+      // single word
+      scopeWordIds = [practiceScope.id!];
+    }
+
+    // Get next words using spaced repetition
+    const nextWordIds = getNextWordsForPractice(reviews, scopeWordIds, 5);
+
+    const words = nextWordIds
+      .map(id => getWordById(id))
+      .filter((w): w is WordDetail => !!w);
+
+    if (words.length === 0) {
+      // Fallback: if all words are reviewed and none due, pick random ones
+      const fallback = scopeWordIds
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5)
+        .map(id => getWordById(id))
+        .filter((w): w is WordDetail => !!w);
+      return generateExercises(fallback, allWords);
+    }
+
+    return generateExercises(words, allWords);
+  }, [practiceScope, reviews]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  if (!lesson) {
+  if (exercises.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Lesson not found.</p>
-        <Button onClick={() => navigate("/home")} className="ml-2">Home</Button>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p>No words available for practice.</p>
+        <Button onClick={() => navigate("/home")}>Back to Home</Button>
       </div>
     );
   }
 
-  const current = lesson.exercises[step];
-  const isLast = step === lesson.exercises.length - 1;
-  const progress = ((step + (checked && isCorrect ? 1 : 0)) / lesson.exercises.length) * 100;
+  const current = exercises[step];
+  const isLast = step === exercises.length - 1;
+  const progress = ((step + (checked && isCorrect ? 1 : 0)) / exercises.length) * 100;
 
   const handleCheck = () => {
     if (selected === null) return;
+    const correct = selected === current.correct;
     setChecked(true);
-    setIsCorrect(selected === current.correct);
+    setIsCorrect(correct);
+    recordReview(current.wordId, correct);
   };
 
   const handleContinue = () => {
@@ -77,7 +130,6 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center gap-3 p-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
           <X className="h-5 w-5" />
@@ -90,7 +142,6 @@ export default function LessonPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 p-6 max-w-md mx-auto w-full">
         <h2 className="text-lg font-medium mb-6">{current.question}</h2>
         <div className="space-y-2">
@@ -115,13 +166,9 @@ export default function LessonPage() {
           })}
         </div>
 
-        {/* Feedback after check */}
         {checked && !isCorrect && (
           <div className="mt-4 p-3 rounded-md bg-destructive/10 border border-destructive/20">
             <p className="text-sm font-medium text-destructive">Incorrect</p>
-            {current.explanation && (
-              <p className="text-sm text-muted-foreground mt-1">{current.explanation}</p>
-            )}
             <p className="text-sm mt-1">Correct answer: <span className="font-medium">{current.options[current.correct]}</span></p>
           </div>
         )}
@@ -132,7 +179,6 @@ export default function LessonPage() {
         )}
       </div>
 
-      {/* Bottom actions */}
       <div className="p-4 max-w-md mx-auto w-full space-y-2">
         {!checked ? (
           <>
@@ -145,7 +191,7 @@ export default function LessonPage() {
           </>
         ) : (
           <Button className="w-full" onClick={handleContinue}>
-            {isLast ? "Finish Lesson" : "Continue"}
+            {isLast ? "Finish" : "Continue"}
           </Button>
         )}
       </div>
