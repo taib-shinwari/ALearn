@@ -1,26 +1,38 @@
 import { cn } from "@/lib/utils";
 import { ReactNode, ButtonHTMLAttributes, forwardRef } from "react";
 
-export const buttonVariants = {
-  variants: {
-    default: "",
-    destructive: "",
-    outline: "",
-    secondary: "",
-    ghost: "",
-    link: "",
-    primary: "",
-  },
-  sizes: {
-    default: "h-10 px-5 py-2",
-    sm: "h-8 px-4 text-xs",
-    lg: "h-12 px-8 text-base",
-    icon: "h-10 w-10",
-  },
-};
+// Compatibility: buttonVariants as a callable for shadcn components that import it
+export function buttonVariants({
+  variant = "secondary",
+  size = "default",
+  className = "",
+}: {
+  variant?: string;
+  size?: string;
+  className?: string;
+} = {}): string {
+  const sizeClasses: Record<string, string> = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base",
+    default: "px-4 py-2 text-sm",
+    icon: "p-2",
+  };
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  children: ReactNode;
+  return cn(
+    "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
+    "inline-flex items-center justify-center gap-2",
+    sizeClasses[size] || sizeClasses.default,
+    variant === "primary" && "text-primary",
+    variant === "destructive" && "border-destructive text-destructive",
+    variant === "ghost" && "border-transparent bg-transparent",
+    variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
+    className
+  );
+}
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children?: ReactNode;
   variant?: "primary" | "secondary" | "default" | "destructive" | "outline" | "ghost" | "link";
   size?: "sm" | "md" | "lg" | "default" | "icon";
   className?: string;
@@ -43,7 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const sizeClasses = {
+    const sizeClasses: Record<string, string> = {
       sm: "px-3 py-1.5 text-xs",
       md: "px-4 py-2 text-sm",
       lg: "px-6 py-3 text-base",
@@ -57,7 +69,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
           "inline-flex items-center justify-center gap-2",
-          sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.md,
+          sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
           variant === "primary" && "text-primary",
           variant === "destructive" && "border-destructive text-destructive",
