@@ -29,8 +29,8 @@ export default function AuthPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col gap-4 w-72">
-          <Button onClick={() => setMode("signin")} className="w-full">Sign In</Button>
-          <Button onClick={() => setMode("signup")} variant="outline" className="w-full">Sign Up</Button>
+          <Button onClick={() => setMode("signin")} fullWidth>Sign In</Button>
+          <Button onClick={() => setMode("signup")} variant="ghost" fullWidth>Sign Up</Button>
         </div>
       </div>
     );
@@ -62,8 +62,8 @@ export default function AuthPage() {
           <h2 className="text-xl font-semibold text-center">Sign In</h2>
           {steps[siStep]}
           {siError && <p className="text-sm text-destructive">{siError}</p>}
-          <Button onClick={handleContinue}>Continue</Button>
-          <Button variant="ghost" onClick={() => { setMode("choose"); setSiStep(0); setSiError(""); }}>Back</Button>
+          <Button onClick={handleContinue} fullWidth>Continue</Button>
+          <Button variant="ghost" fullWidth onClick={() => { setMode("choose"); setSiStep(0); setSiError(""); }}>Back</Button>
         </div>
       </div>
     );
@@ -112,8 +112,8 @@ export default function AuthPage() {
         <h2 className="text-xl font-semibold text-center">Sign Up</h2>
         {suSteps[suStep]}
         {suError && <p className="text-sm text-destructive">{suError}</p>}
-        <Button onClick={handleSuContinue}>Continue</Button>
-        <Button variant="ghost" onClick={() => { setMode("choose"); setSuStep(0); setSuError(""); }}>Back</Button>
+        <Button onClick={handleSuContinue} fullWidth>Continue</Button>
+        <Button variant="ghost" fullWidth onClick={() => { setMode("choose"); setSuStep(0); setSuError(""); }}>Back</Button>
       </div>
     </div>
   );

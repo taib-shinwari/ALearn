@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Container } from "@/components/ui/container";
+import { X, Flame, Star } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import {
   getAllWords,
@@ -11,7 +12,6 @@ import {
   globalLearningOrder,
   WordDetail,
   getWordText,
-  getTranslation,
 } from "@/data/courseData";
 import { getNextWordsForPractice } from "@/lib/spacedRepetition";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
@@ -22,6 +22,8 @@ interface Exercise {
   options: string[];
   correct: number;
 }
+
+const encouragements = ["greatJob", "keepGoing", "nice", "perfect", "wellDone", "awesome"] as const;
 
 function generateExercises(
   words: WordDetail[],
@@ -35,7 +37,7 @@ function generateExercises(
       .filter(w => w.id !== word.id)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
-      .map(w => getWordText(w, uiLang)); // answers in user's native lang
+      .map(w => getWordText(w, uiLang));
 
     const correctAnswer = getWordText(word, uiLang);
     const options = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
@@ -52,7 +54,7 @@ function generateExercises(
 
 export default function PracticePage() {
   const navigate = useNavigate();
-  const { practiceScope, reviews, recordReview } = useApp();
+  const { practiceScope, reviews, recordReview, streak, xp } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
 
   const exercises = useMemo(() => {
@@ -91,6 +93,9 @@ export default function PracticePage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [sessionDone, setSessionDone] = useState(false);
+  const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
+  const [startXp] = useState(xp);
 
   if (exercises.length === 0) {
     return (
@@ -101,9 +106,49 @@ export default function PracticePage() {
     );
   }
 
+  if (sessionDone) {
+    const accuracy = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
+    const xpEarned = xp - startXp;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
+        <h1 className="text-3xl font-bold mb-2">🎉</h1>
+        <h2 className="text-xl font-bold mb-6">{t("sessionComplete")}</h2>
+
+        <div className="grid grid-cols-3 gap-4 w-full mb-8">
+          <Container className="text-center p-3">
+            <p className="text-2xl font-bold">{sessionStats.total}</p>
+            <p className="text-xs text-muted-foreground">{t("wordsLearned")}</p>
+          </Container>
+          <Container className="text-center p-3">
+            <p className="text-2xl font-bold">{accuracy}%</p>
+            <p className="text-xs text-muted-foreground">{t("accuracy")}</p>
+          </Container>
+          <Container className="text-center p-3">
+            <p className="text-2xl font-bold text-yellow-500">+{xpEarned}</p>
+            <p className="text-xs text-muted-foreground">{t("xp")}</p>
+          </Container>
+        </div>
+
+        <div className="flex items-center gap-2 mb-8">
+          <Flame className="h-5 w-5 text-orange-500" />
+          <span className="font-bold">{streak} {t("streak")}</span>
+          <Star className="h-5 w-5 text-yellow-500 ml-4" />
+          <span className="font-bold">{xp} {t("xp")}</span>
+        </div>
+
+        <Button onClick={() => navigate("/home")} fullWidth>{t("continue")}</Button>
+      </div>
+    );
+  }
+
   const current = exercises[step];
   const isLast = step === exercises.length - 1;
   const progress = ((step + (checked && isCorrect ? 1 : 0)) / exercises.length) * 100;
+
+  const handleSelect = (i: number) => {
+    if (checked) return;
+    setSelected(i);
+  };
 
   const handleCheck = () => {
     if (selected === null) return;
@@ -111,11 +156,12 @@ export default function PracticePage() {
     setChecked(true);
     setIsCorrect(correct);
     recordReview(current.wordId, correct);
+    setSessionStats(s => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
   };
 
   const handleContinue = () => {
     if (isLast) {
-      navigate("/home");
+      setSessionDone(true);
     } else {
       setStep(step + 1);
       setSelected(null);
@@ -126,7 +172,7 @@ export default function PracticePage() {
 
   const handleSkip = () => {
     if (isLast) {
-      navigate("/home");
+      setSessionDone(true);
     } else {
       setStep(step + 1);
       setSelected(null);
@@ -134,6 +180,8 @@ export default function PracticePage() {
       setIsCorrect(null);
     }
   };
+
+  const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -143,61 +191,58 @@ export default function PracticePage() {
         </Button>
         <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-300"
+            className="h-full bg-foreground rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       <div className="flex-1 p-6 max-w-md mx-auto w-full">
-        <h2 className="text-lg font-medium mb-6">{current.question}</h2>
+        <h2 className="text-lg font-semibold mb-6">{current.question}</h2>
         <div className="space-y-2">
-          {current.options.map((opt, i) => {
-            let variant: "outline" | "default" | "destructive" = "outline";
-            if (checked && selected === i) {
-              variant = isCorrect ? "default" : "destructive";
-            } else if (!checked && selected === i) {
-              variant = "default";
-            }
-            return (
-              <Button
-                key={i}
-                variant={variant}
-                className="w-full"
-                disabled={checked}
-                onClick={() => setSelected(i)}
-              >
-                {opt}
-              </Button>
-            );
-          })}
+          {current.options.map((opt, i) => (
+            <Button
+              key={i}
+              active={selected === i && !checked}
+              variant={
+                checked && selected === i
+                  ? isCorrect ? "primary" : "destructive"
+                  : "secondary"
+              }
+              fullWidth
+              disabled={checked}
+              onClick={() => handleSelect(i)}
+            >
+              {opt}
+            </Button>
+          ))}
         </div>
 
         {checked && !isCorrect && (
-          <div className="mt-4 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+          <Container className="mt-4 border-destructive">
             <p className="text-sm font-medium text-destructive">{t("incorrect")}</p>
             <p className="text-sm mt-1">{t("correctAnswer")}: <span className="font-medium">{current.options[current.correct]}</span></p>
-          </div>
+          </Container>
         )}
         {checked && isCorrect && (
-          <div className="mt-4 p-3 rounded-md bg-primary/10 border border-primary/20">
-            <p className="text-sm font-medium text-primary">{t("correct")}</p>
-          </div>
+          <Container className="mt-4 border-green-500">
+            <p className="text-sm font-medium text-green-600">{t(randomEncouragement)} ✨</p>
+          </Container>
         )}
       </div>
 
       <div className="p-4 max-w-md mx-auto w-full space-y-2">
         {!checked ? (
           <>
-            <Button className="w-full" disabled={selected === null} onClick={handleCheck}>
+            <Button fullWidth disabled={selected === null} onClick={handleCheck}>
               {t("check")}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={handleSkip}>
+            <Button variant="ghost" fullWidth onClick={handleSkip}>
               {t("skip")}
             </Button>
           </>
         ) : (
-          <Button className="w-full" onClick={handleContinue}>
+          <Button fullWidth onClick={handleContinue}>
             {isLast ? t("finish") : t("continue")}
           </Button>
         )}
