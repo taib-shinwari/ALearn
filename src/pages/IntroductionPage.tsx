@@ -25,7 +25,7 @@ const exercises: Exercise[] = [
   },
   {
     type: "reading",
-    question: 'Read the following: "Hallo, hoe gaat het?" means "Hello, how are you?" — What does "hoe gaat het" mean?',
+    question: '"Hallo, hoe gaat het?" means "Hello, how are you?" — What does "hoe gaat het" mean?',
     options: ["How are you", "Goodbye", "Thank you", "Good morning"],
     correctAnswer: 0,
     explanation: '"Hoe gaat het" literally translates to "How goes it", meaning "How are you?"',
@@ -111,31 +111,30 @@ export default function IntroductionPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center gap-3 p-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
           <X className="h-5 w-5" />
         </Button>
         <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-300"
+            className="h-full bg-foreground rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 p-6 max-w-md mx-auto w-full">
-        <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">{current.type} exercise</p>
-        <h2 className="text-lg font-medium mb-6">{current.question}</h2>
+        <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">{current.type}</p>
+        <h2 className="text-lg font-semibold mb-6">{current.question}</h2>
 
         {current.type === "match" && current.pairs && (
           <div className="space-y-2">
             {current.pairs.map((pair, i) => (
               <Button
                 key={i}
-                variant={matchedPairs.includes(i) ? "default" : "outline"}
-                className="w-full justify-between"
+                active={matchedPairs.includes(i)}
+                fullWidth
+                className="justify-between"
                 disabled={checked}
                 onClick={() => handleMatchSelect(i)}
               >
@@ -148,31 +147,27 @@ export default function IntroductionPage() {
 
         {(current.type === "multiple" || current.type === "reading" || current.type === "truefalse") && current.options && (
           <div className="space-y-2">
-            {current.options.map((opt, i) => {
-              let variant: "outline" | "default" | "destructive" = "outline";
-              if (checked && selected === i) {
-                variant = isCorrect ? "default" : "destructive";
-              } else if (!checked && selected === i) {
-                variant = "default";
-              }
-              return (
-                <Button
-                  key={i}
-                  variant={variant}
-                  className="w-full"
-                  disabled={checked}
-                  onClick={() => setSelected(i)}
-                >
-                  {opt}
-                </Button>
-              );
-            })}
+            {current.options.map((opt, i) => (
+              <Button
+                key={i}
+                active={selected === i && !checked}
+                variant={
+                  checked && selected === i
+                    ? isCorrect ? "primary" : "destructive"
+                    : "secondary"
+                }
+                fullWidth
+                disabled={checked}
+                onClick={() => setSelected(i)}
+              >
+                {opt}
+              </Button>
+            ))}
           </div>
         )}
 
-        {/* Feedback after check */}
         {checked && !isCorrect && current.type !== "match" && (
-          <div className="mt-4 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+          <div className="mt-4 p-3 rounded-[20px] border-2 border-destructive">
             <p className="text-sm font-medium text-destructive">Incorrect</p>
             {current.explanation && (
               <p className="text-sm text-muted-foreground mt-1">{current.explanation}</p>
@@ -181,25 +176,24 @@ export default function IntroductionPage() {
           </div>
         )}
         {checked && isCorrect && (
-          <div className="mt-4 p-3 rounded-md bg-primary/10 border border-primary/20">
-            <p className="text-sm font-medium text-primary">Correct!</p>
+          <div className="mt-4 p-3 rounded-[20px] border-2 border-green-500">
+            <p className="text-sm font-medium text-green-600">Correct! ✨</p>
           </div>
         )}
       </div>
 
-      {/* Bottom actions */}
       <div className="p-4 max-w-md mx-auto w-full space-y-2">
         {!checked ? (
           <>
-            <Button className="w-full" disabled={!canCheck} onClick={handleCheck}>
+            <Button fullWidth disabled={!canCheck} onClick={handleCheck}>
               Check
             </Button>
-            <Button variant="ghost" className="w-full" onClick={handleSkip}>
+            <Button variant="ghost" fullWidth onClick={handleSkip}>
               Skip
             </Button>
           </>
         ) : (
-          <Button className="w-full" onClick={handleContinue}>
+          <Button fullWidth onClick={handleContinue}>
             {isLast ? "Finish Introduction" : "Continue"}
           </Button>
         )}

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import ScrollNavbar from "@/components/ScrollNavbar";
+import { Container } from "@/components/ui/container";
 import { ArrowLeft, Plus, Check } from "lucide-react";
 import { useApp, Course } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
@@ -71,22 +71,14 @@ export default function CoursesPage() {
     navigate("/home");
   };
 
-  const grouped = courses.reduce<Record<string, Course[]>>((acc, c) => {
-    const key = c.concept;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(c);
-    return acc;
-  }, {});
-
   const isActive = (c: Course) =>
     c.fromLang === interfaceLanguage && c.concept === selectedConcept && c.toLang === learningLanguage;
 
   const getLangLabel = (code: string) => availableLanguages.find(l => l.code === code)?.label || code;
-  const getConceptLabel = (code: string) => availableConcepts.find(c => c.code === code)?.label || code;
 
   return (
-    <div className="min-h-screen pt-16">
-      <ScrollNavbar>
+    <div className="min-h-screen p-6 max-w-md mx-auto">
+      <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={() => navigate("/home")}>
           <ArrowLeft className="h-4 w-4 mr-1" /> {t("back")}
         </Button>
@@ -106,19 +98,19 @@ export default function CoursesPage() {
             </DialogHeader>
             <div className="flex flex-col gap-2">
               {addStep === 0 && availableLanguages.map(l => (
-                <Button key={l.code} variant="outline" className="w-full" onClick={() => handleSelectFromLang(l.code)}>
+                <Button key={l.code} fullWidth onClick={() => handleSelectFromLang(l.code)}>
                   {l.label}
                 </Button>
               ))}
               {addStep === 1 && availableConcepts.map(c => (
-                <Button key={c.code} variant="outline" className="w-full" onClick={() => handleSelectConcept(c.code)}>
+                <Button key={c.code} fullWidth onClick={() => handleSelectConcept(c.code)}>
                   {c.label}
                 </Button>
               ))}
               {addStep === 2 && getLearnableLanguages(newFromLang!).map(l => {
                 const alreadyExists = courses.some(c => c.fromLang === newFromLang && c.concept === newConcept && c.toLang === l.code);
                 return (
-                  <Button key={l.code} variant="outline" className="w-full" disabled={alreadyExists} onClick={() => handleSelectToLang(l.code)}>
+                  <Button key={l.code} fullWidth disabled={alreadyExists} onClick={() => handleSelectToLang(l.code)}>
                     {l.label} {alreadyExists && t("alreadyAdded")}
                   </Button>
                 );
@@ -132,30 +124,28 @@ export default function CoursesPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </ScrollNavbar>
+      </div>
 
-      <div className="p-6 max-w-md mx-auto">
-        <h1 className="text-2xl font-semibold mb-6">{t("yourCourses")}</h1>
-        {Object.keys(grouped).length === 0 && (
-          <p className="text-muted-foreground">{t("noCourses")}</p>
-        )}
-        {Object.entries(grouped).map(([concept, items]) => (
-          <div key={concept} className="mb-6">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              {getConceptLabel(concept)}
-            </h3>
-            {items.map((c, i) => (
-              <Button
-                key={i}
-                variant={isActive(c) ? "default" : "outline"}
-                className="w-full mb-2 justify-between"
-                onClick={() => { setActiveCourse(c); navigate("/home"); }}
-              >
-                <span>{getLangLabel(c.fromLang)} → {getLangLabel(c.toLang)}</span>
-                {isActive(c) && <Check className="h-4 w-4 ml-2" />}
-              </Button>
-            ))}
-          </div>
+      <h1 className="text-2xl font-semibold mb-6">{t("yourCourses")}</h1>
+
+      {courses.length === 0 && (
+        <p className="text-muted-foreground">{t("noCourses")}</p>
+      )}
+
+      <div className="space-y-2">
+        {courses.map((c, i) => (
+          <Container
+            key={i}
+            className={`cursor-pointer hover:scale-[1.01] transition-transform ${isActive(c) ? "bg-foreground text-background border-background" : ""}`}
+          >
+            <div
+              className="flex items-center justify-between"
+              onClick={() => { setActiveCourse(c); navigate("/home"); }}
+            >
+              <span className="font-medium text-sm">{getLangLabel(c.fromLang)} → {getLangLabel(c.toLang)}</span>
+              {isActive(c) && <Check className="h-4 w-4" />}
+            </div>
+          </Container>
         ))}
       </div>
     </div>

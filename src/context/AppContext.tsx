@@ -17,6 +17,9 @@ interface AppState {
   courses: Course[];
   reviews: ReviewState[];
   practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
+  streak: number;
+  lastPracticeDate: string | null;
+  xp: number;
 }
 
 interface AppContextType extends AppState {
@@ -42,27 +45,39 @@ export function useApp() {
   return ctx;
 }
 
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getYesterday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+const defaultState: AppState = {
+  isAuthenticated: false,
+  user: null,
+  interfaceLanguage: null,
+  selectedConcept: null,
+  learningLanguage: null,
+  introductionCompleted: false,
+  courses: [],
+  reviews: [],
+  practiceScope: null,
+  streak: 0,
+  lastPracticeDate: null,
+  xp: 0,
+};
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (!parsed.courses) parsed.courses = [];
-      if (!parsed.reviews) parsed.reviews = [];
-      if (!parsed.practiceScope) parsed.practiceScope = null;
-      return parsed;
+      return { ...defaultState, ...parsed };
     }
-    return {
-      isAuthenticated: false,
-      user: null,
-      interfaceLanguage: null,
-      selectedConcept: null,
-      learningLanguage: null,
-      introductionCompleted: false,
-      courses: [],
-      reviews: [],
-      practiceScope: null,
-    };
+    return defaultState;
   });
 
   useEffect(() => {
@@ -83,17 +98,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setState({
-      isAuthenticated: false,
-      user: null,
-      interfaceLanguage: null,
-      selectedConcept: null,
-      learningLanguage: null,
-      introductionCompleted: false,
-      courses: [],
-      reviews: [],
-      practiceScope: null,
-    });
+    setState(defaultState);
   };
 
   const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
@@ -143,7 +148,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const reviews = existing
         ? s.reviews.map(r => r.wordId === wordId ? updated : r)
         : [...s.reviews, updated];
-      return { ...s, reviews };
+
+      // Streak & XP logic
+      const today = getToday();
+      const yesterday = getYesterday();
+      let { streak, lastPracticeDate, xp } = s;
+
+      if (correct) {
+        xp += 10;
+      }
+
+      if (lastPracticeDate !== today) {
+        if (lastPracticeDate === yesterday) {
+          streak += 1;
+        } else if (lastPracticeDate !== today) {
+          streak = 1;
+        }
+        lastPracticeDate = today;
+      }
+
+      return { ...s, reviews, streak, lastPracticeDate, xp };
     });
   };
 

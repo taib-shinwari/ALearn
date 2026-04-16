@@ -8,6 +8,7 @@ export interface WordDetail {
     meervoud?: string;
     verkleinwoord?: string;
     vervoeging?: Record<string, string>;
+    voorbeeld?: string;
   };
   en: {
     word: string;
@@ -15,6 +16,7 @@ export interface WordDetail {
     plural?: string;
     diminutive?: string;
     conjugation?: Record<string, string>;
+    example?: string;
   };
 }
 
@@ -30,7 +32,6 @@ export interface Category {
   subcategories: Subcategory[];
 }
 
-// Labels for UI in each language
 export const uiLabels: Record<string, Record<string, string>> = {
   nl: {
     practice: "Oefenen",
@@ -39,6 +40,7 @@ export const uiLabels: Record<string, Record<string, string>> = {
     plural: "Meervoud",
     diminutive: "Verkleinwoord",
     conjugation: "Vervoeging",
+    example: "Voorbeeld",
     categories: "Categorieën",
     words: "woorden",
     practiceThis: "Oefen dit",
@@ -61,6 +63,22 @@ export const uiLabels: Record<string, Record<string, string>> = {
     alreadyAdded: "(al toegevoegd)",
     settings: "Instellingen",
     signOut: "Uitloggen",
+    streak: "Reeks",
+    xp: "XP",
+    sessionComplete: "Sessie voltooid!",
+    wordsLearned: "Woorden geoefend",
+    accuracy: "Nauwkeurigheid",
+    xpEarned: "XP verdiend",
+    greatJob: "Goed bezig!",
+    keepGoing: "Ga zo door!",
+    nice: "Netjes!",
+    perfect: "Perfect!",
+    wellDone: "Goed gedaan!",
+    awesome: "Geweldig!",
+    hi: "Hoi",
+    profile: "Profiel",
+    darkMode: "Donkere modus",
+    progress: "Voortgang",
   },
   en: {
     practice: "Practice",
@@ -69,6 +87,7 @@ export const uiLabels: Record<string, Record<string, string>> = {
     plural: "Plural",
     diminutive: "Diminutive",
     conjugation: "Conjugation",
+    example: "Example",
     categories: "Categories",
     words: "words",
     practiceThis: "Practice this",
@@ -91,17 +110,41 @@ export const uiLabels: Record<string, Record<string, string>> = {
     alreadyAdded: "(already added)",
     settings: "Settings",
     signOut: "Sign out",
+    streak: "Streak",
+    xp: "XP",
+    sessionComplete: "Session complete!",
+    wordsLearned: "Words practiced",
+    accuracy: "Accuracy",
+    xpEarned: "XP earned",
+    greatJob: "Great job!",
+    keepGoing: "Keep going!",
+    nice: "Nice!",
+    perfect: "Perfect!",
+    wellDone: "Well done!",
+    awesome: "Awesome!",
+    hi: "Hi",
+    profile: "Profile",
+    darkMode: "Dark mode",
+    progress: "Progress",
   },
 };
 
 export const globalLearningOrder: string[] = [
   "hallo", "goedemorgen", "goedemiddag", "goedenavond", "tot-ziens", "doei",
-  "hond", "kat", "paard", "vogel",
+  "hond", "kat", "paard", "vogel", "vis", "konijn",
   "man", "vrouw", "kind", "baby",
   "wortel", "aardappel", "ui", "tomaat",
   "appel", "banaan", "aardbei", "druif",
+  "jas", "schoen", "broek", "jurk",
+  "hoofd", "hand", "been", "oog",
+  "brood", "kaas", "soep", "rijst",
   "groot", "klein", "mooi", "lelijk", "snel", "langzaam",
+  "blij", "boos", "bang", "moe",
+  "warm", "koud", "nat", "droog",
   "lopen", "eten", "drinken", "slapen", "lezen", "schrijven",
+  "rennen", "springen", "zwemmen", "fietsen",
+  "praten", "luisteren", "vragen", "antwoorden",
+  "heel", "soms", "altijd", "nooit", "hier", "daar",
 ];
 
 export const categories: Category[] = [
@@ -113,52 +156,84 @@ export const categories: Category[] = [
         id: "begroeting",
         name: { nl: "Begroeting", en: "Greeting" },
         words: [
-          { id: "hallo", nl: { word: "Hallo", definitie: "Een informele begroeting." }, en: { word: "Hello", definition: "An informal greeting." } },
-          { id: "goedemorgen", nl: { word: "Goedemorgen", definitie: "Begroeting gebruikt in de ochtend." }, en: { word: "Good morning", definition: "Greeting used in the morning." } },
-          { id: "goedemiddag", nl: { word: "Goedemiddag", definitie: "Begroeting gebruikt in de middag." }, en: { word: "Good afternoon", definition: "Greeting used in the afternoon." } },
-          { id: "goedenavond", nl: { word: "Goedenavond", definitie: "Begroeting gebruikt in de avond." }, en: { word: "Good evening", definition: "Greeting used in the evening." } },
-          { id: "tot-ziens", nl: { word: "Tot ziens", definitie: "Formeel afscheid." }, en: { word: "Goodbye", definition: "Formal farewell." } },
-          { id: "doei", nl: { word: "Doei", definitie: "Informeel afscheid." }, en: { word: "Bye", definition: "Informal farewell." } },
+          { id: "hallo", nl: { word: "Hallo", definitie: "Een informele begroeting.", voorbeeld: "Hallo, hoe gaat het?" }, en: { word: "Hello", definition: "An informal greeting.", example: "Hello, how are you?" } },
+          { id: "goedemorgen", nl: { word: "Goedemorgen", definitie: "Begroeting gebruikt in de ochtend.", voorbeeld: "Goedemorgen, lekker geslapen?" }, en: { word: "Good morning", definition: "Greeting used in the morning.", example: "Good morning, did you sleep well?" } },
+          { id: "goedemiddag", nl: { word: "Goedemiddag", definitie: "Begroeting gebruikt in de middag.", voorbeeld: "Goedemiddag mevrouw." }, en: { word: "Good afternoon", definition: "Greeting used in the afternoon.", example: "Good afternoon, ma'am." } },
+          { id: "goedenavond", nl: { word: "Goedenavond", definitie: "Begroeting gebruikt in de avond.", voorbeeld: "Goedenavond allemaal!" }, en: { word: "Good evening", definition: "Greeting used in the evening.", example: "Good evening everyone!" } },
+          { id: "tot-ziens", nl: { word: "Tot ziens", definitie: "Formeel afscheid.", voorbeeld: "Tot ziens en een fijne dag!" }, en: { word: "Goodbye", definition: "Formal farewell.", example: "Goodbye and have a nice day!" } },
+          { id: "doei", nl: { word: "Doei", definitie: "Informeel afscheid.", voorbeeld: "Doei, tot morgen!" }, en: { word: "Bye", definition: "Informal farewell.", example: "Bye, see you tomorrow!" } },
         ],
       },
       {
         id: "dier",
         name: { nl: "Dier", en: "Animal" },
         words: [
-          { id: "hond", nl: { word: "De Hond", definitie: "Een huisdier.", meervoud: "Honden", verkleinwoord: "Hondje" }, en: { word: "The Dog", definition: "A pet.", plural: "Dogs", diminutive: "Doggy" } },
-          { id: "kat", nl: { word: "De Kat", definitie: "Een huisdier.", meervoud: "Katten", verkleinwoord: "Katje" }, en: { word: "The Cat", definition: "A pet.", plural: "Cats", diminutive: "Kitty" } },
-          { id: "paard", nl: { word: "Het Paard", definitie: "Een groot dier.", meervoud: "Paarden", verkleinwoord: "Paardje" }, en: { word: "The Horse", definition: "A large animal.", plural: "Horses", diminutive: "Pony" } },
-          { id: "vogel", nl: { word: "De Vogel", definitie: "Een dier dat kan vliegen.", meervoud: "Vogels", verkleinwoord: "Vogeltje" }, en: { word: "The Bird", definition: "An animal that can fly.", plural: "Birds", diminutive: "Birdie" } },
+          { id: "hond", nl: { word: "De Hond", definitie: "Een huisdier.", meervoud: "Honden", verkleinwoord: "Hondje", voorbeeld: "De hond blaft." }, en: { word: "The Dog", definition: "A pet.", plural: "Dogs", diminutive: "Doggy", example: "The dog barks." } },
+          { id: "kat", nl: { word: "De Kat", definitie: "Een huisdier.", meervoud: "Katten", verkleinwoord: "Katje", voorbeeld: "De kat slaapt op de bank." }, en: { word: "The Cat", definition: "A pet.", plural: "Cats", diminutive: "Kitty", example: "The cat sleeps on the couch." } },
+          { id: "paard", nl: { word: "Het Paard", definitie: "Een groot dier.", meervoud: "Paarden", verkleinwoord: "Paardje", voorbeeld: "Het paard rent door het veld." }, en: { word: "The Horse", definition: "A large animal.", plural: "Horses", diminutive: "Pony", example: "The horse runs through the field." } },
+          { id: "vogel", nl: { word: "De Vogel", definitie: "Een dier dat kan vliegen.", meervoud: "Vogels", verkleinwoord: "Vogeltje", voorbeeld: "De vogel zingt in de boom." }, en: { word: "The Bird", definition: "An animal that can fly.", plural: "Birds", diminutive: "Birdie", example: "The bird sings in the tree." } },
+          { id: "vis", nl: { word: "De Vis", definitie: "Een dier dat in water leeft.", meervoud: "Vissen", verkleinwoord: "Visje", voorbeeld: "De vis zwemt in de vijver." }, en: { word: "The Fish", definition: "An animal that lives in water.", plural: "Fish", diminutive: "Fishy", example: "The fish swims in the pond." } },
+          { id: "konijn", nl: { word: "Het Konijn", definitie: "Een klein zoogdier met lange oren.", meervoud: "Konijnen", verkleinwoord: "Konijntje", voorbeeld: "Het konijn eet een wortel." }, en: { word: "The Rabbit", definition: "A small mammal with long ears.", plural: "Rabbits", diminutive: "Bunny", example: "The rabbit eats a carrot." } },
         ],
       },
       {
         id: "mens",
         name: { nl: "Mens", en: "Person" },
         words: [
-          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje" }, en: { word: "The Man", definition: "An adult male person.", plural: "Men" } },
-          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje" }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women" } },
-          { id: "kind", nl: { word: "Het Kind", definitie: "Een jong persoon.", meervoud: "Kinderen", verkleinwoord: "Kindje" }, en: { word: "The Child", definition: "A young person.", plural: "Children" } },
-          { id: "baby", nl: { word: "De Baby", definitie: "Een heel jong kind.", meervoud: "Baby's", verkleinwoord: "Babytje" }, en: { word: "The Baby", definition: "A very young child.", plural: "Babies" } },
+          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek." }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book." } },
+          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten." }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food." } },
+          { id: "kind", nl: { word: "Het Kind", definitie: "Een jong persoon.", meervoud: "Kinderen", verkleinwoord: "Kindje", voorbeeld: "Het kind speelt buiten." }, en: { word: "The Child", definition: "A young person.", plural: "Children", example: "The child plays outside." } },
+          { id: "baby", nl: { word: "De Baby", definitie: "Een heel jong kind.", meervoud: "Baby's", verkleinwoord: "Babytje", voorbeeld: "De baby slaapt." }, en: { word: "The Baby", definition: "A very young child.", plural: "Babies", example: "The baby sleeps." } },
         ],
       },
       {
         id: "groente",
         name: { nl: "Groente", en: "Vegetable" },
         words: [
-          { id: "wortel", nl: { word: "De Wortel", definitie: "Een oranje groente.", meervoud: "Wortels", verkleinwoord: "Worteltje" }, en: { word: "The Carrot", definition: "An orange vegetable.", plural: "Carrots" } },
-          { id: "aardappel", nl: { word: "De Aardappel", definitie: "Een veelgebruikte groente.", meervoud: "Aardappelen", verkleinwoord: "Aardappeltje" }, en: { word: "The Potato", definition: "A commonly used vegetable.", plural: "Potatoes" } },
-          { id: "ui", nl: { word: "De Ui", definitie: "Een groente met lagen.", meervoud: "Uien", verkleinwoord: "Uitje" }, en: { word: "The Onion", definition: "A vegetable with layers.", plural: "Onions" } },
-          { id: "tomaat", nl: { word: "De Tomaat", definitie: "Een rode groente/vrucht.", meervoud: "Tomaten", verkleinwoord: "Tomaatje" }, en: { word: "The Tomato", definition: "A red vegetable/fruit.", plural: "Tomatoes" } },
+          { id: "wortel", nl: { word: "De Wortel", definitie: "Een oranje groente.", meervoud: "Wortels", verkleinwoord: "Worteltje", voorbeeld: "Ik eet een wortel." }, en: { word: "The Carrot", definition: "An orange vegetable.", plural: "Carrots", example: "I eat a carrot." } },
+          { id: "aardappel", nl: { word: "De Aardappel", definitie: "Een veelgebruikte groente.", meervoud: "Aardappelen", verkleinwoord: "Aardappeltje", voorbeeld: "We eten aardappelen bij het avondeten." }, en: { word: "The Potato", definition: "A commonly used vegetable.", plural: "Potatoes", example: "We eat potatoes for dinner." } },
+          { id: "ui", nl: { word: "De Ui", definitie: "Een groente met lagen.", meervoud: "Uien", verkleinwoord: "Uitje", voorbeeld: "De ui maakt je aan het huilen." }, en: { word: "The Onion", definition: "A vegetable with layers.", plural: "Onions", example: "The onion makes you cry." } },
+          { id: "tomaat", nl: { word: "De Tomaat", definitie: "Een rode groente/vrucht.", meervoud: "Tomaten", verkleinwoord: "Tomaatje", voorbeeld: "De tomaat is rood en sappig." }, en: { word: "The Tomato", definition: "A red vegetable/fruit.", plural: "Tomatoes", example: "The tomato is red and juicy." } },
         ],
       },
       {
         id: "fruit",
         name: { nl: "Fruit", en: "Fruit" },
         words: [
-          { id: "appel", nl: { word: "De Appel", definitie: "Een populaire vrucht.", meervoud: "Appels", verkleinwoord: "Appeltje" }, en: { word: "The Apple", definition: "A popular fruit.", plural: "Apples" } },
-          { id: "banaan", nl: { word: "De Banaan", definitie: "Een gele vrucht.", meervoud: "Bananen", verkleinwoord: "Banaantje" }, en: { word: "The Banana", definition: "A yellow fruit.", plural: "Bananas" } },
-          { id: "aardbei", nl: { word: "De Aardbei", definitie: "Een rode, zoete vrucht.", meervoud: "Aardbeien", verkleinwoord: "Aardbeitje" }, en: { word: "The Strawberry", definition: "A red, sweet fruit.", plural: "Strawberries" } },
-          { id: "druif", nl: { word: "De Druif", definitie: "Een kleine vrucht in trossen.", meervoud: "Druiven", verkleinwoord: "Druifje" }, en: { word: "The Grape", definition: "A small fruit in clusters.", plural: "Grapes" } },
+          { id: "appel", nl: { word: "De Appel", definitie: "Een populaire vrucht.", meervoud: "Appels", verkleinwoord: "Appeltje", voorbeeld: "Ik eet een appel als snack." }, en: { word: "The Apple", definition: "A popular fruit.", plural: "Apples", example: "I eat an apple as a snack." } },
+          { id: "banaan", nl: { word: "De Banaan", definitie: "Een gele vrucht.", meervoud: "Bananen", verkleinwoord: "Banaantje", voorbeeld: "De aap eet een banaan." }, en: { word: "The Banana", definition: "A yellow fruit.", plural: "Bananas", example: "The monkey eats a banana." } },
+          { id: "aardbei", nl: { word: "De Aardbei", definitie: "Een rode, zoete vrucht.", meervoud: "Aardbeien", verkleinwoord: "Aardbeitje", voorbeeld: "Aardbeien zijn lekker met slagroom." }, en: { word: "The Strawberry", definition: "A red, sweet fruit.", plural: "Strawberries", example: "Strawberries are delicious with cream." } },
+          { id: "druif", nl: { word: "De Druif", definitie: "Een kleine vrucht in trossen.", meervoud: "Druiven", verkleinwoord: "Druifje", voorbeeld: "Wijn wordt gemaakt van druiven." }, en: { word: "The Grape", definition: "A small fruit in clusters.", plural: "Grapes", example: "Wine is made from grapes." } },
+        ],
+      },
+      {
+        id: "kleding",
+        name: { nl: "Kleding", en: "Clothing" },
+        words: [
+          { id: "jas", nl: { word: "De Jas", definitie: "Kledingstuk voor buitenshuis.", meervoud: "Jassen", verkleinwoord: "Jasje", voorbeeld: "Trek je jas aan, het is koud." }, en: { word: "The Jacket", definition: "Outerwear garment.", plural: "Jackets", example: "Put on your jacket, it's cold." } },
+          { id: "schoen", nl: { word: "De Schoen", definitie: "Schoeisel voor de voet.", meervoud: "Schoenen", verkleinwoord: "Schoentje", voorbeeld: "Mijn schoenen zijn nieuw." }, en: { word: "The Shoe", definition: "Footwear.", plural: "Shoes", example: "My shoes are new." } },
+          { id: "broek", nl: { word: "De Broek", definitie: "Kledingstuk voor de benen.", meervoud: "Broeken", verkleinwoord: "Broekje", voorbeeld: "Ik draag een blauwe broek." }, en: { word: "The Pants", definition: "Garment for the legs.", plural: "Pants", example: "I wear blue pants." } },
+          { id: "jurk", nl: { word: "De Jurk", definitie: "Een kledingstuk voor vrouwen.", meervoud: "Jurken", verkleinwoord: "Jurkje", voorbeeld: "Ze draagt een mooie jurk." }, en: { word: "The Dress", definition: "A garment for women.", plural: "Dresses", example: "She wears a beautiful dress." } },
+        ],
+      },
+      {
+        id: "lichaam",
+        name: { nl: "Lichaam", en: "Body" },
+        words: [
+          { id: "hoofd", nl: { word: "Het Hoofd", definitie: "Het bovenste deel van het lichaam.", meervoud: "Hoofden", verkleinwoord: "Hoofdje", voorbeeld: "Mijn hoofd doet pijn." }, en: { word: "The Head", definition: "The upper part of the body.", plural: "Heads", example: "My head hurts." } },
+          { id: "hand", nl: { word: "De Hand", definitie: "Lichaamsdeel aan het eind van de arm.", meervoud: "Handen", verkleinwoord: "Handje", voorbeeld: "Was je handen voor het eten." }, en: { word: "The Hand", definition: "Body part at the end of the arm.", plural: "Hands", example: "Wash your hands before eating." } },
+          { id: "been", nl: { word: "Het Been", definitie: "Lichaamsdeel om mee te lopen.", meervoud: "Benen", verkleinwoord: "Beentje", voorbeeld: "Hij heeft lange benen." }, en: { word: "The Leg", definition: "Body part used for walking.", plural: "Legs", example: "He has long legs." } },
+          { id: "oog", nl: { word: "Het Oog", definitie: "Lichaamsdeel om mee te zien.", meervoud: "Ogen", verkleinwoord: "Oogje", voorbeeld: "Ze heeft blauwe ogen." }, en: { word: "The Eye", definition: "Body part used for seeing.", plural: "Eyes", example: "She has blue eyes." } },
+        ],
+      },
+      {
+        id: "eten",
+        name: { nl: "Eten", en: "Food" },
+        words: [
+          { id: "brood", nl: { word: "Het Brood", definitie: "Een basisvoedsel gemaakt van deeg.", meervoud: "Broden", verkleinwoord: "Broodje", voorbeeld: "Ik eet brood bij het ontbijt." }, en: { word: "The Bread", definition: "A staple food made from dough.", plural: "Breads", example: "I eat bread for breakfast." } },
+          { id: "kaas", nl: { word: "De Kaas", definitie: "Een zuivelproduct.", meervoud: "Kazen", verkleinwoord: "Kaasje", voorbeeld: "Nederland is beroemd om kaas." }, en: { word: "The Cheese", definition: "A dairy product.", plural: "Cheeses", example: "The Netherlands is famous for cheese." } },
+          { id: "soep", nl: { word: "De Soep", definitie: "Een warm vloeibaar gerecht.", meervoud: "Soepen", verkleinwoord: "Soepje", voorbeeld: "De soep is lekker warm." }, en: { word: "The Soup", definition: "A warm liquid dish.", plural: "Soups", example: "The soup is nice and warm." } },
+          { id: "rijst", nl: { word: "De Rijst", definitie: "Een graanproduct.", voorbeeld: "We eten rijst met kip." }, en: { word: "The Rice", definition: "A grain product.", example: "We eat rice with chicken." } },
         ],
       },
     ],
@@ -171,12 +246,32 @@ export const categories: Category[] = [
         id: "beschrijving",
         name: { nl: "Beschrijving", en: "Description" },
         words: [
-          { id: "groot", nl: { word: "Groot", definitie: "Van grote omvang." }, en: { word: "Big/Large", definition: "Of great size." } },
-          { id: "klein", nl: { word: "Klein", definitie: "Van kleine omvang.", verkleinwoord: "Kleintje" }, en: { word: "Small", definition: "Of small size." } },
-          { id: "mooi", nl: { word: "Mooi", definitie: "Aantrekkelijk om te zien." }, en: { word: "Beautiful", definition: "Attractive to look at." } },
-          { id: "lelijk", nl: { word: "Lelijk", definitie: "Niet aantrekkelijk om te zien." }, en: { word: "Ugly", definition: "Not attractive to look at." } },
-          { id: "snel", nl: { word: "Snel", definitie: "Met grote snelheid." }, en: { word: "Fast", definition: "With great speed." } },
-          { id: "langzaam", nl: { word: "Langzaam", definitie: "Met lage snelheid." }, en: { word: "Slow", definition: "With low speed." } },
+          { id: "groot", nl: { word: "Groot", definitie: "Van grote omvang.", voorbeeld: "Het huis is groot." }, en: { word: "Big/Large", definition: "Of great size.", example: "The house is big." } },
+          { id: "klein", nl: { word: "Klein", definitie: "Van kleine omvang.", verkleinwoord: "Kleintje", voorbeeld: "De muis is klein." }, en: { word: "Small", definition: "Of small size.", example: "The mouse is small." } },
+          { id: "mooi", nl: { word: "Mooi", definitie: "Aantrekkelijk om te zien.", voorbeeld: "Wat een mooi schilderij!" }, en: { word: "Beautiful", definition: "Attractive to look at.", example: "What a beautiful painting!" } },
+          { id: "lelijk", nl: { word: "Lelijk", definitie: "Niet aantrekkelijk om te zien.", voorbeeld: "Het weer is lelijk vandaag." }, en: { word: "Ugly", definition: "Not attractive to look at.", example: "The weather is ugly today." } },
+          { id: "snel", nl: { word: "Snel", definitie: "Met grote snelheid.", voorbeeld: "De auto is snel." }, en: { word: "Fast", definition: "With great speed.", example: "The car is fast." } },
+          { id: "langzaam", nl: { word: "Langzaam", definitie: "Met lage snelheid.", voorbeeld: "De schildpad is langzaam." }, en: { word: "Slow", definition: "With low speed.", example: "The turtle is slow." } },
+        ],
+      },
+      {
+        id: "emoties",
+        name: { nl: "Emoties", en: "Emotions" },
+        words: [
+          { id: "blij", nl: { word: "Blij", definitie: "Een gevoel van geluk.", voorbeeld: "Ik ben blij vandaag!" }, en: { word: "Happy", definition: "A feeling of joy.", example: "I am happy today!" } },
+          { id: "boos", nl: { word: "Boos", definitie: "Een gevoel van woede.", voorbeeld: "Hij is boos op zijn broer." }, en: { word: "Angry", definition: "A feeling of anger.", example: "He is angry at his brother." } },
+          { id: "bang", nl: { word: "Bang", definitie: "Een gevoel van angst.", voorbeeld: "Ze is bang in het donker." }, en: { word: "Scared", definition: "A feeling of fear.", example: "She is scared in the dark." } },
+          { id: "moe", nl: { word: "Moe", definitie: "Een gevoel van vermoeidheid.", voorbeeld: "Ik ben moe na het werk." }, en: { word: "Tired", definition: "A feeling of fatigue.", example: "I am tired after work." } },
+        ],
+      },
+      {
+        id: "weer",
+        name: { nl: "Weer", en: "Weather" },
+        words: [
+          { id: "warm", nl: { word: "Warm", definitie: "Hoge temperatuur.", voorbeeld: "Het is warm in de zomer." }, en: { word: "Warm/Hot", definition: "High temperature.", example: "It is warm in the summer." } },
+          { id: "koud", nl: { word: "Koud", definitie: "Lage temperatuur.", voorbeeld: "Het is koud in de winter." }, en: { word: "Cold", definition: "Low temperature.", example: "It is cold in the winter." } },
+          { id: "nat", nl: { word: "Nat", definitie: "Bedekt met water.", voorbeeld: "De straat is nat van de regen." }, en: { word: "Wet", definition: "Covered with water.", example: "The street is wet from the rain." } },
+          { id: "droog", nl: { word: "Droog", definitie: "Zonder water.", voorbeeld: "De woestijn is droog." }, en: { word: "Dry", definition: "Without water.", example: "The desert is dry." } },
         ],
       },
     ],
@@ -190,35 +285,97 @@ export const categories: Category[] = [
         name: { nl: "Dagelijkse Acties", en: "Daily Actions" },
         words: [
           {
-            id: "lopen",
-            nl: { word: "Lopen", definitie: "Zich voortbewegen te voet.", vervoeging: { "ik": "loop", "jij": "loopt", "hij/zij": "loopt", "wij": "lopen", "jullie": "lopen", "zij (mv)": "lopen" } },
-            en: { word: "To Walk/Run", definition: "To move on foot.", conjugation: { "I": "walk", "you": "walk", "he/she": "walks", "we": "walk", "they": "walk" } },
+            id: "lopen", nl: { word: "Lopen", definitie: "Zich voortbewegen te voet.", voorbeeld: "Ik loop naar school.", vervoeging: { "ik": "loop", "jij": "loopt", "hij/zij": "loopt", "wij": "lopen", "jullie": "lopen", "zij (mv)": "lopen" } },
+            en: { word: "To Walk/Run", definition: "To move on foot.", example: "I walk to school.", conjugation: { "I": "walk", "you": "walk", "he/she": "walks", "we": "walk", "they": "walk" } },
           },
           {
-            id: "eten",
-            nl: { word: "Eten", definitie: "Voedsel consumeren.", vervoeging: { "ik": "eet", "jij": "eet", "hij/zij": "eet", "wij": "eten", "jullie": "eten", "zij (mv)": "eten" } },
-            en: { word: "To Eat", definition: "To consume food.", conjugation: { "I": "eat", "you": "eat", "he/she": "eats", "we": "eat", "they": "eat" } },
+            id: "eten", nl: { word: "Eten", definitie: "Voedsel consumeren.", voorbeeld: "Wij eten samen.", vervoeging: { "ik": "eet", "jij": "eet", "hij/zij": "eet", "wij": "eten", "jullie": "eten", "zij (mv)": "eten" } },
+            en: { word: "To Eat", definition: "To consume food.", example: "We eat together.", conjugation: { "I": "eat", "you": "eat", "he/she": "eats", "we": "eat", "they": "eat" } },
           },
           {
-            id: "drinken",
-            nl: { word: "Drinken", definitie: "Vloeistof consumeren.", vervoeging: { "ik": "drink", "jij": "drinkt", "hij/zij": "drinkt", "wij": "drinken", "jullie": "drinken", "zij (mv)": "drinken" } },
-            en: { word: "To Drink", definition: "To consume liquid.", conjugation: { "I": "drink", "you": "drink", "he/she": "drinks", "we": "drink", "they": "drink" } },
+            id: "drinken", nl: { word: "Drinken", definitie: "Vloeistof consumeren.", voorbeeld: "Ik drink water.", vervoeging: { "ik": "drink", "jij": "drinkt", "hij/zij": "drinkt", "wij": "drinken", "jullie": "drinken", "zij (mv)": "drinken" } },
+            en: { word: "To Drink", definition: "To consume liquid.", example: "I drink water.", conjugation: { "I": "drink", "you": "drink", "he/she": "drinks", "we": "drink", "they": "drink" } },
           },
           {
-            id: "slapen",
-            nl: { word: "Slapen", definitie: "Rusten met gesloten ogen.", vervoeging: { "ik": "slaap", "jij": "slaapt", "hij/zij": "slaapt", "wij": "slapen", "jullie": "slapen", "zij (mv)": "slapen" } },
-            en: { word: "To Sleep", definition: "To rest with eyes closed.", conjugation: { "I": "sleep", "you": "sleep", "he/she": "sleeps", "we": "sleep", "they": "sleep" } },
+            id: "slapen", nl: { word: "Slapen", definitie: "Rusten met gesloten ogen.", voorbeeld: "De baby slaapt.", vervoeging: { "ik": "slaap", "jij": "slaapt", "hij/zij": "slaapt", "wij": "slapen", "jullie": "slapen", "zij (mv)": "slapen" } },
+            en: { word: "To Sleep", definition: "To rest with eyes closed.", example: "The baby sleeps.", conjugation: { "I": "sleep", "you": "sleep", "he/she": "sleeps", "we": "sleep", "they": "sleep" } },
           },
           {
-            id: "lezen",
-            nl: { word: "Lezen", definitie: "Tekst interpreteren.", vervoeging: { "ik": "lees", "jij": "leest", "hij/zij": "leest", "wij": "lezen", "jullie": "lezen", "zij (mv)": "lezen" } },
-            en: { word: "To Read", definition: "To interpret text.", conjugation: { "I": "read", "you": "read", "he/she": "reads", "we": "read", "they": "read" } },
+            id: "lezen", nl: { word: "Lezen", definitie: "Tekst interpreteren.", voorbeeld: "Zij leest een boek.", vervoeging: { "ik": "lees", "jij": "leest", "hij/zij": "leest", "wij": "lezen", "jullie": "lezen", "zij (mv)": "lezen" } },
+            en: { word: "To Read", definition: "To interpret text.", example: "She reads a book.", conjugation: { "I": "read", "you": "read", "he/she": "reads", "we": "read", "they": "read" } },
           },
           {
-            id: "schrijven",
-            nl: { word: "Schrijven", definitie: "Tekst produceren.", vervoeging: { "ik": "schrijf", "jij": "schrijft", "hij/zij": "schrijft", "wij": "schrijven", "jullie": "schrijven", "zij (mv)": "schrijven" } },
-            en: { word: "To Write", definition: "To produce text.", conjugation: { "I": "write", "you": "write", "he/she": "writes", "we": "write", "they": "write" } },
+            id: "schrijven", nl: { word: "Schrijven", definitie: "Tekst produceren.", voorbeeld: "Hij schrijft een brief.", vervoeging: { "ik": "schrijf", "jij": "schrijft", "hij/zij": "schrijft", "wij": "schrijven", "jullie": "schrijven", "zij (mv)": "schrijven" } },
+            en: { word: "To Write", definition: "To produce text.", example: "He writes a letter.", conjugation: { "I": "write", "you": "write", "he/she": "writes", "we": "write", "they": "write" } },
           },
+        ],
+      },
+      {
+        id: "beweging",
+        name: { nl: "Beweging", en: "Movement" },
+        words: [
+          {
+            id: "rennen", nl: { word: "Rennen", definitie: "Snel lopen.", voorbeeld: "De kinderen rennen in het park.", vervoeging: { "ik": "ren", "jij": "rent", "hij/zij": "rent", "wij": "rennen", "jullie": "rennen", "zij (mv)": "rennen" } },
+            en: { word: "To Run", definition: "To move fast on foot.", example: "The children run in the park.", conjugation: { "I": "run", "you": "run", "he/she": "runs", "we": "run", "they": "run" } },
+          },
+          {
+            id: "springen", nl: { word: "Springen", definitie: "Van de grond af komen.", voorbeeld: "Het konijn springt hoog.", vervoeging: { "ik": "spring", "jij": "springt", "hij/zij": "springt", "wij": "springen", "jullie": "springen", "zij (mv)": "springen" } },
+            en: { word: "To Jump", definition: "To leave the ground.", example: "The rabbit jumps high.", conjugation: { "I": "jump", "you": "jump", "he/she": "jumps", "we": "jump", "they": "jump" } },
+          },
+          {
+            id: "zwemmen", nl: { word: "Zwemmen", definitie: "Bewegen door water.", voorbeeld: "Ik zwem in het zwembad.", vervoeging: { "ik": "zwem", "jij": "zwemt", "hij/zij": "zwemt", "wij": "zwemmen", "jullie": "zwemmen", "zij (mv)": "zwemmen" } },
+            en: { word: "To Swim", definition: "To move through water.", example: "I swim in the pool.", conjugation: { "I": "swim", "you": "swim", "he/she": "swims", "we": "swim", "they": "swim" } },
+          },
+          {
+            id: "fietsen", nl: { word: "Fietsen", definitie: "Rijden op een fiets.", voorbeeld: "Nederlanders fietsen veel.", vervoeging: { "ik": "fiets", "jij": "fietst", "hij/zij": "fietst", "wij": "fietsen", "jullie": "fietsen", "zij (mv)": "fietsen" } },
+            en: { word: "To Cycle", definition: "To ride a bicycle.", example: "The Dutch cycle a lot.", conjugation: { "I": "cycle", "you": "cycle", "he/she": "cycles", "we": "cycle", "they": "cycle" } },
+          },
+        ],
+      },
+      {
+        id: "communicatie",
+        name: { nl: "Communicatie", en: "Communication" },
+        words: [
+          {
+            id: "praten", nl: { word: "Praten", definitie: "Woorden spreken.", voorbeeld: "We praten over het weer.", vervoeging: { "ik": "praat", "jij": "praat", "hij/zij": "praat", "wij": "praten", "jullie": "praten", "zij (mv)": "praten" } },
+            en: { word: "To Talk", definition: "To speak words.", example: "We talk about the weather.", conjugation: { "I": "talk", "you": "talk", "he/she": "talks", "we": "talk", "they": "talk" } },
+          },
+          {
+            id: "luisteren", nl: { word: "Luisteren", definitie: "Aandachtig horen.", voorbeeld: "Luister naar de muziek.", vervoeging: { "ik": "luister", "jij": "luistert", "hij/zij": "luistert", "wij": "luisteren", "jullie": "luisteren", "zij (mv)": "luisteren" } },
+            en: { word: "To Listen", definition: "To hear attentively.", example: "Listen to the music.", conjugation: { "I": "listen", "you": "listen", "he/she": "listens", "we": "listen", "they": "listen" } },
+          },
+          {
+            id: "vragen", nl: { word: "Vragen", definitie: "Een vraag stellen.", voorbeeld: "Mag ik iets vragen?", vervoeging: { "ik": "vraag", "jij": "vraagt", "hij/zij": "vraagt", "wij": "vragen", "jullie": "vragen", "zij (mv)": "vragen" } },
+            en: { word: "To Ask", definition: "To pose a question.", example: "May I ask something?", conjugation: { "I": "ask", "you": "ask", "he/she": "asks", "we": "ask", "they": "ask" } },
+          },
+          {
+            id: "antwoorden", nl: { word: "Antwoorden", definitie: "Reageren op een vraag.", voorbeeld: "Kun je antwoorden?", vervoeging: { "ik": "antwoord", "jij": "antwoordt", "hij/zij": "antwoordt", "wij": "antwoorden", "jullie": "antwoorden", "zij (mv)": "antwoorden" } },
+            en: { word: "To Answer", definition: "To respond to a question.", example: "Can you answer?", conjugation: { "I": "answer", "you": "answer", "he/she": "answers", "we": "answer", "they": "answer" } },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bijwoord",
+    name: { nl: "Bijwoord", en: "Adverb" },
+    subcategories: [
+      {
+        id: "frequentie",
+        name: { nl: "Frequentie", en: "Frequency" },
+        words: [
+          { id: "altijd", nl: { word: "Altijd", definitie: "Op elk moment.", voorbeeld: "Ik drink altijd koffie." }, en: { word: "Always", definition: "At all times.", example: "I always drink coffee." } },
+          { id: "soms", nl: { word: "Soms", definitie: "Af en toe.", voorbeeld: "Soms regent het." }, en: { word: "Sometimes", definition: "Occasionally.", example: "Sometimes it rains." } },
+          { id: "nooit", nl: { word: "Nooit", definitie: "Op geen enkel moment.", voorbeeld: "Ik ga nooit naar bed laat." }, en: { word: "Never", definition: "At no time.", example: "I never go to bed late." } },
+          { id: "heel", nl: { word: "Heel", definitie: "In grote mate.", voorbeeld: "Het eten is heel lekker." }, en: { word: "Very", definition: "To a great degree.", example: "The food is very tasty." } },
+        ],
+      },
+      {
+        id: "plaats",
+        name: { nl: "Plaats", en: "Place" },
+        words: [
+          { id: "hier", nl: { word: "Hier", definitie: "Op deze plek.", voorbeeld: "Kom hier!" }, en: { word: "Here", definition: "In this place.", example: "Come here!" } },
+          { id: "daar", nl: { word: "Daar", definitie: "Op die plek.", voorbeeld: "Het boek ligt daar." }, en: { word: "There", definition: "In that place.", example: "The book is there." } },
         ],
       },
     ],
@@ -268,12 +425,10 @@ export function getCategoryForSubcategory(subcategoryId: string): Category | und
   return categories.find(c => c.subcategories.some(s => s.id === subcategoryId));
 }
 
-// Get the word text in a given language
 export function getWordText(word: WordDetail, lang: "nl" | "en"): string {
   return word[lang].word;
 }
 
-// Get the translation (the OTHER language)
 export function getTranslation(word: WordDetail, learningLang: "nl" | "en"): string {
   const other = learningLang === "nl" ? "en" : "nl";
   return word[other].word;

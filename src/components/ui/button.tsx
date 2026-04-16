@@ -1,47 +1,91 @@
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
+import { ReactNode, ButtonHTMLAttributes, forwardRef } from "react";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+// Compatibility: buttonVariants as a callable for shadcn components that import it
+export function buttonVariants({
+  variant = "secondary",
+  size = "default",
+  className = "",
+}: {
+  variant?: string;
+  size?: string;
+  className?: string;
+} = {}): string {
+  const sizeClasses: Record<string, string> = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base",
+    default: "px-4 py-2 text-sm",
+    icon: "p-2",
+  };
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  return cn(
+    "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
+    "inline-flex items-center justify-center gap-2",
+    sizeClasses[size] || sizeClasses.default,
+    variant === "primary" && "text-primary",
+    variant === "destructive" && "border-destructive text-destructive",
+    variant === "ghost" && "border-transparent bg-transparent",
+    variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
+    className
+  );
+}
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children?: ReactNode;
+  variant?: "primary" | "secondary" | "default" | "destructive" | "outline" | "ghost" | "link";
+  size?: "sm" | "md" | "lg" | "default" | "icon";
+  className?: string;
+  active?: boolean;
+  fullWidth?: boolean;
   asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
-  },
-);
-Button.displayName = "Button";
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      children,
+      variant = "secondary",
+      size = "md",
+      className,
+      active,
+      fullWidth,
+      asChild,
+      ...props
+    },
+    ref
+  ) => {
+    const sizeClasses: Record<string, string> = {
+      sm: "px-3 py-1.5 text-xs",
+      md: "px-4 py-2 text-sm",
+      lg: "px-6 py-3 text-base",
+      default: "px-4 py-2 text-sm",
+      icon: "p-2",
+    };
 
-export { Button, buttonVariants };
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
+          "inline-flex items-center justify-center gap-2",
+          sizeClasses[size as string] || sizeClasses.md,
+          fullWidth && "w-full",
+          variant === "primary" && "text-primary",
+          variant === "destructive" && "border-destructive text-destructive",
+          variant === "ghost" && "border-transparent bg-transparent",
+          variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
+          "hover:scale-[1.02] hover:bg-foreground hover:border-background hover:text-background",
+          "disabled:opacity-50 disabled:pointer-events-none",
+          active && "bg-foreground text-background border-background",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  }
+);
+
+Button.displayName = "Button";
