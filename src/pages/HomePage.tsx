@@ -22,7 +22,7 @@ export default function HomePage() {
 
   const getProgress = (categoryId: string) => {
     const words = getWordsForCategory(categoryId);
-    const learned = words.filter(w => reviews.some(r => r.wordId === w.id && r.correctCount > 0)).length;
+    const learned = words.filter(w => reviews.some(r => r.wordId === w.id && r.learned)).length;
     return { learned, total: words.length };
   };
 

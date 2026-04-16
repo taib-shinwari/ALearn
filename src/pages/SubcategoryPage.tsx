@@ -51,7 +51,7 @@ export default function SubcategoryPage() {
 
       <div className="space-y-2">
         {subcategory.words.map(word => {
-          const isLearned = reviews.some(r => r.wordId === word.id && r.correctCount > 0);
+          const isLearned = reviews.some(r => r.wordId === word.id && r.learned);
           return (
             <Container
               key={word.id}

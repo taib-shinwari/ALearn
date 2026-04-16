@@ -43,7 +43,7 @@ export default function CategoryPage() {
       <div className="grid grid-cols-2 gap-3">
         {category.subcategories.map(sub => {
           const words = getWordsForSubcategory(sub.id);
-          const learned = words.filter(w => reviews.some(r => r.wordId === w.id && r.correctCount > 0)).length;
+          const learned = words.filter(w => reviews.some(r => r.wordId === w.id && r.learned)).length;
           return (
             <Container
               key={sub.id}
