@@ -17,9 +17,6 @@ interface AppState {
   courses: Course[];
   reviews: ReviewState[];
   practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
-  streak: number;
-  lastPracticeDate: string | null;
-  xp: number;
 }
 
 interface AppContextType extends AppState {
@@ -45,16 +42,6 @@ export function useApp() {
   return ctx;
 }
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getYesterday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
-}
-
 const defaultState: AppState = {
   isAuthenticated: false,
   user: null,
@@ -65,9 +52,6 @@ const defaultState: AppState = {
   courses: [],
   reviews: [],
   practiceScope: null,
-  streak: 0,
-  lastPracticeDate: null,
-  xp: 0,
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -75,7 +59,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...defaultState, ...parsed };
+      // Strip out any legacy streak/xp fields
+      const { streak, xp, lastPracticeDate, ...clean } = parsed;
+      return { ...defaultState, ...clean };
     }
     return defaultState;
   });
@@ -148,26 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const reviews = existing
         ? s.reviews.map(r => r.wordId === wordId ? updated : r)
         : [...s.reviews, updated];
-
-      // Streak & XP logic
-      const today = getToday();
-      const yesterday = getYesterday();
-      let { streak, lastPracticeDate, xp } = s;
-
-      if (correct) {
-        xp += 10;
-      }
-
-      if (lastPracticeDate !== today) {
-        if (lastPracticeDate === yesterday) {
-          streak += 1;
-        } else if (lastPracticeDate !== today) {
-          streak = 1;
-        }
-        lastPracticeDate = today;
-      }
-
-      return { ...s, reviews, streak, lastPracticeDate, xp };
+      return { ...s, reviews };
     });
   };
 
