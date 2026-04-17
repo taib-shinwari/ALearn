@@ -79,6 +79,10 @@ export const uiLabels: Record<string, Record<string, string>> = {
     profile: "Profiel",
     darkMode: "Donkere modus",
     progress: "Voortgang",
+    root: "Start",
+    search: "Zoeken",
+    courses: "Cursussen",
+    notFound: "Niet gevonden.",
   },
   en: {
     practice: "Practice",
@@ -126,6 +130,10 @@ export const uiLabels: Record<string, Record<string, string>> = {
     profile: "Profile",
     darkMode: "Dark mode",
     progress: "Progress",
+    root: "Root",
+    search: "Search",
+    courses: "Courses",
+    notFound: "Not found.",
   },
 };
 
