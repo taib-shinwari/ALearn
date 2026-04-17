@@ -20,10 +20,9 @@ export function buttonVariants({
   };
 
   return cn(
-    "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
+    "relative rounded-[40px] bg-white border-2 border-black text-black transition-colors duration-200",
     "inline-flex items-center justify-center gap-2",
     sizeClasses[size] || sizeClasses.default,
-    variant === "primary" && "text-primary",
     variant === "destructive" && "border-destructive text-destructive",
     variant === "ghost" && "border-transparent bg-transparent",
     variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
@@ -63,21 +62,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       icon: "p-2",
     };
 
+    const isGhost = variant === "ghost" || variant === "link";
+
     return (
       <button
         ref={ref}
         className={cn(
-          "relative rounded-[40px] bg-background border-2 border-foreground transition-all duration-200",
-          "inline-flex items-center justify-center gap-2",
+          "relative rounded-[40px] transition-colors duration-200 inline-flex items-center justify-center gap-2",
+          !isGhost && "bg-white border-2 border-black text-black hover:bg-black hover:border-white hover:text-white",
+          isGhost && "bg-transparent border-2 border-transparent text-black hover:bg-black hover:border-white hover:text-white",
           sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
-          variant === "primary" && "text-primary",
-          variant === "destructive" && "border-destructive text-destructive",
-          variant === "ghost" && "border-transparent bg-transparent",
-          variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
-          "hover:scale-[1.02] hover:bg-foreground hover:border-background hover:text-background",
+          variant === "destructive" && "border-destructive text-destructive hover:bg-destructive hover:text-white",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-foreground text-background border-background",
+          active && "bg-black text-white border-white",
           className
         )}
         {...props}
