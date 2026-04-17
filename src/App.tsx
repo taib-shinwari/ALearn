@@ -65,17 +65,18 @@ function AppRoutes() {
     <Routes>
       {/* Pages without the global layout */}
       <Route path="/practice" element={<PracticePage />} />
-      <Route path="/courses" element={<CoursesPage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/courses" element={withLayout(<CoursesPage />)} />
 
-      {/* Pages with the global layout (top bar + practice + breadcrumbs) */}
+      {/* Pages with the global layout — fully dynamic by concept slug */}
       <Route path="/home" element={withLayout(<HomePage />)} />
-      <Route path="/settings" element={withLayout(<SettingsPage />)} />
-      <Route path="/:category" element={withLayout(<CategoryPage />)} />
-      <Route path="/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
-      <Route path="/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
+      <Route path="/:concept" element={withLayout(<HomePage />)} />
+      <Route path="/:concept/:category" element={withLayout(<CategoryPage />)} />
+      <Route path="/:concept/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
+      <Route path="/:concept/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
 
-      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/" element={<Navigate to={`/${selectedConcept}`} replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

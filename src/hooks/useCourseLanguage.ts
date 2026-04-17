@@ -1,17 +1,16 @@
 import { useApp } from "@/context/AppContext";
-import { uiLabels } from "@/data/courseData";
+import { uiLabels, Lang, WordLang } from "@/data/courseData";
 
 /**
- * Returns the interface language (fromLang) and learning language (toLang) 
- * for the active course, plus a label helper.
+ * Returns the interface language and learning language for the active course.
+ * - uiLang: language for UI labels and category/subcategory names (can be nl/en/ar)
+ * - courseLang: language being learned (only nl/en — words exist in those)
  */
 export function useCourseLanguage() {
   const { interfaceLanguage, learningLanguage } = useApp();
 
-  // interfaceLanguage = the language the user speaks (fromLang)
-  // learningLanguage = the language they're learning (toLang)
-  const uiLang = (interfaceLanguage || "en") as "nl" | "en";
-  const courseLang = (learningLanguage || "nl") as "nl" | "en";
+  const uiLang = (interfaceLanguage || "en") as Lang;
+  const courseLang = (learningLanguage || "nl") as WordLang;
 
   const t = (key: string): string => {
     return uiLabels[uiLang]?.[key] || uiLabels["en"]?.[key] || key;

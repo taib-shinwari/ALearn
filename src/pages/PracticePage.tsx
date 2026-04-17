@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { X, Flame, Star } from "lucide-react";
+import { X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import {
   getAllWords,
@@ -11,6 +11,7 @@ import {
   getWordById,
   globalLearningOrder,
   WordDetail,
+  WordLang,
   getWordText,
 } from "@/data/courseData";
 import { getNextWordsForPractice } from "@/lib/spacedRepetition";
@@ -28,8 +29,8 @@ const encouragements = ["greatJob", "keepGoing", "nice", "perfect", "wellDone", 
 function generateExercises(
   words: WordDetail[],
   allWords: WordDetail[],
-  courseLang: "nl" | "en",
-  uiLang: "nl" | "en",
+  courseLang: WordLang,
+  answerLang: WordLang,
   tWhatDoes: string
 ): Exercise[] {
   return words.map(word => {
@@ -37,9 +38,9 @@ function generateExercises(
       .filter(w => w.id !== word.id)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
-      .map(w => getWordText(w, uiLang));
+      .map(w => getWordText(w, answerLang));
 
-    const correctAnswer = getWordText(word, uiLang);
+    const correctAnswer = getWordText(word, answerLang);
     const options = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
     const correct = options.indexOf(correctAnswer);
 
@@ -54,8 +55,12 @@ function generateExercises(
 
 export default function PracticePage() {
   const navigate = useNavigate();
-  const { practiceScope, reviews, recordReview, streak, xp } = useApp();
+  const { practiceScope, reviews, recordReview, selectedConcept } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
+
+  // Answer options must be a language that exists in word data: nl/en.
+  // If interface is Arabic, fall back to English for answers.
+  const answerLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
 
   const exercises = useMemo(() => {
     const allWords = getAllWords();
@@ -83,11 +88,12 @@ export default function PracticePage() {
         .slice(0, 5)
         .map(id => getWordById(id))
         .filter((w): w is WordDetail => !!w);
-      return generateExercises(fallback, allWords, courseLang, uiLang, t("whatDoes"));
+      return generateExercises(fallback, allWords, courseLang, answerLang, t("whatDoes"));
     }
 
-    return generateExercises(words, allWords, courseLang, uiLang, t("whatDoes"));
-  }, [practiceScope, reviews, courseLang, uiLang]);
+    return generateExercises(words, allWords, courseLang, answerLang, t("whatDoes"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [practiceScope, reviews, courseLang, answerLang]);
 
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -95,48 +101,37 @@ export default function PracticePage() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [sessionDone, setSessionDone] = useState(false);
   const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
-  const [startXp] = useState(xp);
+
+  const exitPath = selectedConcept ? `/${selectedConcept}` : "/home";
 
   if (exercises.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p>{t("noWords")}</p>
-        <Button onClick={() => navigate("/home")}>{t("backToHome")}</Button>
+        <Button onClick={() => navigate(exitPath)}>{t("backToHome")}</Button>
       </div>
     );
   }
 
   if (sessionDone) {
     const accuracy = sessionStats.total > 0 ? Math.round((sessionStats.correct / sessionStats.total) * 100) : 0;
-    const xpEarned = xp - startXp;
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 max-w-md mx-auto">
         <h1 className="text-3xl font-bold mb-2">🎉</h1>
         <h2 className="text-xl font-bold mb-6">{t("sessionComplete")}</h2>
 
-        <div className="grid grid-cols-3 gap-4 w-full mb-8">
+        <div className="grid grid-cols-2 gap-4 w-full mb-8">
           <Container className="text-center p-3">
             <p className="text-2xl font-bold">{sessionStats.total}</p>
-            <p className="text-xs text-muted-foreground">{t("wordsLearned")}</p>
+            <p className="text-xs opacity-70">{t("wordsLearned")}</p>
           </Container>
           <Container className="text-center p-3">
             <p className="text-2xl font-bold">{accuracy}%</p>
-            <p className="text-xs text-muted-foreground">{t("accuracy")}</p>
-          </Container>
-          <Container className="text-center p-3">
-            <p className="text-2xl font-bold text-yellow-500">+{xpEarned}</p>
-            <p className="text-xs text-muted-foreground">{t("xp")}</p>
+            <p className="text-xs opacity-70">{t("accuracy")}</p>
           </Container>
         </div>
 
-        <div className="flex items-center gap-2 mb-8">
-          <Flame className="h-5 w-5 text-orange-500" />
-          <span className="font-bold">{streak} {t("streak")}</span>
-          <Star className="h-5 w-5 text-yellow-500 ml-4" />
-          <span className="font-bold">{xp} {t("xp")}</span>
-        </div>
-
-        <Button onClick={() => navigate("/home")} fullWidth>{t("continue")}</Button>
+        <Button onClick={() => navigate(exitPath)} fullWidth>{t("continue")}</Button>
       </div>
     );
   }
@@ -159,18 +154,7 @@ export default function PracticePage() {
     setSessionStats(s => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
   };
 
-  const handleContinue = () => {
-    if (isLast) {
-      setSessionDone(true);
-    } else {
-      setStep(step + 1);
-      setSelected(null);
-      setChecked(false);
-      setIsCorrect(null);
-    }
-  };
-
-  const handleSkip = () => {
+  const advance = () => {
     if (isLast) {
       setSessionDone(true);
     } else {
@@ -186,12 +170,12 @@ export default function PracticePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex items-center gap-3 p-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
+        <Button size="icon" onClick={() => navigate(exitPath)}>
           <X className="h-5 w-5" />
         </Button>
-        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+        <div className="flex-1 h-3 bg-white border-2 border-black rounded-full overflow-hidden">
           <div
-            className="h-full bg-foreground rounded-full transition-all duration-500"
+            className="h-full bg-black transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -225,8 +209,8 @@ export default function PracticePage() {
           </Container>
         )}
         {checked && isCorrect && (
-          <Container className="mt-4 border-green-500">
-            <p className="text-sm font-medium text-green-600">{t(randomEncouragement)} ✨</p>
+          <Container className="mt-4">
+            <p className="text-sm font-medium">{t(randomEncouragement)} ✨</p>
           </Container>
         )}
       </div>
@@ -237,12 +221,12 @@ export default function PracticePage() {
             <Button fullWidth disabled={selected === null} onClick={handleCheck}>
               {t("check")}
             </Button>
-            <Button variant="ghost" fullWidth onClick={handleSkip}>
+            <Button variant="ghost" fullWidth onClick={advance}>
               {t("skip")}
             </Button>
           </>
         ) : (
-          <Button fullWidth onClick={handleContinue}>
+          <Button fullWidth onClick={advance}>
             {isLast ? t("finish") : t("continue")}
           </Button>
         )}

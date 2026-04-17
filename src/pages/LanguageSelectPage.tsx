@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 const languages = [
   { code: "en", label: "English" },
   { code: "nl", label: "Nederlands" },
+  { code: "ar", label: "العربية" },
 ];
 
 export default function LanguageSelectPage() {
@@ -24,13 +25,13 @@ export default function LanguageSelectPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center p-6">
       <div className="flex flex-col gap-4 w-80">
         <h2 className="text-xl font-semibold text-center">Select Interface Language</h2>
         <Input placeholder="Search languages..." value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex flex-col gap-2">
           {filtered.map(l => (
-            <Button key={l.code} variant="outline" onClick={() => select(l.code)} className="w-full">
+            <Button key={l.code} onClick={() => select(l.code)} fullWidth>
               {l.label}
             </Button>
           ))}

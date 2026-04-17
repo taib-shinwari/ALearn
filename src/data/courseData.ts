@@ -1,4 +1,8 @@
-// Bilingual course data (Dutch ↔ English)
+// Bilingual+ course data (Dutch ↔ English, with Arabic UI labels)
+
+export type Lang = "nl" | "en" | "ar";
+// Words and word-level details only exist in nl/en
+export type WordLang = "nl" | "en";
 
 export interface WordDetail {
   id: string;
@@ -20,16 +24,27 @@ export interface WordDetail {
   };
 }
 
+interface LocalizedName {
+  nl: string;
+  en: string;
+  ar?: string;
+}
+
 export interface Subcategory {
   id: string;
-  name: { nl: string; en: string };
+  name: LocalizedName;
   words: WordDetail[];
 }
 
 export interface Category {
   id: string;
-  name: { nl: string; en: string };
+  name: LocalizedName;
   subcategories: Subcategory[];
+}
+
+/** Resolve a localized name with safe fallback to English. */
+export function localizedName(name: LocalizedName, lang: Lang): string {
+  return name[lang] || name.en;
 }
 
 export const uiLabels: Record<string, Record<string, string>> = {
@@ -63,26 +78,27 @@ export const uiLabels: Record<string, Record<string, string>> = {
     alreadyAdded: "(al toegevoegd)",
     settings: "Instellingen",
     signOut: "Uitloggen",
-    streak: "Reeks",
-    xp: "XP",
     sessionComplete: "Sessie voltooid!",
     wordsLearned: "Woorden geoefend",
     accuracy: "Nauwkeurigheid",
-    xpEarned: "XP verdiend",
     greatJob: "Goed bezig!",
     keepGoing: "Ga zo door!",
     nice: "Netjes!",
     perfect: "Perfect!",
     wellDone: "Goed gedaan!",
     awesome: "Geweldig!",
-    hi: "Hoi",
     profile: "Profiel",
-    darkMode: "Donkere modus",
-    progress: "Voortgang",
     root: "Start",
     search: "Zoeken",
     courses: "Cursussen",
     notFound: "Niet gevonden.",
+    interfaceLanguage: "Interface-taal",
+    selectInterfaceLanguage: "Kies interface-taal",
+    selectConceptShort: "Kies concept",
+    selectCourse: "Kies cursus",
+    create: "Aanmaken",
+    cancel: "Annuleren",
+    language: "Taal",
   },
   en: {
     practice: "Practice",
@@ -114,26 +130,79 @@ export const uiLabels: Record<string, Record<string, string>> = {
     alreadyAdded: "(already added)",
     settings: "Settings",
     signOut: "Sign out",
-    streak: "Streak",
-    xp: "XP",
     sessionComplete: "Session complete!",
     wordsLearned: "Words practiced",
     accuracy: "Accuracy",
-    xpEarned: "XP earned",
     greatJob: "Great job!",
     keepGoing: "Keep going!",
     nice: "Nice!",
     perfect: "Perfect!",
     wellDone: "Well done!",
     awesome: "Awesome!",
-    hi: "Hi",
     profile: "Profile",
-    darkMode: "Dark mode",
-    progress: "Progress",
     root: "Root",
     search: "Search",
     courses: "Courses",
     notFound: "Not found.",
+    interfaceLanguage: "Interface language",
+    selectInterfaceLanguage: "Select interface language",
+    selectConceptShort: "Select concept",
+    selectCourse: "Select course",
+    create: "Create",
+    cancel: "Cancel",
+    language: "Language",
+  },
+  ar: {
+    practice: "تدريب",
+    back: "رجوع",
+    definition: "تعريف",
+    plural: "الجمع",
+    diminutive: "تصغير",
+    conjugation: "تصريف",
+    example: "مثال",
+    categories: "الفئات",
+    words: "كلمات",
+    practiceThis: "تدرب على هذا",
+    tapToFlip: "اضغط للقلب",
+    whatDoes: "ماذا تعني",
+    correct: "صحيح!",
+    incorrect: "خطأ",
+    correctAnswer: "الإجابة الصحيحة",
+    check: "تحقق",
+    skip: "تخطي",
+    continue: "متابعة",
+    finish: "إنهاء",
+    noWords: "لا توجد كلمات متاحة.",
+    backToHome: "العودة للرئيسية",
+    yourCourses: "دوراتك",
+    noCourses: "لا توجد دورات بعد. اضغط + لإضافة واحدة.",
+    whatLangSpeak: "ما اللغة التي تتحدثها؟",
+    selectConcept: "اختر المفهوم",
+    whatLearn: "ماذا تريد أن تتعلم؟",
+    alreadyAdded: "(تمت إضافتها)",
+    settings: "الإعدادات",
+    signOut: "تسجيل الخروج",
+    sessionComplete: "اكتملت الجلسة!",
+    wordsLearned: "الكلمات المتدرّب عليها",
+    accuracy: "الدقة",
+    greatJob: "عمل رائع!",
+    keepGoing: "استمر!",
+    nice: "جميل!",
+    perfect: "ممتاز!",
+    wellDone: "أحسنت!",
+    awesome: "رائع!",
+    profile: "الملف الشخصي",
+    root: "الرئيسية",
+    search: "بحث",
+    courses: "الدورات",
+    notFound: "غير موجود.",
+    interfaceLanguage: "لغة الواجهة",
+    selectInterfaceLanguage: "اختر لغة الواجهة",
+    selectConceptShort: "اختر المفهوم",
+    selectCourse: "اختر الدورة",
+    create: "إنشاء",
+    cancel: "إلغاء",
+    language: "اللغة",
   },
 };
 
@@ -158,11 +227,11 @@ export const globalLearningOrder: string[] = [
 export const categories: Category[] = [
   {
     id: "zelfstandig-naamwoord",
-    name: { nl: "Zelfstandig Naamwoord", en: "Noun" },
+    name: { nl: "Zelfstandig Naamwoord", en: "Noun", ar: "اسم" },
     subcategories: [
       {
         id: "begroeting",
-        name: { nl: "Begroeting", en: "Greeting" },
+        name: { nl: "Begroeting", en: "Greeting", ar: "تحية" },
         words: [
           { id: "hallo", nl: { word: "Hallo", definitie: "Een informele begroeting.", voorbeeld: "Hallo, hoe gaat het?" }, en: { word: "Hello", definition: "An informal greeting.", example: "Hello, how are you?" } },
           { id: "goedemorgen", nl: { word: "Goedemorgen", definitie: "Begroeting gebruikt in de ochtend.", voorbeeld: "Goedemorgen, lekker geslapen?" }, en: { word: "Good morning", definition: "Greeting used in the morning.", example: "Good morning, did you sleep well?" } },
@@ -174,7 +243,7 @@ export const categories: Category[] = [
       },
       {
         id: "dier",
-        name: { nl: "Dier", en: "Animal" },
+        name: { nl: "Dier", en: "Animal", ar: "حيوان" },
         words: [
           { id: "hond", nl: { word: "De Hond", definitie: "Een huisdier.", meervoud: "Honden", verkleinwoord: "Hondje", voorbeeld: "De hond blaft." }, en: { word: "The Dog", definition: "A pet.", plural: "Dogs", diminutive: "Doggy", example: "The dog barks." } },
           { id: "kat", nl: { word: "De Kat", definitie: "Een huisdier.", meervoud: "Katten", verkleinwoord: "Katje", voorbeeld: "De kat slaapt op de bank." }, en: { word: "The Cat", definition: "A pet.", plural: "Cats", diminutive: "Kitty", example: "The cat sleeps on the couch." } },
@@ -186,7 +255,7 @@ export const categories: Category[] = [
       },
       {
         id: "mens",
-        name: { nl: "Mens", en: "Person" },
+        name: { nl: "Mens", en: "Person", ar: "شخص" },
         words: [
           { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek." }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book." } },
           { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten." }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food." } },
@@ -196,7 +265,7 @@ export const categories: Category[] = [
       },
       {
         id: "groente",
-        name: { nl: "Groente", en: "Vegetable" },
+        name: { nl: "Groente", en: "Vegetable", ar: "خضار" },
         words: [
           { id: "wortel", nl: { word: "De Wortel", definitie: "Een oranje groente.", meervoud: "Wortels", verkleinwoord: "Worteltje", voorbeeld: "Ik eet een wortel." }, en: { word: "The Carrot", definition: "An orange vegetable.", plural: "Carrots", example: "I eat a carrot." } },
           { id: "aardappel", nl: { word: "De Aardappel", definitie: "Een veelgebruikte groente.", meervoud: "Aardappelen", verkleinwoord: "Aardappeltje", voorbeeld: "We eten aardappelen bij het avondeten." }, en: { word: "The Potato", definition: "A commonly used vegetable.", plural: "Potatoes", example: "We eat potatoes for dinner." } },
@@ -206,7 +275,7 @@ export const categories: Category[] = [
       },
       {
         id: "fruit",
-        name: { nl: "Fruit", en: "Fruit" },
+        name: { nl: "Fruit", en: "Fruit", ar: "فاكهة" },
         words: [
           { id: "appel", nl: { word: "De Appel", definitie: "Een populaire vrucht.", meervoud: "Appels", verkleinwoord: "Appeltje", voorbeeld: "Ik eet een appel als snack." }, en: { word: "The Apple", definition: "A popular fruit.", plural: "Apples", example: "I eat an apple as a snack." } },
           { id: "banaan", nl: { word: "De Banaan", definitie: "Een gele vrucht.", meervoud: "Bananen", verkleinwoord: "Banaantje", voorbeeld: "De aap eet een banaan." }, en: { word: "The Banana", definition: "A yellow fruit.", plural: "Bananas", example: "The monkey eats a banana." } },
@@ -216,7 +285,7 @@ export const categories: Category[] = [
       },
       {
         id: "kleding",
-        name: { nl: "Kleding", en: "Clothing" },
+        name: { nl: "Kleding", en: "Clothing", ar: "ملابس" },
         words: [
           { id: "jas", nl: { word: "De Jas", definitie: "Kledingstuk voor buitenshuis.", meervoud: "Jassen", verkleinwoord: "Jasje", voorbeeld: "Trek je jas aan, het is koud." }, en: { word: "The Jacket", definition: "Outerwear garment.", plural: "Jackets", example: "Put on your jacket, it's cold." } },
           { id: "schoen", nl: { word: "De Schoen", definitie: "Schoeisel voor de voet.", meervoud: "Schoenen", verkleinwoord: "Schoentje", voorbeeld: "Mijn schoenen zijn nieuw." }, en: { word: "The Shoe", definition: "Footwear.", plural: "Shoes", example: "My shoes are new." } },
@@ -226,7 +295,7 @@ export const categories: Category[] = [
       },
       {
         id: "lichaam",
-        name: { nl: "Lichaam", en: "Body" },
+        name: { nl: "Lichaam", en: "Body", ar: "جسم" },
         words: [
           { id: "hoofd", nl: { word: "Het Hoofd", definitie: "Het bovenste deel van het lichaam.", meervoud: "Hoofden", verkleinwoord: "Hoofdje", voorbeeld: "Mijn hoofd doet pijn." }, en: { word: "The Head", definition: "The upper part of the body.", plural: "Heads", example: "My head hurts." } },
           { id: "hand", nl: { word: "De Hand", definitie: "Lichaamsdeel aan het eind van de arm.", meervoud: "Handen", verkleinwoord: "Handje", voorbeeld: "Was je handen voor het eten." }, en: { word: "The Hand", definition: "Body part at the end of the arm.", plural: "Hands", example: "Wash your hands before eating." } },
@@ -236,7 +305,7 @@ export const categories: Category[] = [
       },
       {
         id: "eten",
-        name: { nl: "Eten", en: "Food" },
+        name: { nl: "Eten", en: "Food", ar: "طعام" },
         words: [
           { id: "brood", nl: { word: "Het Brood", definitie: "Een basisvoedsel gemaakt van deeg.", meervoud: "Broden", verkleinwoord: "Broodje", voorbeeld: "Ik eet brood bij het ontbijt." }, en: { word: "The Bread", definition: "A staple food made from dough.", plural: "Breads", example: "I eat bread for breakfast." } },
           { id: "kaas", nl: { word: "De Kaas", definitie: "Een zuivelproduct.", meervoud: "Kazen", verkleinwoord: "Kaasje", voorbeeld: "Nederland is beroemd om kaas." }, en: { word: "The Cheese", definition: "A dairy product.", plural: "Cheeses", example: "The Netherlands is famous for cheese." } },
@@ -248,11 +317,11 @@ export const categories: Category[] = [
   },
   {
     id: "bijvoeglijk-naamwoord",
-    name: { nl: "Bijvoeglijk Naamwoord", en: "Adjective" },
+    name: { nl: "Bijvoeglijk Naamwoord", en: "Adjective", ar: "صفة" },
     subcategories: [
       {
         id: "beschrijving",
-        name: { nl: "Beschrijving", en: "Description" },
+        name: { nl: "Beschrijving", en: "Description", ar: "وصف" },
         words: [
           { id: "groot", nl: { word: "Groot", definitie: "Van grote omvang.", voorbeeld: "Het huis is groot." }, en: { word: "Big/Large", definition: "Of great size.", example: "The house is big." } },
           { id: "klein", nl: { word: "Klein", definitie: "Van kleine omvang.", verkleinwoord: "Kleintje", voorbeeld: "De muis is klein." }, en: { word: "Small", definition: "Of small size.", example: "The mouse is small." } },
@@ -264,7 +333,7 @@ export const categories: Category[] = [
       },
       {
         id: "emoties",
-        name: { nl: "Emoties", en: "Emotions" },
+        name: { nl: "Emoties", en: "Emotions", ar: "مشاعر" },
         words: [
           { id: "blij", nl: { word: "Blij", definitie: "Een gevoel van geluk.", voorbeeld: "Ik ben blij vandaag!" }, en: { word: "Happy", definition: "A feeling of joy.", example: "I am happy today!" } },
           { id: "boos", nl: { word: "Boos", definitie: "Een gevoel van woede.", voorbeeld: "Hij is boos op zijn broer." }, en: { word: "Angry", definition: "A feeling of anger.", example: "He is angry at his brother." } },
@@ -274,7 +343,7 @@ export const categories: Category[] = [
       },
       {
         id: "weer",
-        name: { nl: "Weer", en: "Weather" },
+        name: { nl: "Weer", en: "Weather", ar: "طقس" },
         words: [
           { id: "warm", nl: { word: "Warm", definitie: "Hoge temperatuur.", voorbeeld: "Het is warm in de zomer." }, en: { word: "Warm/Hot", definition: "High temperature.", example: "It is warm in the summer." } },
           { id: "koud", nl: { word: "Koud", definitie: "Lage temperatuur.", voorbeeld: "Het is koud in de winter." }, en: { word: "Cold", definition: "Low temperature.", example: "It is cold in the winter." } },
@@ -286,11 +355,11 @@ export const categories: Category[] = [
   },
   {
     id: "werkwoord",
-    name: { nl: "Werkwoord", en: "Verb" },
+    name: { nl: "Werkwoord", en: "Verb", ar: "فعل" },
     subcategories: [
       {
         id: "dagelijkse-acties",
-        name: { nl: "Dagelijkse Acties", en: "Daily Actions" },
+        name: { nl: "Dagelijkse Acties", en: "Daily Actions", ar: "أفعال يومية" },
         words: [
           {
             id: "lopen", nl: { word: "Lopen", definitie: "Zich voortbewegen te voet.", voorbeeld: "Ik loop naar school.", vervoeging: { "ik": "loop", "jij": "loopt", "hij/zij": "loopt", "wij": "lopen", "jullie": "lopen", "zij (mv)": "lopen" } },
@@ -320,7 +389,7 @@ export const categories: Category[] = [
       },
       {
         id: "beweging",
-        name: { nl: "Beweging", en: "Movement" },
+        name: { nl: "Beweging", en: "Movement", ar: "حركة" },
         words: [
           {
             id: "rennen", nl: { word: "Rennen", definitie: "Snel lopen.", voorbeeld: "De kinderen rennen in het park.", vervoeging: { "ik": "ren", "jij": "rent", "hij/zij": "rent", "wij": "rennen", "jullie": "rennen", "zij (mv)": "rennen" } },
@@ -342,7 +411,7 @@ export const categories: Category[] = [
       },
       {
         id: "communicatie",
-        name: { nl: "Communicatie", en: "Communication" },
+        name: { nl: "Communicatie", en: "Communication", ar: "تواصل" },
         words: [
           {
             id: "praten", nl: { word: "Praten", definitie: "Woorden spreken.", voorbeeld: "We praten over het weer.", vervoeging: { "ik": "praat", "jij": "praat", "hij/zij": "praat", "wij": "praten", "jullie": "praten", "zij (mv)": "praten" } },
@@ -366,11 +435,11 @@ export const categories: Category[] = [
   },
   {
     id: "bijwoord",
-    name: { nl: "Bijwoord", en: "Adverb" },
+    name: { nl: "Bijwoord", en: "Adverb", ar: "ظرف" },
     subcategories: [
       {
         id: "frequentie",
-        name: { nl: "Frequentie", en: "Frequency" },
+        name: { nl: "Frequentie", en: "Frequency", ar: "تكرار" },
         words: [
           { id: "altijd", nl: { word: "Altijd", definitie: "Op elk moment.", voorbeeld: "Ik drink altijd koffie." }, en: { word: "Always", definition: "At all times.", example: "I always drink coffee." } },
           { id: "soms", nl: { word: "Soms", definitie: "Af en toe.", voorbeeld: "Soms regent het." }, en: { word: "Sometimes", definition: "Occasionally.", example: "Sometimes it rains." } },
@@ -380,7 +449,7 @@ export const categories: Category[] = [
       },
       {
         id: "plaats",
-        name: { nl: "Plaats", en: "Place" },
+        name: { nl: "Plaats", en: "Place", ar: "مكان" },
         words: [
           { id: "hier", nl: { word: "Hier", definitie: "Op deze plek.", voorbeeld: "Kom hier!" }, en: { word: "Here", definition: "In this place.", example: "Come here!" } },
           { id: "daar", nl: { word: "Daar", definitie: "Op die plek.", voorbeeld: "Het boek ligt daar." }, en: { word: "There", definition: "In that place.", example: "The book is there." } },
@@ -433,11 +502,11 @@ export function getCategoryForSubcategory(subcategoryId: string): Category | und
   return categories.find(c => c.subcategories.some(s => s.id === subcategoryId));
 }
 
-export function getWordText(word: WordDetail, lang: "nl" | "en"): string {
+export function getWordText(word: WordDetail, lang: WordLang): string {
   return word[lang].word;
 }
 
-export function getTranslation(word: WordDetail, learningLang: "nl" | "en"): string {
-  const other = learningLang === "nl" ? "en" : "nl";
+export function getTranslation(word: WordDetail, learningLang: WordLang): string {
+  const other: WordLang = learningLang === "nl" ? "en" : "nl";
   return word[other].word;
 }
