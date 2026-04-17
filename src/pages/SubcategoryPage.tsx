@@ -1,70 +1,37 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { ArrowLeft, Play } from "lucide-react";
 import { categories, getWordText } from "@/data/courseData";
-import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 
 export default function SubcategoryPage() {
-  const { id } = useParams<{ id: string }>();
+  const { category: categoryId, subcategory: subId } = useParams<{ category: string; subcategory: string }>();
   const navigate = useNavigate();
-  const { setPracticeScope, reviews } = useApp();
-  const { uiLang, courseLang, t } = useCourseLanguage();
+  const { courseLang, t } = useCourseLanguage();
 
-  let subcategory = null;
-  let parentCategory = null;
-  for (const cat of categories) {
-    const sub = cat.subcategories.find(s => s.id === id);
-    if (sub) {
-      subcategory = sub;
-      parentCategory = cat;
-      break;
-    }
-  }
+  const category = categories.find(c => c.id === categoryId);
+  const subcategory = category?.subcategories.find(s => s.id === subId);
 
-  if (!subcategory || !parentCategory) {
+  if (!category || !subcategory) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Subcategory not found.</p>
-        <Button onClick={() => navigate("/home")} className="ml-2">Home</Button>
-      </div>
+      <div className="px-6 text-sm text-muted-foreground">{t("notFound")}</div>
     );
   }
 
-  const handlePractice = () => {
-    setPracticeScope({ type: "subcategory", id: subcategory!.id });
-    navigate("/practice");
-  };
-
   return (
-    <div className="min-h-screen p-6 max-w-md mx-auto">
-      <Button variant="ghost" onClick={() => navigate(`/category/${parentCategory!.id}`)} className="mb-4">
-        <ArrowLeft className="h-4 w-4 mr-1" /> {parentCategory.name[uiLang]}
-      </Button>
-
-      <h1 className="text-2xl font-semibold mb-4">{subcategory.name[uiLang]}</h1>
-
-      <Button onClick={handlePractice} fullWidth className="mb-6 gap-2">
-        <Play className="h-4 w-4" /> {t("practice")} {subcategory.name[uiLang]}
-      </Button>
-
-      <div className="space-y-2">
-        {subcategory.words.map(word => {
-          const isLearned = reviews.some(r => r.wordId === word.id && r.learned);
-          return (
-            <Container
-              key={word.id}
-              className="cursor-pointer hover:scale-[1.01] transition-transform flex items-center justify-between"
-            >
-              <div onClick={() => navigate(`/word/${word.id}`)} className="flex items-center justify-between w-full">
-                <span className="font-medium text-sm">{getWordText(word, courseLang)}</span>
-                {isLearned && <div className="w-2 h-2 rounded-full bg-green-500" />}
-              </div>
-            </Container>
-          );
-        })}
-      </div>
+    <div className="px-6 grid grid-cols-2 gap-3">
+      {subcategory.words.map(word => (
+        <Container
+          key={word.id}
+          className="cursor-pointer hover:scale-[1.02] transition-transform"
+        >
+          <div
+            onClick={() => navigate(`/${category.id}/${subcategory.id}/${word.id}`)}
+            className="flex flex-col h-full min-h-[80px] justify-between"
+          >
+            <span className="font-semibold text-sm">{getWordText(word, courseLang)}</span>
+          </div>
+        </Container>
+      ))}
     </div>
   );
 }

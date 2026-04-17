@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
+import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
 import LanguageSelectPage from "./pages/LanguageSelectPage";
 import ConceptSelectPage from "./pages/ConceptSelectPage";
@@ -16,11 +17,14 @@ import SubcategoryPage from "./pages/SubcategoryPage";
 import WordDetailPage from "./pages/WordDetailPage";
 import PracticePage from "./pages/PracticePage";
 import NotFound from "./pages/NotFound";
+import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
 
+const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
+
 function AppRoutes() {
-  const { isAuthenticated, interfaceLanguage, selectedConcept } = useApp();
+  const { isAuthenticated, interfaceLanguage, selectedConcept, introductionCompleted } = useApp();
 
   if (!isAuthenticated) {
     return (
@@ -48,17 +52,31 @@ function AppRoutes() {
     );
   }
 
+  if (!introductionCompleted) {
+    return (
+      <Routes>
+        <Route path="/introduction" element={<IntroductionPage />} />
+        <Route path="*" element={<Navigate to="/introduction" />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
-      <Route path="/home" element={<HomePage />} />
-      <Route path="/courses" element={<CoursesPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/introduction" element={<IntroductionPage />} />
-      <Route path="/category/:id" element={<CategoryPage />} />
-      <Route path="/subcategory/:id" element={<SubcategoryPage />} />
-      <Route path="/word/:id" element={<WordDetailPage />} />
+      {/* Pages without the global layout */}
       <Route path="/practice" element={<PracticePage />} />
-      <Route path="*" element={<Navigate to="/home" />} />
+      <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/introduction" element={<IntroductionPage />} />
+
+      {/* Pages with the global layout (top bar + practice + breadcrumbs) */}
+      <Route path="/home" element={withLayout(<HomePage />)} />
+      <Route path="/settings" element={withLayout(<SettingsPage />)} />
+      <Route path="/:category" element={withLayout(<CategoryPage />)} />
+      <Route path="/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
+      <Route path="/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
+
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
