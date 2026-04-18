@@ -16,6 +16,7 @@ import CategoryPage from "./pages/CategoryPage";
 import SubcategoryPage from "./pages/SubcategoryPage";
 import WordDetailPage from "./pages/WordDetailPage";
 import PracticePage from "./pages/PracticePage";
+import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
 
@@ -70,6 +71,7 @@ function AppRoutes() {
       {/* Pages with the global layout (top bar everywhere except practice) */}
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
       <Route path="/courses" element={withLayout(<CoursesPage />)} />
+      <Route path="/search" element={withLayout(<SearchPage />)} />
       <Route path="/home" element={withLayout(<HomePage />)} />
       <Route path="/:concept" element={withLayout(<HomePage />)} />
       <Route path="/:concept/:category" element={withLayout(<CategoryPage />)} />
