@@ -136,7 +136,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const recordReview = (wordId: string, correct: boolean) => {
     setState(s => {
       const existing = s.reviews.find(r => r.wordId === wordId);
-      const current = existing || createReviewState(wordId);
+      const current: ReviewState = existing
+        ? { ease: 2.5, reps: existing.learned ? 1 : 0, lapses: 0, ...existing }
+        : createReviewState(wordId);
       const updated = updateReview(current, correct);
       const reviews = existing
         ? s.reviews.map(r => r.wordId === wordId ? updated : r)
