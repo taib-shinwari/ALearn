@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { TitleBar } from "@/components/ui/title-bar";
 import { ArrowLeft, Settings, Search, Play } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
@@ -18,7 +19,8 @@ interface LayoutProps {
 
 /**
  * Global layout wrapping pages that share the top bar.
- * Hidden entirely on /settings and during practice/exercise flows.
+ * Practice button + breadcrumbs hidden on /settings and /courses.
+ * Top bar visible everywhere except inside the practice flow.
  */
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
@@ -26,21 +28,17 @@ export default function Layout({ children }: LayoutProps) {
   const { learningLanguage, selectedConcept, setPracticeScope } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
-  // Hide top bar entirely on settings page
   const isSettings = location.pathname.startsWith("/settings");
   const isCourses = location.pathname.startsWith("/courses");
 
-  // Path: /:concept/:category/:subcategory/:word OR /home
   const rawSegments = location.pathname.split("/").filter(Boolean);
   const isHome = rawSegments.length === 0 || rawSegments[0] === "home";
-  // Strip the concept prefix for breadcrumb building
   const contentSegs = !isHome && rawSegments[0] === selectedConcept
     ? rawSegments.slice(1)
     : (isHome ? [] : rawSegments);
 
   const conceptPrefix = selectedConcept ? `/${selectedConcept}` : "/home";
 
-  // Build breadcrumbs (root + category + subcategory + word)
   const crumbs: { label: string; to: string }[] = [{ label: t("root"), to: conceptPrefix }];
   if (contentSegs.length >= 1) {
     const cat = categories.find(c => c.id === contentSegs[0]);
@@ -61,12 +59,15 @@ export default function Layout({ children }: LayoutProps) {
   const showBack = !isHome;
 
   const handleBack = () => {
+    if (isSettings || isCourses) {
+      navigate(conceptPrefix);
+      return;
+    }
     if (isHome) return;
     if (contentSegs.length <= 1) navigate(conceptPrefix);
     else navigate(conceptPrefix + "/" + contentSegs.slice(0, -1).join("/"));
   };
 
-  // Practice scope inferred from URL (segments without concept prefix)
   const handlePractice = () => {
     if (contentSegs.length === 0) {
       setPracticeScope({ type: "global" });
@@ -80,11 +81,8 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/practice");
   };
 
-  if (isSettings) {
-    return <div className="min-h-screen pb-8">{children}</div>;
-  }
+  const showPracticeAndCrumbs = !isSettings && !isCourses;
 
-  // Courses page: only show top bar (no practice button, no breadcrumbs)
   return (
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
       {/* Top bar */}
@@ -109,32 +107,33 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </div>
 
-      {!isCourses && (
+      {showPracticeAndCrumbs && (
         <>
-          {/* Practice button */}
           <div className="px-6">
             <Button onClick={handlePractice} fullWidth className="gap-2">
               <Play className="h-4 w-4" /> {t("practice")}
             </Button>
           </div>
 
-          {/* Breadcrumbs */}
+          {/* Breadcrumbs in a thin container */}
           <nav aria-label="breadcrumb" className="px-6 mt-3 mb-4">
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-black">
-              {crumbs.map((c, i) => {
-                const isLast = i === crumbs.length - 1;
-                return (
-                  <li key={c.to + i} className="flex items-center gap-1">
-                    {isLast ? (
-                      <span className="font-medium">{c.label}</span>
-                    ) : (
-                      <Link to={c.to} className="hover:underline">{c.label}</Link>
-                    )}
-                    {!isLast && <span className="px-1">/</span>}
-                  </li>
-                );
-              })}
-            </ol>
+            <TitleBar>
+              <ol className="flex flex-wrap items-center gap-1">
+                {crumbs.map((c, i) => {
+                  const isLast = i === crumbs.length - 1;
+                  return (
+                    <li key={c.to + i} className="flex items-center gap-1">
+                      {isLast ? (
+                        <span className="font-medium">{c.label}</span>
+                      ) : (
+                        <Link to={c.to} className="hover:underline">{c.label}</Link>
+                      )}
+                      {!isLast && <span className="px-1">/</span>}
+                    </li>
+                  );
+                })}
+              </ol>
+            </TitleBar>
           </nav>
         </>
       )}

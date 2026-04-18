@@ -1,6 +1,6 @@
 import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
-import { Container } from "@/components/ui/container";
+import { CardButton } from "@/components/ui/card-button";
 import { categories, getWordsForCategory, localizedName } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect } from "react";
@@ -23,18 +23,16 @@ export default function HomePage() {
       {categories.map(cat => {
         const total = getWordsForCategory(cat.id).length;
         return (
-          <div
+          <CardButton
             key={cat.id}
             onClick={() => navigate(`${conceptPrefix}/${cat.id}`)}
-            className="cursor-pointer"
+            className="min-h-[80px] flex flex-col justify-between"
           >
-            <Container className="hover:bg-black hover:text-white transition-colors min-h-[80px] flex flex-col justify-between">
-              <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
-              <span className="text-xs mt-2 opacity-70">
-                {total} {t("words")}
-              </span>
-            </Container>
-          </div>
+            <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
+            <span className="text-xs mt-2 opacity-70">
+              {total} {t("words")}
+            </span>
+          </CardButton>
         );
       })}
     </div>

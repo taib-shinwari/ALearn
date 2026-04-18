@@ -63,13 +63,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Pages without the global layout */}
+      {/* Practice flow has no top bar */}
       <Route path="/practice" element={<PracticePage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/courses" element={withLayout(<CoursesPage />)} />
 
-      {/* Pages with the global layout — fully dynamic by concept slug */}
+      {/* Pages with the global layout (top bar everywhere except practice) */}
+      <Route path="/settings" element={withLayout(<SettingsPage />)} />
+      <Route path="/courses" element={withLayout(<CoursesPage />)} />
       <Route path="/home" element={withLayout(<HomePage />)} />
       <Route path="/:concept" element={withLayout(<HomePage />)} />
       <Route path="/:concept/:category" element={withLayout(<CategoryPage />)} />

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Container } from "@/components/ui/container";
+import { CardButton } from "@/components/ui/card-button";
 import { categories, getWordText } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
@@ -22,15 +22,13 @@ export default function SubcategoryPage() {
   return (
     <div className="px-6 grid grid-cols-2 gap-3">
       {subcategory.words.map(word => (
-        <div
+        <CardButton
           key={word.id}
           onClick={() => navigate(`${conceptPrefix}/${category.id}/${subcategory.id}/${word.id}`)}
-          className="cursor-pointer"
+          className="min-h-[80px] flex flex-col justify-between"
         >
-          <Container className="hover:bg-black hover:text-white transition-colors min-h-[80px] flex flex-col justify-between">
-            <span className="font-semibold text-sm">{getWordText(word, courseLang)}</span>
-          </Container>
-        </div>
+          <span className="font-semibold text-sm">{getWordText(word, courseLang)}</span>
+        </CardButton>
       ))}
     </div>
   );

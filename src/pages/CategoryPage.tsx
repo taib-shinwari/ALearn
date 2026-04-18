@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Container } from "@/components/ui/container";
+import { CardButton } from "@/components/ui/card-button";
 import { categories, localizedName } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
@@ -20,18 +20,16 @@ export default function CategoryPage() {
   return (
     <div className="px-6 grid grid-cols-2 gap-3">
       {category.subcategories.map(sub => (
-        <div
+        <CardButton
           key={sub.id}
           onClick={() => navigate(`${conceptPrefix}/${category.id}/${sub.id}`)}
-          className="cursor-pointer"
+          className="min-h-[80px] flex flex-col justify-between"
         >
-          <Container className="hover:bg-black hover:text-white transition-colors min-h-[80px] flex flex-col justify-between">
-            <span className="font-semibold text-sm">{localizedName(sub.name, uiLang)}</span>
-            <span className="text-xs mt-2 opacity-70">
-              {sub.words.length} {t("words")}
-            </span>
-          </Container>
-        </div>
+          <span className="font-semibold text-sm">{localizedName(sub.name, uiLang)}</span>
+          <span className="text-xs mt-2 opacity-70">
+            {sub.words.length} {t("words")}
+          </span>
+        </CardButton>
       ))}
     </div>
   );

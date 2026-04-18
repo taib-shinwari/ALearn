@@ -2,24 +2,19 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { TitleBar } from "@/components/ui/title-bar";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
-import { ArrowLeft } from "lucide-react";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { logout, user, selectedConcept } = useApp();
+  const { logout, user } = useApp();
   const { t } = useCourseLanguage();
 
-  const back = selectedConcept ? `/${selectedConcept}` : "/home";
-
   return (
-    <div className="min-h-screen p-6 max-w-md mx-auto">
-      <div className="mb-4">
-        <Button size="icon" onClick={() => navigate(back)} aria-label={t("back")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-      </div>
-      <h1 className="text-2xl font-semibold mb-6">{t("settings")}</h1>
+    <div className="px-6 max-w-md mx-auto">
+      <TitleBar className="mb-4 text-center font-semibold">
+        {t("settings")}
+      </TitleBar>
 
       <Container className="mb-6">
         <h3 className="font-medium text-sm mb-2">{t("profile")}</h3>
