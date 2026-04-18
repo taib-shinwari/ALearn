@@ -123,7 +123,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getReview = (wordId: string): ReviewState => {
     const existing = state.reviews.find(r => r.wordId === wordId);
-    return existing || createReviewState(wordId);
+    if (!existing) return createReviewState(wordId);
+    // Migrate older shapes that miss new fields
+    return {
+      ease: 2.5,
+      reps: existing.learned ? 1 : 0,
+      lapses: 0,
+      ...existing,
+    };
   };
 
   const recordReview = (wordId: string, correct: boolean) => {
