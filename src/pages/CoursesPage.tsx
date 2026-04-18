@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import { TitleBar } from "@/components/ui/title-bar";
 import { Plus, Check, ArrowLeft } from "lucide-react";
 import { useApp, Course } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const availableLanguages = [
   { code: "en", label: "English" },
@@ -17,7 +18,7 @@ const availableConcepts = [
 ];
 
 function getLearnableLanguages(fromLang: string) {
-  // For now words only exist in nl/en, so target must be nl/en and != fromLang
+  // Words exist only in nl/en, target must differ from interface language
   return availableLanguages.filter(l => l.code !== fromLang && (l.code === "nl" || l.code === "en"));
 }
 
@@ -40,6 +41,17 @@ export default function CoursesPage() {
   const isActive = (c: Course) =>
     c.fromLang === interfaceLanguage && c.concept === selectedConcept && c.toLang === learningLanguage;
 
+  // List view: filter visible items based on chosen interface language + concept.
+  // We also derive a top breadcrumb showing the current navigation depth.
+  const [listFromLang, setListFromLang] = useState<string | null>(interfaceLanguage);
+  const [listConcept, setListConcept] = useState<string | null>(selectedConcept);
+
+  // Reset list-mode breadcrumb when entering list mode fresh
+  const resetList = () => {
+    setListFromLang(interfaceLanguage);
+    setListConcept(selectedConcept);
+  };
+
   const startCreate = () => {
     setMode("create");
     setStep(0);
@@ -54,6 +66,7 @@ export default function CoursesPage() {
     setNewFrom(null);
     setNewConcept(null);
     setError("");
+    resetList();
   };
 
   const goBackStep = () => {
@@ -75,25 +88,80 @@ export default function CoursesPage() {
     navigate(`/${course.concept}`);
   };
 
-  // Internal breadcrumb (Courses-page-local) for create flow
-  const localCrumbs: string[] = [];
-  if (mode === "create") {
-    if (newFrom) localCrumbs.push(langLabel(newFrom));
+  // ----- LIST MODE: drill-down by interfaceLang -> concept -> course -----
+  const interfaceLanguagesWithCourses = useMemo(() => {
+    const set = new Set(courses.map(c => c.fromLang));
+    return availableLanguages.filter(l => set.has(l.code));
+  }, [courses]);
+
+  const conceptsForListLang = useMemo(() => {
+    if (!listFromLang) return [];
+    const set = new Set(courses.filter(c => c.fromLang === listFromLang).map(c => c.concept));
+    return availableConcepts.filter(c => set.has(c.code));
+  }, [courses, listFromLang]);
+
+  const coursesForListSelection = useMemo(() => {
+    if (!listFromLang || !listConcept) return [];
+    return courses.filter(c => c.fromLang === listFromLang && c.concept === listConcept);
+  }, [courses, listFromLang, listConcept]);
+
+  // Top breadcrumb segments (above the title) for list mode
+  const listCrumbs: string[] = [];
+  if (mode === "list") {
+    if (listFromLang) listCrumbs.push(langLabel(listFromLang));
+    if (listConcept) {
+      const c = availableConcepts.find(x => x.code === listConcept);
+      listCrumbs.push(c ? t(c.labelKey) : listConcept);
+    }
+  } else {
+    if (newFrom) listCrumbs.push(langLabel(newFrom));
     if (newConcept) {
       const c = availableConcepts.find(x => x.code === newConcept);
-      localCrumbs.push(c ? t(c.labelKey) : newConcept);
+      listCrumbs.push(c ? t(c.labelKey) : newConcept);
     }
   }
 
+  const drillBack = () => {
+    if (listConcept) { setListConcept(null); return; }
+    if (listFromLang) { setListFromLang(null); return; }
+  };
+
+  const showListBack = mode === "list" && (listFromLang || listConcept);
+
   return (
     <div className="px-6 max-w-md mx-auto">
-      {/* Header row: title + add button */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">{t("yourCourses")}</h1>
+      {/* Top breadcrumb (thin container) */}
+      {listCrumbs.length > 0 && (
+        <nav aria-label="courses-breadcrumb" className="mb-3">
+          <TitleBar>
+            <ol className="flex flex-wrap items-center gap-1">
+              {listCrumbs.map((c, i) => (
+                <li key={i} className="flex items-center gap-1">
+                  <span className={i === listCrumbs.length - 1 ? "font-medium" : ""}>{c}</span>
+                  <span className="px-1">/</span>
+                </li>
+              ))}
+            </ol>
+          </TitleBar>
+        </nav>
+      )}
+
+      {/* Title row: thin Container with title + action button */}
+      <div className="flex items-center gap-2 mb-4">
+        <TitleBar className="flex-1 font-semibold">
+          {mode === "list" ? t("yourCourses") : t("create")}
+        </TitleBar>
         {mode === "list" ? (
-          <Button size="icon" onClick={startCreate} aria-label={t("create")}>
-            <Plus className="h-5 w-5" />
-          </Button>
+          <>
+            {showListBack && (
+              <Button size="icon" onClick={drillBack} aria-label={t("back")}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <Button size="icon" onClick={startCreate} aria-label={t("create")}>
+              <Plus className="h-5 w-5" />
+            </Button>
+          </>
         ) : (
           <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
             <ArrowLeft className="h-5 w-5" />
@@ -101,45 +169,57 @@ export default function CoursesPage() {
         )}
       </div>
 
+      {/* LIST MODE */}
       {mode === "list" && (
         <>
-          {/* Thin container of active courses */}
           {courses.length === 0 ? (
             <Container className="py-2">
               <p className="text-sm">{t("noCourses")}</p>
             </Container>
+          ) : !listFromLang ? (
+            // Step A: pick interface language (only those with active courses)
+            <div className="flex flex-col gap-2">
+              {interfaceLanguagesWithCourses.map(l => (
+                <Button key={l.code} fullWidth onClick={() => setListFromLang(l.code)}>
+                  {l.label}
+                </Button>
+              ))}
+            </div>
+          ) : !listConcept ? (
+            // Step B: pick concept (only those with courses for this interface lang)
+            <div className="flex flex-col gap-2">
+              {conceptsForListLang.map(c => (
+                <Button key={c.code} fullWidth onClick={() => setListConcept(c.code)}>
+                  {t(c.labelKey)}
+                </Button>
+              ))}
+            </div>
           ) : (
-            <Container className="py-2">
-              <ul className="divide-y divide-black">
-                {courses.map((c, i) => (
-                  <li
+            // Step C: list courses (toLang only); active = black bg + checkmark
+            <div className="flex flex-col gap-2">
+              {coursesForListSelection.map((c, i) => {
+                const active = isActive(c);
+                return (
+                  <Button
                     key={i}
+                    fullWidth
+                    active={active}
                     onClick={() => { setActiveCourse(c); navigate(`/${c.concept}`); }}
-                    className={`flex items-center justify-between py-2 cursor-pointer ${isActive(c) ? "font-semibold" : ""}`}
+                    className="justify-between"
                   >
-                    <span className="text-sm">
-                      {langLabel(c.fromLang)} → {langLabel(c.toLang)}
-                    </span>
-                    {isActive(c) && <Check className="h-4 w-4" />}
-                  </li>
-                ))}
-              </ul>
-            </Container>
+                    <span>{langLabel(c.toLang)}</span>
+                    {active && <Check className="h-4 w-4" />}
+                  </Button>
+                );
+              })}
+            </div>
           )}
         </>
       )}
 
+      {/* CREATE MODE */}
       {mode === "create" && (
         <>
-          {/* Local breadcrumb for create flow */}
-          {localCrumbs.length > 0 && (
-            <div className="text-sm mb-3">
-              {localCrumbs.map((c, i) => (
-                <span key={i}>{c}<span className="px-1">/</span></span>
-              ))}
-            </div>
-          )}
-
           {step === 0 && (
             <>
               <h2 className="text-sm font-medium mb-3">{t("interfaceLanguage")}</h2>
@@ -157,13 +237,11 @@ export default function CoursesPage() {
             <>
               <h2 className="text-sm font-medium mb-3">{t("selectConceptShort")}</h2>
               <div className="flex flex-col gap-2">
-                {availableConcepts
-                  .filter(c => courses.some(co => co.fromLang === newFrom && co.concept === c.code) || true)
-                  .map(c => (
-                    <Button key={c.code} fullWidth onClick={() => handleSelectConcept(c.code)}>
-                      {t(c.labelKey)}
-                    </Button>
-                  ))}
+                {availableConcepts.map(c => (
+                  <Button key={c.code} fullWidth onClick={() => handleSelectConcept(c.code)}>
+                    {t(c.labelKey)}
+                  </Button>
+                ))}
               </div>
             </>
           )}
