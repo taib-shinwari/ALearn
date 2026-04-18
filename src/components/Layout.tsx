@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
@@ -6,6 +6,7 @@ import { ArrowLeft, Settings, Search, Play } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
+import { SpotlightSearch } from "@/components/search/SpotlightSearch";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
@@ -30,6 +31,8 @@ export default function Layout({ children }: LayoutProps) {
 
   const isSettings = location.pathname.startsWith("/settings");
   const isCourses = location.pathname.startsWith("/courses");
+  const isSearch = location.pathname.startsWith("/search");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const rawSegments = location.pathname.split("/").filter(Boolean);
   const isHome = rawSegments.length === 0 || rawSegments[0] === "home";
@@ -81,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/practice");
   };
 
-  const showPracticeAndCrumbs = !isSettings && !isCourses;
+  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch;
 
   return (
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
@@ -98,7 +101,7 @@ export default function Layout({ children }: LayoutProps) {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="icon" aria-label={t("search")} onClick={() => { /* search not implemented */ }}>
+          <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
             <Search className="h-5 w-5" />
           </Button>
           <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
@@ -139,6 +142,8 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <div>{children}</div>
+
+      <SpotlightSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
