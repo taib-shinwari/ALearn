@@ -42,7 +42,8 @@ export default function Layout({ children }: LayoutProps) {
   // Subscribe to the settings store (mobile top bar swap)
   const [settingsBar, setSettingsBar] = useState(settingsStore.getState());
   useEffect(() => {
-    return settingsStore.subscribe(() => setSettingsBar(settingsStore.getState()));
+    const unsub = settingsStore.subscribe(() => setSettingsBar(settingsStore.getState()));
+    return () => { unsub(); };
   }, []);
 
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
