@@ -119,7 +119,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-md border border-black hover:bg-black hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-colors"
                   >
                     {currentCategory.label}
                     <ChevronDown className="h-3 w-3" />
@@ -172,39 +172,40 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                       See all →
                     </button>
                   </div>
-                  {results.map((result, i) => (
-                    <button
-                      key={result.id}
-                      onClick={() => onResult(result.path)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors group",
-                        selectedIndex === i ? "bg-black text-white" : "hover:bg-black/5"
-                      )}
-                    >
-                      <div className={cn(
-                        "h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border-2",
-                        selectedIndex === i ? "border-white" : "border-black"
-                      )}>
-                        {result.type.charAt(0)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-medium truncate">{result.title}</span>
-                          {result.secondary && (
-                            <span className={cn("text-xs truncate", selectedIndex === i ? "text-white/70" : "text-black/50")}>
-                              {result.secondary}
-                            </span>
+                  {results.map((result, i) => {
+                    const active = selectedIndex === i;
+                    return (
+                      <button
+                        key={result.id}
+                        onClick={() => onResult(result.path)}
+                        onMouseEnter={() => setSelectedIndex(i)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors group",
+                          active ? "bg-black text-white" : "bg-white text-black hover:bg-black hover:text-white"
+                        )}
+                      >
+                        <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-current">
+                          {result.type.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-medium truncate">{result.title}</span>
+                            {result.secondary && (
+                              <span className="text-xs truncate opacity-70">
+                                {result.secondary}
+                              </span>
+                            )}
+                          </div>
+                          {result.subtitle && (
+                            <div className="text-xs truncate opacity-70">
+                              {result.subtitle}
+                            </div>
                           )}
                         </div>
-                        {result.subtitle && (
-                          <div className={cn("text-xs truncate", selectedIndex === i ? "text-white/70" : "text-black/60")}>
-                            {result.subtitle}
-                          </div>
-                        )}
-                      </div>
-                      <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  ))}
+                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-10 text-center text-sm text-black/60">
@@ -214,12 +215,6 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
               )}
             </div>
           )}
-
-          {/* Footer hint */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-black/10 text-[11px] text-black/50">
-            <span>↑↓ navigate · ↵ open · esc close</span>
-            <span>⌘K</span>
-          </div>
         </div>
       </div>
     </>
