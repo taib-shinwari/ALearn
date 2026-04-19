@@ -105,19 +105,34 @@ export default function CoursesPage() {
     return courses.filter(c => c.fromLang === listFromLang && c.concept === listConcept);
   }, [courses, listFromLang, listConcept]);
 
-  // Top breadcrumb segments (above the title) for list mode
-  const listCrumbs: string[] = [];
+  // Top breadcrumb segments (above the title) for list mode.
+  // Each segment is interactive: clicking it navigates back to that drill level.
+  interface Crumb { label: string; onClick?: () => void }
+  const listCrumbs: Crumb[] = [];
   if (mode === "list") {
-    if (listFromLang) listCrumbs.push(langLabel(listFromLang));
+    if (listFromLang) {
+      listCrumbs.push({
+        label: langLabel(listFromLang),
+        onClick: listConcept ? () => setListConcept(null) : undefined,
+      });
+    }
     if (listConcept) {
       const c = availableConcepts.find(x => x.code === listConcept);
-      listCrumbs.push(c ? t(c.labelKey) : listConcept);
+      listCrumbs.push({ label: c ? t(c.labelKey) : listConcept });
     }
   } else {
-    if (newFrom) listCrumbs.push(langLabel(newFrom));
+    if (newFrom) {
+      listCrumbs.push({
+        label: langLabel(newFrom),
+        onClick: step > 0 ? () => { setStep(0); setNewConcept(null); } : undefined,
+      });
+    }
     if (newConcept) {
       const c = availableConcepts.find(x => x.code === newConcept);
-      listCrumbs.push(c ? t(c.labelKey) : newConcept);
+      listCrumbs.push({
+        label: c ? t(c.labelKey) : newConcept,
+        onClick: step > 1 ? () => setStep(1) : undefined,
+      });
     }
   }
 
@@ -130,43 +145,58 @@ export default function CoursesPage() {
 
   return (
     <div className="px-6 max-w-md mx-auto">
-      {/* Top breadcrumb (thin container) */}
+      {/* Top breadcrumb (thin container, sized to content, interactive) */}
       {listCrumbs.length > 0 && (
         <nav aria-label="courses-breadcrumb" className="mb-3">
           <TitleBar>
             <ol className="flex flex-wrap items-center gap-1">
-              {listCrumbs.map((c, i) => (
-                <li key={i} className="flex items-center gap-1">
-                  <span className={i === listCrumbs.length - 1 ? "font-medium" : ""}>{c}</span>
-                  <span className="px-1">/</span>
-                </li>
-              ))}
+              {listCrumbs.map((c, i) => {
+                const isLast = i === listCrumbs.length - 1;
+                return (
+                  <li key={i} className="flex items-center gap-1">
+                    {c.onClick && !isLast ? (
+                      <button
+                        type="button"
+                        onClick={c.onClick}
+                        className="hover:underline cursor-pointer"
+                      >
+                        {c.label}
+                      </button>
+                    ) : (
+                      <span className={isLast ? "font-medium" : ""}>{c.label}</span>
+                    )}
+                    <span className="px-1">/</span>
+                  </li>
+                );
+              })}
             </ol>
           </TitleBar>
         </nav>
       )}
 
-      {/* Title row: thin Container with title + action button */}
+      {/* Title row: thin TitleBar sized to content + actions on the right */}
       <div className="flex items-center gap-2 mb-4">
-        <TitleBar className="flex-1 font-semibold">
+        <TitleBar className="font-semibold">
           {mode === "list" ? t("yourCourses") : t("create")}
         </TitleBar>
-        {mode === "list" ? (
-          <>
-            {showListBack && (
-              <Button size="icon" onClick={drillBack} aria-label={t("back")}>
-                <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center gap-2 ml-auto">
+          {mode === "list" ? (
+            <>
+              {showListBack && (
+                <Button size="icon" onClick={drillBack} aria-label={t("back")}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+              <Button size="icon" onClick={startCreate} aria-label={t("create")}>
+                <Plus className="h-5 w-5" />
               </Button>
-            )}
-            <Button size="icon" onClick={startCreate} aria-label={t("create")}>
-              <Plus className="h-5 w-5" />
+            </>
+          ) : (
+            <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-          </>
-        ) : (
-          <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* LIST MODE */}
