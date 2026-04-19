@@ -1,30 +1,63 @@
-import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
-import { Button } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
-import { TitleBar } from "@/components/ui/title-bar";
-import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { settingsStore } from "@/components/settings/store";
+import { DesktopSettings } from "@/components/settings/layout/DesktopSettings";
+import { MobileSettings } from "@/components/settings/layout/MobileSettings";
+import { ProfileSection } from "@/components/settings/sections/ProfileSection";
+import { LanguageSection } from "@/components/settings/sections/LanguageSection";
+import { CourseSection } from "@/components/settings/sections/CourseSection";
+import { AboutSection } from "@/components/settings/sections/AboutSection";
+import { getSubcategories } from "@/components/settings/constants";
+import type { SettingsCategoryId } from "@/components/settings/types";
 
 export default function SettingsPage() {
-  const navigate = useNavigate();
-  const { logout, user } = useApp();
-  const { t } = useCourseLanguage();
+  const isMobile = useIsMobile();
+  const [activeCategory, setActiveCategory] = useState<SettingsCategoryId>("profile");
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>("account");
+
+  // Toggle the global "settings is active" flag so the mobile top bar swaps
+  useEffect(() => {
+    settingsStore.setActive(true);
+    return () => { settingsStore.setActive(false); };
+  }, []);
+
+  const handleCategoryChange = (cat: SettingsCategoryId) => {
+    setActiveCategory(cat);
+    const subs = getSubcategories(cat);
+    setActiveSubcategory(subs[0]?.id ?? null);
+  };
+
+  const renderContent = () => {
+    switch (activeCategory) {
+      case "profile":  return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
+      case "language": return <LanguageSection />;
+      case "course":   return <CourseSection />;
+      case "about":    return <AboutSection />;
+      default: return null;
+    }
+  };
+
+  if (isMobile) {
+    return (
+      <MobileSettings
+        activeCategory={activeCategory}
+        activeSubcategory={activeSubcategory}
+        onCategoryChange={handleCategoryChange}
+        onSubcategoryChange={setActiveSubcategory}
+      >
+        {renderContent()}
+      </MobileSettings>
+    );
+  }
 
   return (
-    <div className="px-6 max-w-md mx-auto">
-      <TitleBar className="mb-4 text-center font-semibold">
-        {t("settings")}
-      </TitleBar>
-
-      <Container className="mb-6">
-        <h3 className="font-medium text-sm mb-2">{t("profile")}</h3>
-        <p className="text-sm">{user?.firstName}</p>
-        <p className="text-sm opacity-70">{user?.email}</p>
-      </Container>
-
-      <Button variant="destructive" fullWidth onClick={() => { logout(); navigate("/"); }}>
-        {t("signOut")}
-      </Button>
-    </div>
+    <DesktopSettings
+      activeCategory={activeCategory}
+      activeSubcategory={activeSubcategory}
+      onCategoryChange={handleCategoryChange}
+      onSubcategoryChange={setActiveSubcategory}
+    >
+      {renderContent()}
+    </DesktopSettings>
   );
 }
