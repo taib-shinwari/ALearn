@@ -1,19 +1,17 @@
-import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { CardButton } from "@/components/ui/card-button";
 import { Check } from "lucide-react";
 
-const LANGS: { code: "nl" | "en" | "ar"; native: string; en: string }[] = [
-  { code: "nl", native: "Nederlands", en: "Dutch" },
-  { code: "en", native: "English",    en: "English" },
-  { code: "ar", native: "العربية",     en: "Arabic" },
+const LANGS: { code: "nl" | "en" | "ar"; native: string }[] = [
+  { code: "nl", native: "Nederlands" },
+  { code: "en", native: "English" },
+  { code: "ar", native: "العربية" },
 ];
 
 export function LanguageSection() {
   const { interfaceLanguage, setInterfaceLanguage } = useApp();
   const { t } = useCourseLanguage();
-  const navigate = useNavigate();
 
   return (
     <div className="space-y-3">
@@ -23,7 +21,7 @@ export function LanguageSection() {
         return (
           <CardButton
             key={l.code}
-            onClick={() => { setInterfaceLanguage(l.code); navigate(0 as any); }}
+            onClick={() => setInterfaceLanguage(l.code)}
             className={active ? "bg-black text-white border-white" : ""}
           >
             <div className="flex items-center justify-between">
