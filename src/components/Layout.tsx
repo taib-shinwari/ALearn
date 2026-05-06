@@ -10,6 +10,7 @@ import { categories, localizedName } from "@/data/courseData";
 import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
+import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
