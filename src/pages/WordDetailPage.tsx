@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CardButton } from "@/components/ui/card-button";
 import { categories, WordLang } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { WordMedia } from "@/components/word/WordMedia";
 
 type FlipState = 0 | 1 | 2; // 0: front (target word only), 1: target details, 2: interface details
 
