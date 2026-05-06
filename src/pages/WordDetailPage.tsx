@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CardButton } from "@/components/ui/card-button";
 import { categories, WordLang } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { WordMedia } from "@/components/word/WordMedia";
 
 type FlipState = 0 | 1 | 2; // 0: front (target word only), 1: target details, 2: interface details
 
@@ -90,6 +91,7 @@ export default function WordDetailPage() {
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
       </CardButton>
+      <WordMedia word={word[courseLang].word} lang={courseLang} />
     </div>
   );
 }
