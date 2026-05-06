@@ -7,7 +7,7 @@ import { ArrowLeft, Settings, Search, Play, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
-import { SpotlightSearch } from "@/components/search/SpotlightSearch";
+import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 
@@ -38,6 +38,18 @@ export default function Layout({ children }: LayoutProps) {
   const isCourses = location.pathname.startsWith("/courses");
   const isSearch = location.pathname.startsWith("/search");
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Cmd/Ctrl+K toggles inline search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   // Subscribe to the settings store (mobile top bar swap)
   const [settingsBar, setSettingsBar] = useState(settingsStore.getState());
@@ -154,18 +166,25 @@ export default function Layout({ children }: LayoutProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <Button onClick={() => navigate("/courses")} className="truncate">
-            {(learningLanguage && langLabels[learningLanguage]) || t("courses")} ›
-          </Button>
+          {!searchOpen && (
+            <Button onClick={() => navigate("/courses")} className="truncate">
+              {(learningLanguage && langLabels[learningLanguage]) || t("courses")} ›
+            </Button>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
-            <Search className="h-5 w-5" />
-          </Button>
-          <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
-            <Settings className="h-5 w-5" />
-          </Button>
-        </div>
+
+        {searchOpen ? (
+          <HeaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
+              <Search className="h-5 w-5" />
+            </Button>
+            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {showPracticeAndCrumbs && (
@@ -199,8 +218,6 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <div>{children}</div>
-
-      <SpotlightSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
