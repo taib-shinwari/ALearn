@@ -138,7 +138,10 @@ export default function Layout({ children }: LayoutProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          {!searchOpen && (
+          {!searchOpen && isSearch && (
+            <TitleBar className="font-semibold">{t("search")}</TitleBar>
+          )}
+          {!searchOpen && !isSearch && !isHome && (
             <Button onClick={() => navigate("/courses")} className="truncate">
               {(learningLanguage && langLabels[learningLanguage]) || t("courses")} ›
             </Button>
