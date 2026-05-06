@@ -91,6 +91,7 @@ export default function WordDetailPage() {
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
       </CardButton>
+      <WordMedia word={word[courseLang].word} lang={courseLang} />
     </div>
   );
 }
