@@ -254,7 +254,11 @@ export default function PracticePage() {
             <Button fullWidth disabled={!canCheck} onClick={handleCheck}>
               {t("check")}
             </Button>
-            <Button variant="ghost" fullWidth onClick={advance}>
+            <Button
+              fullWidth
+              onClick={advance}
+              className="bg-black text-white border-white hover:bg-white hover:text-black hover:border-black"
+            >
               {t("skip")}
             </Button>
           </>
