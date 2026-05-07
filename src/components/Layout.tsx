@@ -62,7 +62,10 @@ export default function Layout({ children }: LayoutProps) {
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
 
   const rawSegments = location.pathname.split("/").filter(Boolean);
-  const isHome = rawSegments.length === 0 || rawSegments[0] === "home";
+  const isHome =
+    rawSegments.length === 0 ||
+    rawSegments[0] === "home" ||
+    (rawSegments.length === 1 && selectedConcept && rawSegments[0] === selectedConcept);
   const contentSegs = !isHome && rawSegments[0] === selectedConcept
     ? rawSegments.slice(1)
     : (isHome ? [] : rawSegments);
