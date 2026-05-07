@@ -114,7 +114,7 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/practice");
   };
 
-  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch;
+  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
 
   // ── Settings-specific mobile top bar ───────────────────────────────
   if (useSettingsBar) {
