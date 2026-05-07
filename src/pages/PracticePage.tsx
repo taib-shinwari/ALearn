@@ -3,17 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Input } from "@/components/ui/input";
-import { X, Volume2 } from "lucide-react";
+import { X, Volume2, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import {
-  getAllWords,
-  getWordsForCategory,
-  getWordsForSubcategory,
-  getWordById,
-  globalLearningOrder,
-  WordDetail,
-  WordLang,
+  getAllWords, getWordsForCategory, getWordsForSubcategory, getWordById,
+  globalLearningOrder, WordDetail, WordLang,
 } from "@/data/courseData";
 import { getNextWordsForPractice } from "@/lib/spacedRepetition";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
@@ -27,32 +22,22 @@ export default function PracticePage() {
   const navigate = useNavigate();
   const { practiceScope, reviews, recordReview, selectedConcept } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
-
-  // Words exist only in nl/en. Arabic interface falls back to English answers.
   const answerLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
 
-  const exercises = useMemo<Exercise[]>(() => {
+  const initialExercises = useMemo<Exercise[]>(() => {
     const allWords = getAllWords();
     let scopeWordIds: string[];
-
-    if (!practiceScope || practiceScope.type === "global") {
-      scopeWordIds = globalLearningOrder;
-    } else if (practiceScope.type === "category") {
-      scopeWordIds = getWordsForCategory(practiceScope.id!).map(w => w.id);
-    } else if (practiceScope.type === "subcategory") {
-      scopeWordIds = getWordsForSubcategory(practiceScope.id!).map(w => w.id);
-    } else {
-      scopeWordIds = [practiceScope.id!];
-    }
+    if (!practiceScope || practiceScope.type === "global") scopeWordIds = globalLearningOrder;
+    else if (practiceScope.type === "category") scopeWordIds = getWordsForCategory(practiceScope.id!).map(w => w.id);
+    else if (practiceScope.type === "subcategory") scopeWordIds = getWordsForSubcategory(practiceScope.id!).map(w => w.id);
+    else scopeWordIds = [practiceScope.id!];
 
     const nextIds = getNextWordsForPractice(reviews, scopeWordIds, SESSION_SIZE);
     let words = nextIds.map(id => getWordById(id)).filter((w): w is WordDetail => !!w);
 
-    // Top up with random scope words if SR returned too few.
     if (words.length < SESSION_SIZE) {
       const have = new Set(words.map(w => w.id));
-      const extra = scopeWordIds
-        .filter(id => !have.has(id))
+      const extra = scopeWordIds.filter(id => !have.has(id))
         .sort(() => Math.random() - 0.5)
         .slice(0, SESSION_SIZE - words.length)
         .map(id => getWordById(id))
@@ -65,42 +50,48 @@ export default function PracticePage() {
       typeAnswer: t("typeAnswer"),
       listenAndType: t("listenAndType"),
       selectMeaning: t("selectMeaning"),
+      speakWord: t("speakWord"),
     };
-
     return words.map((w, i) => buildExercise(w, i, allWords, courseLang, answerLang, labels));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceScope, reviews, courseLang, answerLang]);
+  }, [practiceScope, courseLang, answerLang]);
 
+  // The active queue. Wrongly-answered items get re-queued at the end.
+  const [queue, setQueue] = useState<Exercise[]>(initialExercises);
   const [step, setStep] = useState(0);
+  const [completed, setCompleted] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [typedAnswer, setTypedAnswer] = useState("");
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const recRef = useRef<any>(null);
+
+  useEffect(() => { setQueue(initialExercises); setStep(0); setCompleted(0); }, [initialExercises]);
 
   const exitPath = selectedConcept ? `/${selectedConcept}` : "/home";
+  const total = initialExercises.length;
+  const current = queue[step];
 
-  // Auto-play audio when a listen exercise appears
   useEffect(() => {
-    if (exercises.length === 0) return;
-    const ex = exercises[step];
-    if (ex?.type === "listen-type" && isSpeechAvailable()) {
-      const id = setTimeout(() => speak(ex.targetText, courseLang), 250);
+    if (!current) return;
+    if (current.type === "listen-type" && isSpeechAvailable()) {
+      const id = setTimeout(() => speak(current.targetText, courseLang), 250);
       return () => clearTimeout(id);
     }
-  }, [step, exercises, courseLang]);
+  }, [step, current, courseLang]);
 
-  // Focus input when entering a typing exercise
   useEffect(() => {
-    if (exercises.length === 0) return;
-    const ex = exercises[step];
-    if (ex?.type === "type-target" || ex?.type === "listen-type") {
+    if (!current) return;
+    if (current.type === "type-target" || current.type === "listen-type") {
       const id = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(id);
     }
-  }, [step, exercises]);
+  }, [step, current]);
 
-  if (exercises.length === 0) {
+  if (queue.length === 0 || !current) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p>{t("noWords")}</p>
@@ -109,13 +100,25 @@ export default function PracticePage() {
     );
   }
 
-  const current = exercises[step];
-  const isLast = step === exercises.length - 1;
-  const progress = ((step + (checked && isCorrect ? 1 : 0)) / exercises.length) * 100;
+  const isLast = completed >= total - 1 && queue.length === step + 1;
+  const progress = (completed / total) * 100;
 
   const handleSelect = (i: number) => {
     if (checked) return;
     setSelected(i);
+    // TTS the option (target language for ui→target, ui language otherwise)
+    if (isSpeechAvailable() && current.options) {
+      const text = current.options[i];
+      const lang: WordLang = current.type === "mc-ui-to-target" ? courseLang : answerLang;
+      speak(text, lang);
+    }
+  };
+
+  const finalize = (correct: boolean) => {
+    setChecked(true);
+    setIsCorrect(correct);
+    recordReview(current.wordId, correct);
+    if (correct) setCompleted(c => c + 1);
   };
 
   const handleCheck = () => {
@@ -123,78 +126,115 @@ export default function PracticePage() {
     if (current.type === "mc-target-to-ui" || current.type === "mc-ui-to-target") {
       if (selected === null) return;
       correct = selected === current.correct;
+    } else if (current.type === "speak-target") {
+      if (!transcript.trim()) return;
+      correct = answersMatch(transcript, current.answer);
     } else {
       if (!typedAnswer.trim()) return;
       correct = answersMatch(typedAnswer, current.answer);
     }
-    setChecked(true);
-    setIsCorrect(correct);
-    recordReview(current.wordId, correct);
+    finalize(correct);
   };
 
   const advance = () => {
-    if (isLast) {
-      // No completion screen — return to the active concept root immediately.
+    // Re-queue incorrect at the end
+    let nextQueue = queue;
+    if (isCorrect === false) nextQueue = [...queue, current];
+
+    if (step >= nextQueue.length - 1) {
       navigate(exitPath);
       return;
     }
+    setQueue(nextQueue);
     setStep(step + 1);
     setSelected(null);
     setTypedAnswer("");
+    setTranscript("");
     setChecked(false);
     setIsCorrect(null);
+  };
+
+  // STT
+  const SR: any = typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
+  const sttAvailable = !!SR;
+
+  const toggleListen = () => {
+    if (!SR) return;
+    if (listening) { recRef.current?.stop?.(); return; }
+    const rec = new SR();
+    rec.lang = courseLang === "nl" ? "nl-NL" : "en-US";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e: any) => {
+      const text = e.results[0][0].transcript || "";
+      setTranscript(text);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    setTranscript("");
+    setListening(true);
+    try { rec.start(); } catch { setListening(false); }
   };
 
   const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
   const isMC = current.type === "mc-target-to-ui" || current.type === "mc-ui-to-target";
   const isListen = current.type === "listen-type";
+  const isSpeak = current.type === "speak-target";
 
-  const canCheck = isMC ? selected !== null : typedAnswer.trim().length > 0;
+  const canCheck = isMC ? selected !== null
+    : isSpeak ? transcript.trim().length > 0
+    : typedAnswer.trim().length > 0;
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top bar: close + progress */}
       <div className="flex items-center gap-3 p-4">
         <Button size="icon" onClick={() => navigate(exitPath)}>
           <X className="h-5 w-5" />
         </Button>
         <div className="flex-1 h-3 bg-white border-2 border-black rounded-full overflow-hidden">
-          <div
-            className="h-full bg-black transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-black transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
       <div className="flex-1 p-6 max-w-md mx-auto w-full">
         <h2 className="text-lg font-semibold mb-6">{current.prompt}</h2>
 
-        {/* Listen exercise: replay button */}
-        {isListen && (
-          <div className="mb-6 flex justify-center">
-            <Button
-              size="icon"
-              onClick={() => speak(current.targetText, courseLang)}
-              aria-label={t("play")}
-              className="h-16 w-16"
-            >
-              <Volume2 className="h-7 w-7" />
-            </Button>
+        {(isListen || isSpeak) && (
+          <div className="mb-6 flex justify-center gap-3">
+            {isSpeechAvailable() && (
+              <Button size="icon" onClick={() => speak(current.targetText, courseLang)}
+                aria-label={t("play")} className="h-16 w-16">
+                <Volume2 className="h-7 w-7" />
+              </Button>
+            )}
+            {isSpeak && sttAvailable && (
+              <Button size="icon" active={listening} onClick={toggleListen}
+                aria-label={t("speakNow")} className="h-16 w-16">
+                {listening ? <MicOff className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
+              </Button>
+            )}
           </div>
         )}
 
-        {/* Multiple-choice options */}
+        {isSpeak && transcript && (
+          <Container className="mb-4 text-sm">
+            <span className="opacity-60 mr-1">»</span>
+            <span className="font-medium">{transcript}</span>
+          </Container>
+        )}
+
         {isMC && current.options && (
           <div className="space-y-2">
             {current.options.map((opt, i) => (
               <Button
                 key={i}
                 active={selected === i && !checked}
-                variant={
-                  checked && selected === i
-                    ? isCorrect ? "primary" : "destructive"
-                    : "secondary"
-                }
+                variant={checked && selected === i
+                  ? isCorrect ? "primary" : "destructive"
+                  : "secondary"}
                 fullWidth
                 disabled={checked}
                 onClick={() => handleSelect(i)}
@@ -205,31 +245,22 @@ export default function PracticePage() {
           </div>
         )}
 
-        {/* Typed-answer input (also used for listen exercises) */}
-        {!isMC && (
-          <div className="space-y-2">
-            <Input
-              ref={inputRef}
-              value={typedAnswer}
-              onChange={(e) => setTypedAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !checked && canCheck) handleCheck();
-              }}
-              placeholder={t("yourAnswer")}
-              disabled={checked}
-              className={cn(
-                "h-12 text-base border-2 border-black rounded-[40px] px-4",
-                checked && (isCorrect ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")
-              )}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-            />
-          </div>
+        {!isMC && !isSpeak && (
+          <Input
+            ref={inputRef}
+            value={typedAnswer}
+            onChange={(e) => setTypedAnswer(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !checked && canCheck) handleCheck(); }}
+            placeholder={t("yourAnswer")}
+            disabled={checked}
+            className={cn(
+              "h-12 text-base border-2 border-black rounded-[40px] px-4",
+              checked && (isCorrect ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")
+            )}
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+          />
         )}
 
-        {/* Feedback */}
         {checked && !isCorrect && (
           <Container className="mt-4 border-destructive">
             <p className="text-sm font-medium text-destructive">{t("incorrect")}</p>
@@ -251,14 +282,9 @@ export default function PracticePage() {
       <div className="p-4 max-w-md mx-auto w-full space-y-2">
         {!checked ? (
           <>
-            <Button fullWidth disabled={!canCheck} onClick={handleCheck}>
-              {t("check")}
-            </Button>
-            <Button
-              fullWidth
-              onClick={advance}
-              className="bg-black text-white border-white hover:bg-white hover:text-black hover:border-black"
-            >
+            <Button fullWidth disabled={!canCheck} onClick={handleCheck}>{t("check")}</Button>
+            <Button fullWidth onClick={advance}
+              className="bg-black text-white border-white hover:bg-white hover:text-black hover:border-black">
               {t("skip")}
             </Button>
           </>
