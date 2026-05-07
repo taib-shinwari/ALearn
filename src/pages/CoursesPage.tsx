@@ -144,7 +144,7 @@ export default function CoursesPage() {
   const showListBack = mode === "list" && (listFromLang || listConcept);
 
   return (
-    <div className="px-6 max-w-md mx-auto">
+    <div className="px-6 max-w-3xl mx-auto w-full">
       {/* Top breadcrumb (thin container, sized to content, interactive) */}
       {listCrumbs.length > 0 && (
         <nav aria-label="courses-breadcrumb" className="mb-3">
