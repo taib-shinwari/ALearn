@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
-import { DesktopSettings } from "@/components/settings/layout/DesktopSettings";
 import { MobileSettings } from "@/components/settings/layout/MobileSettings";
 import { ProfileSection } from "@/components/settings/sections/ProfileSection";
 import { LanguageSection } from "@/components/settings/sections/LanguageSection";
 import { CourseSection } from "@/components/settings/sections/CourseSection";
 import { AboutSection } from "@/components/settings/sections/AboutSection";
+import { DictionarySection } from "@/components/settings/sections/DictionarySection";
 import { getSubcategories } from "@/components/settings/constants";
 import type { SettingsCategoryId } from "@/components/settings/types";
 
+/**
+ * Settings is a single-column drill-down on every viewport (panel-like).
+ * The mobile top bar swap is driven by `settingsStore` (handled in Layout).
+ */
 export default function SettingsPage() {
-  const isMobile = useIsMobile();
   const [activeCategory, setActiveCategory] = useState<SettingsCategoryId>("profile");
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>("account");
 
-  // Toggle the global "settings is active" flag so the mobile top bar swaps
   useEffect(() => {
     settingsStore.setActive(true);
     return () => { settingsStore.setActive(false); };
@@ -28,6 +29,9 @@ export default function SettingsPage() {
   };
 
   const renderContent = () => {
+    if (activeCategory === "profile" && activeSubcategory === "dictionary") {
+      return <DictionarySection />;
+    }
     switch (activeCategory) {
       case "profile":  return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
       case "language": return <LanguageSection />;
@@ -37,8 +41,8 @@ export default function SettingsPage() {
     }
   };
 
-  if (isMobile) {
-    return (
+  return (
+    <div className="max-w-2xl mx-auto">
       <MobileSettings
         activeCategory={activeCategory}
         activeSubcategory={activeSubcategory}
@@ -47,17 +51,6 @@ export default function SettingsPage() {
       >
         {renderContent()}
       </MobileSettings>
-    );
-  }
-
-  return (
-    <DesktopSettings
-      activeCategory={activeCategory}
-      activeSubcategory={activeSubcategory}
-      onCategoryChange={handleCategoryChange}
-      onSubcategoryChange={setActiveSubcategory}
-    >
-      {renderContent()}
-    </DesktopSettings>
+    </div>
   );
 }

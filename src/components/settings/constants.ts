@@ -1,4 +1,4 @@
-import { User, Globe, BookOpen, Info, LogOut, Trash2 } from "lucide-react";
+import { User, Globe, BookOpen, Info, LogOut, Trash2, BookMarked } from "lucide-react";
 import type { SettingsCategoryConfig, SettingsSubcategoryConfig } from "./types";
 
 export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
@@ -9,9 +9,10 @@ export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
 ];
 
 export const PROFILE_SUBCATEGORIES: SettingsSubcategoryConfig[] = [
-  { id: "account",  labelKey: "profile",  fallback: "Profile",      icon: User },
-  { id: "signout",  labelKey: "signOut",  fallback: "Sign out",     icon: LogOut },
-  { id: "delete",   labelKey: "deleteAccount", fallback: "Delete account", icon: Trash2 },
+  { id: "account",    labelKey: "profile",       fallback: "Profile",          icon: User },
+  { id: "dictionary", labelKey: "dictionary",    fallback: "Dictionary",       icon: BookMarked },
+  { id: "signout",    labelKey: "signOut",       fallback: "Sign out",         icon: LogOut },
+  { id: "delete",     labelKey: "deleteAccount", fallback: "Delete account",   icon: Trash2 },
 ];
 
 export function getSubcategories(catId: string): SettingsSubcategoryConfig[] {

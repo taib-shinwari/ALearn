@@ -1,19 +1,19 @@
 import { WordDetail, WordLang, getWordText } from "@/data/courseData";
 
-export type ExerciseType = "mc-target-to-ui" | "mc-ui-to-target" | "type-target" | "listen-type";
+export type ExerciseType =
+  | "mc-target-to-ui"
+  | "mc-ui-to-target"
+  | "type-target"
+  | "listen-type"
+  | "speak-target";
 
 export interface Exercise {
   type: ExerciseType;
   wordId: string;
-  // The word's text in the target (course) language — always available.
   targetText: string;
-  // The expected answer (depends on exercise type).
   answer: string;
-  // Multiple-choice options (only for MC exercises).
   options?: string[];
-  // Index of correct option (only for MC exercises).
   correct?: number;
-  // The prompt label (translated, e.g. 'What does "hallo" mean?').
   prompt: string;
 }
 
@@ -22,29 +22,27 @@ interface T {
   typeAnswer: string;
   listenAndType: string;
   selectMeaning: string;
+  speakWord: string;
 }
 
-const TYPES: ExerciseType[] = ["mc-target-to-ui", "mc-ui-to-target", "type-target", "listen-type"];
+const TYPES: ExerciseType[] = [
+  "mc-target-to-ui",
+  "mc-ui-to-target",
+  "type-target",
+  "listen-type",
+  "speak-target",
+];
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-function pickWrongOptions(
-  word: WordDetail,
-  pool: WordDetail[],
-  lang: WordLang,
-  count = 3,
-): string[] {
+function pickWrongOptions(word: WordDetail, pool: WordDetail[], lang: WordLang, count = 3): string[] {
   return shuffle(pool.filter(w => w.id !== word.id))
     .slice(0, count)
     .map(w => getWordText(w, lang));
 }
 
-/**
- * Build a varied exercise for a given word. The exercise type is rotated so
- * each session mixes multiple-choice (both directions), typing, and listening.
- */
 export function buildExercise(
   word: WordDetail,
   index: number,
@@ -53,8 +51,6 @@ export function buildExercise(
   answerLang: WordLang,
   t: T,
 ): Exercise {
-  // Rotate type by index so the user always sees a mix.
-  // Skip listen-type when SpeechSynthesis isn't available — handled at runtime.
   const type = TYPES[index % TYPES.length];
   const targetText = getWordText(word, courseLang);
   const uiText = getWordText(word, answerLang);
@@ -78,26 +74,19 @@ export function buildExercise(
         prompt: `${t.selectMeaning}: "${uiText}"`,
       };
     }
-    case "type-target": {
-      return {
-        type, wordId: word.id, targetText, answer: targetText,
-        prompt: `${t.typeAnswer}: "${uiText}"`,
-      };
-    }
-    case "listen-type": {
-      return {
-        type, wordId: word.id, targetText, answer: targetText,
-        prompt: t.listenAndType,
-      };
-    }
+    case "type-target":
+      return { type, wordId: word.id, targetText, answer: targetText,
+        prompt: `${t.typeAnswer}: "${uiText}"` };
+    case "listen-type":
+      return { type, wordId: word.id, targetText, answer: targetText, prompt: t.listenAndType };
+    case "speak-target":
+      return { type, wordId: word.id, targetText, answer: targetText,
+        prompt: `${t.speakWord}: "${uiText}"` };
   }
 }
 
-/** Normalize an answer for comparison: trim, lowercase, strip articles. */
 export function normalizeAnswer(s: string): string {
-  return s
-    .trim()
-    .toLowerCase()
+  return s.trim().toLowerCase()
     .replace(/^(de|het|the|a|an|een)\s+/i, "")
     .replace(/[.,!?;:]/g, "")
     .replace(/\s+/g, " ");

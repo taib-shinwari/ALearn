@@ -1,28 +1,35 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Volume2, Bookmark, BookmarkCheck } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
+import { Button } from "@/components/ui/button";
 import { categories, WordLang } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
-import { WordMedia } from "@/components/word/WordMedia";
+import { speak, isSpeechAvailable } from "@/components/practice/speech";
+import { useMarkedWords } from "@/hooks/useMarkedWords";
+import { cn } from "@/lib/utils";
 
-type FlipState = 0 | 1 | 2; // 0: front (target word only), 1: target details, 2: interface details
+type FlipState = 0 | 1 | 2;
 
 export default function WordDetailPage() {
   const { category: categoryId, subcategory: subId, word: wordId } =
     useParams<{ category: string; subcategory: string; word: string }>();
   const { uiLang, courseLang, t } = useCourseLanguage();
   const [flip, setFlip] = useState<FlipState>(0);
+  const [imgError, setImgError] = useState(false);
+  const { isMarked, toggle } = useMarkedWords();
 
   const category = categories.find(c => c.id === categoryId);
   const subcategory = category?.subcategories.find(s => s.id === subId);
   const word = subcategory?.words.find(w => w.id === wordId);
+
+  useEffect(() => { setImgError(false); }, [wordId]);
 
   if (!word) {
     return <div className="px-6 text-sm">{t("notFound")}</div>;
   }
 
   const handleFlip = () => setFlip(f => ((f + 1) % 3) as FlipState);
-
   const interfaceWordLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
   const showLang: WordLang = flip === 2 ? interfaceWordLang : courseLang;
   const data = word[showLang];
@@ -32,41 +39,63 @@ export default function WordDetailPage() {
   const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.conjugation;
   const example = showLang === "nl" ? word.nl.voorbeeld : word.en.example;
 
+  const targetText = word[courseLang].word;
+  const marked = isMarked(courseLang, word.id);
+  const imgUrl = `https://source.unsplash.com/featured/600x400/?${encodeURIComponent(targetText)}`;
+
+  // Container length differs based on whether full word details are shown
+  const isFront = flip === 0;
+
   return (
-    <div className="px-6 max-w-md mx-auto">
-      <CardButton onClick={handleFlip} className="w-full min-h-[200px]">
+    <div className="px-6 max-w-md mx-auto space-y-3">
+      <CardButton
+        onClick={handleFlip}
+        className={cn(
+          "w-full relative",
+          isFront ? "min-h-[140px]" : "min-h-[260px]"
+        )}
+      >
+        {/* Top-right action cluster: TTS + Mark */}
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+          {isSpeechAvailable() && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); speak(targetText, courseLang); }}
+              className="rounded-full p-2 bg-white border-2 border-black hover:bg-black hover:text-white transition-colors"
+              aria-label={t("play")}
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggle(courseLang, word.id); }}
+            className={cn(
+              "rounded-full p-2 border-2 border-black transition-colors",
+              marked ? "bg-black text-white" : "bg-white hover:bg-black hover:text-white"
+            )}
+            aria-label={marked ? t("unmark") : t("mark")}
+          >
+            {marked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+          </button>
+        </div>
+
         <div className="flex flex-col h-full">
-          {flip === 0 ? (
-            <div className="flex-1 flex items-center justify-center min-h-[180px]">
-              <h1 className="text-3xl font-bold text-center">{word[courseLang].word}</h1>
+          {isFront ? (
+            <div className="flex-1 flex items-center justify-center min-h-[100px]">
+              <h1 className="text-3xl font-bold text-center">{targetText}</h1>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 pr-24">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
-                <span className="text-xs uppercase tracking-wider opacity-70">
-                  {showLang}
-                </span>
+                <span className="text-xs uppercase tracking-wider opacity-70">{showLang}</span>
               </div>
-
               {definition && (
-                <div className="mb-3">
-                  <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("definition")}</h3>
-                  <p className="text-sm">{definition}</p>
-                </div>
+                <Section label={t("definition")}>{definition}</Section>
               )}
-              {plural && (
-                <div className="mb-3">
-                  <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("plural")}</h3>
-                  <p className="text-sm">{plural}</p>
-                </div>
-              )}
-              {diminutive && (
-                <div className="mb-3">
-                  <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("diminutive")}</h3>
-                  <p className="text-sm">{diminutive}</p>
-                </div>
-              )}
+              {plural && <Section label={t("plural")}>{plural}</Section>}
+              {diminutive && <Section label={t("diminutive")}>{diminutive}</Section>}
               {conjugation && (
                 <div className="mb-3">
                   <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("conjugation")}</h3>
@@ -80,18 +109,35 @@ export default function WordDetailPage() {
                   </div>
                 </div>
               )}
-              {example && (
-                <div>
-                  <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("example")}</h3>
-                  <p className="text-sm italic">{example}</p>
-                </div>
-              )}
+              {example && <Section label={t("example")} italic>{example}</Section>}
             </>
           )}
+
+          {/* Image lives inside the same container; only render when not errored */}
+          {!imgError && (
+            <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-black bg-white aspect-[4/3]">
+              <img
+                src={imgUrl}
+                alt={targetText}
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
+            </div>
+          )}
+
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
       </CardButton>
-      <WordMedia word={word[courseLang].word} lang={courseLang} />
+    </div>
+  );
+}
+
+function Section({ label, children, italic }: { label: string; children: React.ReactNode; italic?: boolean }) {
+  return (
+    <div className="mb-3">
+      <h3 className="text-xs font-medium opacity-70 mb-0.5">{label}</h3>
+      <p className={cn("text-sm", italic && "italic")}>{children}</p>
     </div>
   );
 }
