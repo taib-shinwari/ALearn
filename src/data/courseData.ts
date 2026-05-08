@@ -321,6 +321,13 @@ export const uiLabels: Record<string, Record<string, string>> = {
     listenAndSpeak: "استمع وانطق الكلمة",
     speakWord: "انطق الكلمة",
     tryAgain: "حاول مرة أخرى",
+    pronunciation: "النطق",
+    gender: "الجنس",
+    masculine: "مذكّر",
+    feminine: "مؤنّث",
+    neuter: "محايد",
+    common: "كلمة de",
+    yourAnswerWas: "إجابتك",
   },
 };
 
