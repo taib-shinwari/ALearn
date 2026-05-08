@@ -123,14 +123,14 @@ export default function WordDetailPage() {
           )}
 
           {/* Image lives inside the same container; only render when not errored */}
-          {!imgError && (
+          {imgUrl && (
             <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-black bg-white aspect-[4/3]">
               <img
                 src={imgUrl}
                 alt={targetText}
                 loading="lazy"
                 className="w-full h-full object-cover"
-                onError={() => setImgError(true)}
+                onError={() => setImgUrl(null)}
               />
             </div>
           )}
