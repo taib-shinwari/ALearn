@@ -382,8 +382,8 @@ export const categories: Category[] = [
         id: "mens",
         name: { nl: "Mens", en: "Person", ar: "شخص" },
         words: [
-          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek." }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book." } },
-          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten." }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food." } },
+          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek.", pronunciation: "[mahn]", gender: "m" }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book.", pronunciation: "[man]", gender: "m" } },
+          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten.", pronunciation: "[vrow]", gender: "f" }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food.", pronunciation: "[wuh-muhn]", gender: "f" } },
           { id: "kind", nl: { word: "Het Kind", definitie: "Een jong persoon.", meervoud: "Kinderen", verkleinwoord: "Kindje", voorbeeld: "Het kind speelt buiten." }, en: { word: "The Child", definition: "A young person.", plural: "Children", example: "The child plays outside." } },
           { id: "baby", nl: { word: "De Baby", definitie: "Een heel jong kind.", meervoud: "Baby's", verkleinwoord: "Babytje", voorbeeld: "De baby slaapt." }, en: { word: "The Baby", definition: "A very young child.", plural: "Babies", example: "The baby sleeps." } },
         ],
