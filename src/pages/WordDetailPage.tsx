@@ -46,7 +46,7 @@ export default function WordDetailPage() {
   const definition = showLang === "nl" ? word.nl.definitie : word.en.definition;
   const plural = showLang === "nl" ? word.nl.meervoud : word.en.plural;
   const diminutive = showLang === "nl" ? word.nl.verkleinwoord : word.en.diminutive;
-  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.vervoeging ? undefined : word.en.conjugation;
+  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.conjugation;
   const example = showLang === "nl" ? word.nl.voorbeeld : word.en.example;
   const pronunciation = data.pronunciation;
   const gender = data.gender;
