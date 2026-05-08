@@ -29,11 +29,14 @@ export default function AuthPage() {
 
   if (mode === "choose") {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col gap-4 w-72">
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Container className="w-full max-w-sm space-y-3">
+          <div className="flex justify-center mb-2">
+            <TitleBar className="font-semibold">Welcome</TitleBar>
+          </div>
           <Button onClick={() => setMode("signin")} fullWidth>Sign In</Button>
-          <Button onClick={() => setMode("signup")} variant="ghost" fullWidth>Sign Up</Button>
-        </div>
+          <Button onClick={() => setMode("signup")} fullWidth>Sign Up</Button>
+        </Container>
       </div>
     );
   }
