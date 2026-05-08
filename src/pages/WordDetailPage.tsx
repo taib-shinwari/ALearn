@@ -7,6 +7,7 @@ import { categories, WordLang } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
+import { fetchWordImage } from "@/lib/wordImage";
 import { cn } from "@/lib/utils";
 
 type FlipState = 0 | 1 | 2;
@@ -16,7 +17,7 @@ export default function WordDetailPage() {
     useParams<{ category: string; subcategory: string; word: string }>();
   const { uiLang, courseLang, t } = useCourseLanguage();
   const [flip, setFlip] = useState<FlipState>(0);
-  const [imgError, setImgError] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
   const { isMarked, toggle } = useMarkedWords();
 
   const category = categories.find(c => c.id === categoryId);
