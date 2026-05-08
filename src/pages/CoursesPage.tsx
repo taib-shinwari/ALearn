@@ -174,29 +174,24 @@ export default function CoursesPage() {
         </nav>
       )}
 
-      {/* Title row: thin TitleBar sized to content + actions on the right */}
-      <div className="flex items-center gap-2 mb-4">
-        <TitleBar className="font-semibold">
-          {mode === "list" ? t("yourCourses") : t("create")}
-        </TitleBar>
-        <div className="flex items-center gap-2 ml-auto">
-          {mode === "list" ? (
-            <>
-              {showListBack && (
-                <Button size="icon" onClick={drillBack} aria-label={t("back")}>
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              )}
-              <Button size="icon" onClick={startCreate} aria-label={t("create")}>
-                <Plus className="h-5 w-5" />
+      {/* Action row (header shows "Your Courses") */}
+      <div className="flex items-center gap-2 mb-4 justify-end">
+        {mode === "list" ? (
+          <>
+            {showListBack && (
+              <Button size="icon" onClick={drillBack} aria-label={t("back")}>
+                <ArrowLeft className="h-5 w-5" />
               </Button>
-            </>
-          ) : (
-            <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
-              <ArrowLeft className="h-5 w-5" />
+            )}
+            <Button size="icon" onClick={startCreate} aria-label={t("create")}>
+              <Plus className="h-5 w-5" />
             </Button>
-          )}
-        </div>
+          </>
+        ) : (
+          <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       {/* LIST MODE */}

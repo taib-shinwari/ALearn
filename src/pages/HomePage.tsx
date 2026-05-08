@@ -1,10 +1,9 @@
 import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { CardButton } from "@/components/ui/card-button";
-import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { Play, Compass, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Map, ChevronDown, ChevronUp } from "lucide-react";
 import { categories, getWordsForCategory, localizedName } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useMemo, useState } from "react";
@@ -23,8 +22,6 @@ export default function HomePage() {
 
   const conceptPrefix = selectedConcept ? `/${selectedConcept}` : "";
 
-  // Determine the "current unit": the first subcategory containing a word the
-  // user hasn't yet answered correctly (reps === 0). Falls back to the first.
   const learnedIds = useMemo(
     () => new Set(reviews.filter(r => (r.reps ?? 0) > 0 || r.learned).map(r => r.wordId)),
     [reviews],
@@ -45,65 +42,55 @@ export default function HomePage() {
     navigate("/practice");
   };
 
-  const goCurrentUnit = () => {
-    if (currentUnit.sub) {
-      navigate(`${conceptPrefix}/${currentUnit.cat.id}/${currentUnit.sub.id}`);
-    }
-  };
-
   return (
     <div className="px-6 space-y-4">
-      {/* Practice + current unit container (root only) */}
-      <Container className="space-y-2">
-        <Button fullWidth onClick={goPracticeAll} className="gap-2">
-          <Play className="h-4 w-4" /> {t("practice")}
-        </Button>
-        <Button fullWidth onClick={goCurrentUnit} className="gap-2">
-          <Compass className="h-4 w-4" />
-          {t("currentUnit")}: {localizedName(currentUnit.sub.name, uiLang)}
-        </Button>
+      {/* Top action row: Learning Path (left)  ·  Practice (right) */}
+      <div className="flex items-center gap-2">
         <Button
-          fullWidth
           onClick={() => setPathOpen(o => !o)}
           className="gap-2"
         >
-          {pathOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Map className="h-4 w-4" />
           {t("learningPath")}
+          {pathOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
+        <Button onClick={goPracticeAll} className="gap-2 ml-auto">
+          <Play className="h-4 w-4" /> {t("practice")}
+        </Button>
+      </div>
 
-        {pathOpen && (
-          <div className="pt-2 space-y-3">
-            {categories.map(cat => (
-              <div key={cat.id} className="space-y-1.5">
-                <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
-                <ol className="relative ml-3 border-l-2 border-black pl-4 space-y-2">
-                  {cat.subcategories.map((sub, i) => {
-                    const isCurrent = sub.id === currentUnit.sub.id;
-                    const total = sub.words.length;
-                    const done = sub.words.filter(w => learnedIds.has(w.id)).length;
-                    return (
-                      <li key={sub.id} className="relative">
-                        <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-white border-2 border-black" />
-                        <CardButton
-                          onClick={() => navigate(`${conceptPrefix}/${cat.id}/${sub.id}`)}
-                          className={isCurrent ? "ring-2 ring-black" : ""}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">
-                              {t("unit")} {i + 1} · {localizedName(sub.name, uiLang)}
-                            </span>
-                            <span className="text-xs opacity-70">{done}/{total}</span>
-                          </div>
-                        </CardButton>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            ))}
-          </div>
-        )}
-      </Container>
+      {pathOpen && (
+        <div className="space-y-3">
+          {categories.map(cat => (
+            <div key={cat.id} className="space-y-1.5">
+              <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
+              <ol className="relative ml-3 border-l-2 border-black pl-4 space-y-2">
+                {cat.subcategories.map((sub, i) => {
+                  const isCurrent = sub.id === currentUnit.sub.id;
+                  const total = sub.words.length;
+                  const done = sub.words.filter(w => learnedIds.has(w.id)).length;
+                  return (
+                    <li key={sub.id} className="relative">
+                      <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-white border-2 border-black" />
+                      <CardButton
+                        onClick={() => navigate(`${conceptPrefix}/${cat.id}/${sub.id}`)}
+                        className={isCurrent ? "ring-2 ring-black" : ""}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            {t("unit")} {i + 1} · {localizedName(sub.name, uiLang)}
+                          </span>
+                          <span className="text-xs opacity-70">{done}/{total}</span>
+                        </div>
+                      </CardButton>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Categories grid */}
       <div className="grid grid-cols-2 gap-3">

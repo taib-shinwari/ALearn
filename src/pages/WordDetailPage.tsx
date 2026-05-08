@@ -7,6 +7,7 @@ import { categories, WordLang } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
+import { fetchWordImage } from "@/lib/wordImage";
 import { cn } from "@/lib/utils";
 
 type FlipState = 0 | 1 | 2;
@@ -16,14 +17,23 @@ export default function WordDetailPage() {
     useParams<{ category: string; subcategory: string; word: string }>();
   const { uiLang, courseLang, t } = useCourseLanguage();
   const [flip, setFlip] = useState<FlipState>(0);
-  const [imgError, setImgError] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
   const { isMarked, toggle } = useMarkedWords();
 
   const category = categories.find(c => c.id === categoryId);
   const subcategory = category?.subcategories.find(s => s.id === subId);
   const word = subcategory?.words.find(w => w.id === wordId);
 
-  useEffect(() => { setImgError(false); }, [wordId]);
+  const targetTextEarly = word ? word[courseLang].word : "";
+  useEffect(() => {
+    setImgUrl(null);
+    if (!targetTextEarly) return;
+    let cancelled = false;
+    fetchWordImage(targetTextEarly, courseLang).then(url => {
+      if (!cancelled) setImgUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [wordId, targetTextEarly, courseLang]);
 
   if (!word) {
     return <div className="px-6 text-sm">{t("notFound")}</div>;
@@ -41,7 +51,6 @@ export default function WordDetailPage() {
 
   const targetText = word[courseLang].word;
   const marked = isMarked(courseLang, word.id);
-  const imgUrl = `https://source.unsplash.com/featured/600x400/?${encodeURIComponent(targetText)}`;
 
   // Container length differs based on whether full word details are shown
   const isFront = flip === 0;
@@ -114,14 +123,14 @@ export default function WordDetailPage() {
           )}
 
           {/* Image lives inside the same container; only render when not errored */}
-          {!imgError && (
+          {imgUrl && (
             <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-black bg-white aspect-[4/3]">
               <img
                 src={imgUrl}
                 alt={targetText}
                 loading="lazy"
                 className="w-full h-full object-cover"
-                onError={() => setImgError(true)}
+                onError={() => setImgUrl(null)}
               />
             </div>
           )}
