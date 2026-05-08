@@ -4,6 +4,9 @@ export type Lang = "nl" | "en" | "ar";
 // Words and word-level details only exist in nl/en
 export type WordLang = "nl" | "en";
 
+/** "m" = male/masculine, "f" = female/feminine, "n" = neuter, "c" = common (de-woord) */
+export type WordGender = "m" | "f" | "n" | "c";
+
 export interface WordDetail {
   id: string;
   nl: {
@@ -13,6 +16,9 @@ export interface WordDetail {
     verkleinwoord?: string;
     vervoeging?: Record<string, string>;
     voorbeeld?: string;
+    /** Syllable breakdown like "[bal-kuh-nee]" */
+    pronunciation?: string;
+    gender?: WordGender;
   };
   en: {
     word: string;
@@ -21,6 +27,8 @@ export interface WordDetail {
     diminutive?: string;
     conjugation?: Record<string, string>;
     example?: string;
+    pronunciation?: string;
+    gender?: WordGender;
   };
 }
 
