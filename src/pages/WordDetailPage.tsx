@@ -46,10 +46,17 @@ export default function WordDetailPage() {
   const definition = showLang === "nl" ? word.nl.definitie : word.en.definition;
   const plural = showLang === "nl" ? word.nl.meervoud : word.en.plural;
   const diminutive = showLang === "nl" ? word.nl.verkleinwoord : word.en.diminutive;
-  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.conjugation;
+  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.vervoeging ? undefined : word.en.conjugation;
   const example = showLang === "nl" ? word.nl.voorbeeld : word.en.example;
+  const pronunciation = data.pronunciation;
+  const gender = data.gender;
+  const genderLabel = gender === "m" ? t("masculine")
+    : gender === "f" ? t("feminine")
+    : gender === "n" ? t("neuter")
+    : gender === "c" ? t("common") : null;
 
   const targetText = word[courseLang].word;
+  const frontPron = word[courseLang].pronunciation;
   const marked = isMarked(courseLang, word.id);
 
   // Container length differs based on whether full word details are shown
