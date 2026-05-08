@@ -261,17 +261,43 @@ export default function PracticePage() {
           />
         )}
 
-        {checked && !isCorrect && (
-          <Container className="mt-4 border-destructive">
-            <p className="text-sm font-medium text-destructive">{t("incorrect")}</p>
-            <p className="text-sm mt-1">
-              {t("correctAnswer")}:{" "}
-              <span className="font-medium">
-                {isMC && current.options ? current.options[current.correct!] : current.answer}
-              </span>
-            </p>
-          </Container>
-        )}
+        {checked && !isCorrect && (() => {
+          const correctText = isMC && current.options ? current.options[current.correct!] : current.answer;
+          const userText = isMC && current.options && selected !== null ? current.options[selected]
+            : isSpeak ? transcript : typedAnswer;
+          const correctLang: WordLang = current.type === "mc-target-to-ui" ? answerLang : courseLang;
+          return (
+            <Container className="mt-4 border-destructive bg-destructive/5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
+                    {t("incorrect")}
+                  </p>
+                  {userText && (
+                    <p className="text-sm opacity-70">
+                      <span className="opacity-60 mr-1">{t("yourAnswerWas")}:</span>
+                      <span className="line-through">{userText}</span>
+                    </p>
+                  )}
+                  <p className="text-sm">
+                    <span className="opacity-60 mr-1">{t("correctAnswer")}:</span>
+                    <span className="font-semibold text-base">{correctText}</span>
+                  </p>
+                </div>
+                {isSpeechAvailable() && (
+                  <Button
+                    size="icon"
+                    onClick={() => speak(correctText, correctLang)}
+                    aria-label={t("play")}
+                    className="shrink-0"
+                  >
+                    <Volume2 className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            </Container>
+          );
+        })()}
         {checked && isCorrect && (
           <Container className="mt-4">
             <p className="text-sm font-medium">{t(randomEncouragement)} ✨</p>
