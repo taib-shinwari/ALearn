@@ -114,14 +114,16 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="flex flex-col gap-4 w-80">
-        <h2 className="text-xl font-semibold text-center">Sign Up</h2>
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <Container className="w-full max-w-sm space-y-3">
+        <div className="flex justify-center mb-1">
+          <TitleBar className="font-semibold">Sign Up</TitleBar>
+        </div>
         {suSteps[suStep]}
         {suError && <p className="text-sm text-destructive">{suError}</p>}
         <Button onClick={handleSuContinue} fullWidth>Continue</Button>
-        <Button variant="ghost" fullWidth onClick={() => { setMode("choose"); setSuStep(0); setSuError(""); }}>Back</Button>
-      </div>
+        <Button fullWidth onClick={() => { setMode("choose"); setSuStep(0); setSuError(""); }}>Back</Button>
+      </Container>
     </div>
   );
 }
