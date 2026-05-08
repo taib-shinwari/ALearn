@@ -98,14 +98,27 @@ export default function WordDetailPage() {
 
         <div className="flex flex-col h-full">
           {isFront ? (
-            <div className="flex-1 flex items-center justify-center min-h-[100px]">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[100px] gap-1">
               <h1 className="text-3xl font-bold text-center">{targetText}</h1>
+              {frontPron && (
+                <p className="text-sm opacity-70 font-mono">{frontPron}</p>
+              )}
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-3 pr-24">
+              <div className="flex items-center justify-between mb-1 pr-24">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
                 <span className="text-xs uppercase tracking-wider opacity-70">{showLang}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                {pronunciation && (
+                  <span className="text-sm opacity-70 font-mono">{pronunciation}</span>
+                )}
+                {genderLabel && (
+                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-black bg-white">
+                    {t("gender")}: {genderLabel}
+                  </span>
+                )}
               </div>
               {definition && (
                 <Section label={t("definition")}>{definition}</Section>
