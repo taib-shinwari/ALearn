@@ -4,6 +4,9 @@ export type Lang = "nl" | "en" | "ar";
 // Words and word-level details only exist in nl/en
 export type WordLang = "nl" | "en";
 
+/** "m" = male/masculine, "f" = female/feminine, "n" = neuter, "c" = common (de-woord) */
+export type WordGender = "m" | "f" | "n" | "c";
+
 export interface WordDetail {
   id: string;
   nl: {
@@ -13,6 +16,9 @@ export interface WordDetail {
     verkleinwoord?: string;
     vervoeging?: Record<string, string>;
     voorbeeld?: string;
+    /** Syllable breakdown like "[bal-kuh-nee]" */
+    pronunciation?: string;
+    gender?: WordGender;
   };
   en: {
     word: string;
@@ -21,6 +27,8 @@ export interface WordDetail {
     diminutive?: string;
     conjugation?: Record<string, string>;
     example?: string;
+    pronunciation?: string;
+    gender?: WordGender;
   };
 }
 
@@ -131,6 +139,13 @@ export const uiLabels: Record<string, Record<string, string>> = {
     listenAndSpeak: "Luister en spreek het woord",
     speakWord: "Spreek het woord uit",
     tryAgain: "Probeer opnieuw",
+    pronunciation: "Uitspraak",
+    gender: "Geslacht",
+    masculine: "mannelijk",
+    feminine: "vrouwelijk",
+    neuter: "onzijdig",
+    common: "de-woord",
+    yourAnswerWas: "Jouw antwoord",
   },
   en: {
     practice: "Practice",
@@ -215,6 +230,13 @@ export const uiLabels: Record<string, Record<string, string>> = {
     listenAndSpeak: "Listen and speak the word",
     speakWord: "Speak the word",
     tryAgain: "Try again",
+    pronunciation: "Pronunciation",
+    gender: "Gender",
+    masculine: "masculine",
+    feminine: "feminine",
+    neuter: "neuter",
+    common: "common (de-word)",
+    yourAnswerWas: "Your answer",
   },
   ar: {
     practice: "تدريب",
@@ -299,6 +321,13 @@ export const uiLabels: Record<string, Record<string, string>> = {
     listenAndSpeak: "استمع وانطق الكلمة",
     speakWord: "انطق الكلمة",
     tryAgain: "حاول مرة أخرى",
+    pronunciation: "النطق",
+    gender: "الجنس",
+    masculine: "مذكّر",
+    feminine: "مؤنّث",
+    neuter: "محايد",
+    common: "كلمة de",
+    yourAnswerWas: "إجابتك",
   },
 };
 
@@ -341,8 +370,8 @@ export const categories: Category[] = [
         id: "dier",
         name: { nl: "Dier", en: "Animal", ar: "حيوان" },
         words: [
-          { id: "hond", nl: { word: "De Hond", definitie: "Een huisdier.", meervoud: "Honden", verkleinwoord: "Hondje", voorbeeld: "De hond blaft." }, en: { word: "The Dog", definition: "A pet.", plural: "Dogs", diminutive: "Doggy", example: "The dog barks." } },
-          { id: "kat", nl: { word: "De Kat", definitie: "Een huisdier.", meervoud: "Katten", verkleinwoord: "Katje", voorbeeld: "De kat slaapt op de bank." }, en: { word: "The Cat", definition: "A pet.", plural: "Cats", diminutive: "Kitty", example: "The cat sleeps on the couch." } },
+          { id: "hond", nl: { word: "De Hond", definitie: "Een huisdier.", meervoud: "Honden", verkleinwoord: "Hondje", voorbeeld: "De hond blaft.", pronunciation: "[hont]", gender: "c" }, en: { word: "The Dog", definition: "A pet.", plural: "Dogs", diminutive: "Doggy", example: "The dog barks.", pronunciation: "[dawg]" } },
+          { id: "kat", nl: { word: "De Kat", definitie: "Een huisdier.", meervoud: "Katten", verkleinwoord: "Katje", voorbeeld: "De kat slaapt op de bank.", pronunciation: "[kaht]", gender: "c" }, en: { word: "The Cat", definition: "A pet.", plural: "Cats", diminutive: "Kitty", example: "The cat sleeps on the couch.", pronunciation: "[kat]" } },
           { id: "paard", nl: { word: "Het Paard", definitie: "Een groot dier.", meervoud: "Paarden", verkleinwoord: "Paardje", voorbeeld: "Het paard rent door het veld." }, en: { word: "The Horse", definition: "A large animal.", plural: "Horses", diminutive: "Pony", example: "The horse runs through the field." } },
           { id: "vogel", nl: { word: "De Vogel", definitie: "Een dier dat kan vliegen.", meervoud: "Vogels", verkleinwoord: "Vogeltje", voorbeeld: "De vogel zingt in de boom." }, en: { word: "The Bird", definition: "An animal that can fly.", plural: "Birds", diminutive: "Birdie", example: "The bird sings in the tree." } },
           { id: "vis", nl: { word: "De Vis", definitie: "Een dier dat in water leeft.", meervoud: "Vissen", verkleinwoord: "Visje", voorbeeld: "De vis zwemt in de vijver." }, en: { word: "The Fish", definition: "An animal that lives in water.", plural: "Fish", diminutive: "Fishy", example: "The fish swims in the pond." } },
@@ -353,8 +382,8 @@ export const categories: Category[] = [
         id: "mens",
         name: { nl: "Mens", en: "Person", ar: "شخص" },
         words: [
-          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek." }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book." } },
-          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten." }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food." } },
+          { id: "man", nl: { word: "De Man", definitie: "Een volwassen mannelijk persoon.", meervoud: "Mannen", verkleinwoord: "Mannetje", voorbeeld: "De man leest een boek.", pronunciation: "[mahn]", gender: "m" }, en: { word: "The Man", definition: "An adult male person.", plural: "Men", example: "The man reads a book.", pronunciation: "[man]", gender: "m" } },
+          { id: "vrouw", nl: { word: "De Vrouw", definitie: "Een volwassen vrouwelijk persoon.", meervoud: "Vrouwen", verkleinwoord: "Vrouwtje", voorbeeld: "De vrouw kookt eten.", pronunciation: "[vrow]", gender: "f" }, en: { word: "The Woman", definition: "An adult female person.", plural: "Women", example: "The woman cooks food.", pronunciation: "[wuh-muhn]", gender: "f" } },
           { id: "kind", nl: { word: "Het Kind", definitie: "Een jong persoon.", meervoud: "Kinderen", verkleinwoord: "Kindje", voorbeeld: "Het kind speelt buiten." }, en: { word: "The Child", definition: "A young person.", plural: "Children", example: "The child plays outside." } },
           { id: "baby", nl: { word: "De Baby", definitie: "Een heel jong kind.", meervoud: "Baby's", verkleinwoord: "Babytje", voorbeeld: "De baby slaapt." }, en: { word: "The Baby", definition: "A very young child.", plural: "Babies", example: "The baby sleeps." } },
         ],
@@ -373,8 +402,8 @@ export const categories: Category[] = [
         id: "fruit",
         name: { nl: "Fruit", en: "Fruit", ar: "فاكهة" },
         words: [
-          { id: "appel", nl: { word: "De Appel", definitie: "Een populaire vrucht.", meervoud: "Appels", verkleinwoord: "Appeltje", voorbeeld: "Ik eet een appel als snack." }, en: { word: "The Apple", definition: "A popular fruit.", plural: "Apples", example: "I eat an apple as a snack." } },
-          { id: "banaan", nl: { word: "De Banaan", definitie: "Een gele vrucht.", meervoud: "Bananen", verkleinwoord: "Banaantje", voorbeeld: "De aap eet een banaan." }, en: { word: "The Banana", definition: "A yellow fruit.", plural: "Bananas", example: "The monkey eats a banana." } },
+          { id: "appel", nl: { word: "De Appel", definitie: "Een populaire vrucht.", meervoud: "Appels", verkleinwoord: "Appeltje", voorbeeld: "Ik eet een appel als snack.", pronunciation: "[ah-puhl]", gender: "c" }, en: { word: "The Apple", definition: "A popular fruit.", plural: "Apples", example: "I eat an apple as a snack.", pronunciation: "[a-puhl]" } },
+          { id: "banaan", nl: { word: "De Banaan", definitie: "Een gele vrucht.", meervoud: "Bananen", verkleinwoord: "Banaantje", voorbeeld: "De aap eet een banaan.", pronunciation: "[bah-naan]", gender: "c" }, en: { word: "The Banana", definition: "A yellow fruit.", plural: "Bananas", example: "The monkey eats a banana.", pronunciation: "[buh-na-nuh]" } },
           { id: "aardbei", nl: { word: "De Aardbei", definitie: "Een rode, zoete vrucht.", meervoud: "Aardbeien", verkleinwoord: "Aardbeitje", voorbeeld: "Aardbeien zijn lekker met slagroom." }, en: { word: "The Strawberry", definition: "A red, sweet fruit.", plural: "Strawberries", example: "Strawberries are delicious with cream." } },
           { id: "druif", nl: { word: "De Druif", definitie: "Een kleine vrucht in trossen.", meervoud: "Druiven", verkleinwoord: "Druifje", voorbeeld: "Wijn wordt gemaakt van druiven." }, en: { word: "The Grape", definition: "A small fruit in clusters.", plural: "Grapes", example: "Wine is made from grapes." } },
         ],
