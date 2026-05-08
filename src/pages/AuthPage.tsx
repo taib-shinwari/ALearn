@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Container } from "@/components/ui/container";
+import { TitleBar } from "@/components/ui/title-bar";
 
 type AuthMode = "choose" | "signin" | "signup";
 
