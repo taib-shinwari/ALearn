@@ -24,7 +24,16 @@ export default function WordDetailPage() {
   const subcategory = category?.subcategories.find(s => s.id === subId);
   const word = subcategory?.words.find(w => w.id === wordId);
 
-  useEffect(() => { setImgError(false); }, [wordId]);
+  const targetTextEarly = word ? word[courseLang].word : "";
+  useEffect(() => {
+    setImgUrl(null);
+    if (!targetTextEarly) return;
+    let cancelled = false;
+    fetchWordImage(targetTextEarly, courseLang).then(url => {
+      if (!cancelled) setImgUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [wordId, targetTextEarly, courseLang]);
 
   if (!word) {
     return <div className="px-6 text-sm">{t("notFound")}</div>;
@@ -42,7 +51,6 @@ export default function WordDetailPage() {
 
   const targetText = word[courseLang].word;
   const marked = isMarked(courseLang, word.id);
-  const imgUrl = `https://source.unsplash.com/featured/600x400/?${encodeURIComponent(targetText)}`;
 
   // Container length differs based on whether full word details are shown
   const isFront = flip === 0;
