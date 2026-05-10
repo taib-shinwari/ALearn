@@ -4,7 +4,7 @@ import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
 import { Play, Map, ChevronDown, ChevronUp } from "lucide-react";
-import { categories, getWordsForCategory, localizedName } from "@/data/courseData";
+import { categories, getWordsForCategory, localizedName, getLearningPathByDifficulty, type Difficulty } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useMemo, useState } from "react";
 
@@ -60,35 +60,40 @@ export default function HomePage() {
       </div>
 
       {pathOpen && (
-        <div className="space-y-3">
-          {categories.map(cat => (
-            <div key={cat.id} className="space-y-1.5">
-              <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
-              <ol className="relative ml-3 border-l-2 border-black pl-4 space-y-2">
-                {cat.subcategories.map((sub, i) => {
-                  const isCurrent = sub.id === currentUnit.sub.id;
-                  const total = sub.words.length;
-                  const done = sub.words.filter(w => learnedIds.has(w.id)).length;
-                  return (
-                    <li key={sub.id} className="relative">
-                      <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-white border-2 border-black" />
-                      <CardButton
-                        onClick={() => navigate(`${conceptPrefix}/${cat.id}/${sub.id}`)}
-                        className={isCurrent ? "ring-2 ring-black" : ""}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">
-                            {t("unit")} {i + 1} · {localizedName(sub.name, uiLang)}
-                          </span>
-                          <span className="text-xs opacity-70">{done}/{total}</span>
-                        </div>
-                      </CardButton>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          ))}
+        <div className="space-y-4">
+          {(["beginner", "intermediate", "advanced"] as Difficulty[]).map(level => {
+            const items = getLearningPathByDifficulty()[level];
+            if (items.length === 0) return null;
+            return (
+              <div key={level} className="space-y-1.5">
+                <TitleBar className="font-semibold">{t(level)}</TitleBar>
+                <ol className="relative ml-3 border-l-2 border-black pl-4 space-y-2">
+                  {items.map(({ category, subcategory }, i) => {
+                    const isCurrent = subcategory.id === currentUnit.sub.id;
+                    const total = subcategory.words.length;
+                    const done = subcategory.words.filter(w => learnedIds.has(w.id)).length;
+                    return (
+                      <li key={subcategory.id} className="relative">
+                        <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-white border-2 border-black" />
+                        <CardButton
+                          onClick={() => navigate(`${conceptPrefix}/${category.id}/${subcategory.id}`)}
+                          className={isCurrent ? "ring-2 ring-black" : ""}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              {localizedName(subcategory.name, uiLang)}
+                              <span className="opacity-60 text-xs ml-2">{localizedName(category.name, uiLang)}</span>
+                            </span>
+                            <span className="text-xs opacity-70">{done}/{total}</span>
+                          </div>
+                        </CardButton>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            );
+          })}
         </div>
       )}
 
