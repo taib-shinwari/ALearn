@@ -2,12 +2,20 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Container } from "@/components/ui/container";
-import { TitleBar } from "@/components/ui/title-bar";
+import { cn } from "@/lib/utils";
 
 type AuthMode = "choose" | "signin" | "signup";
+
+const inputCls = cn(
+  "w-full h-11 rounded-[40px] bg-white border-2 border-black text-black",
+  "px-5 placeholder:text-black/50",
+  "focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0",
+);
+
+function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={cn(inputCls, props.className)} />;
+}
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("choose");
@@ -30,25 +38,18 @@ export default function AuthPage() {
   if (mode === "choose") {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
-        <Container className="w-full max-w-sm space-y-3">
-          <div className="flex justify-center mb-2">
-            <TitleBar className="font-semibold">Welcome</TitleBar>
-          </div>
+        <div className="w-full max-w-sm space-y-3">
           <Button onClick={() => setMode("signin")} fullWidth>Sign In</Button>
           <Button onClick={() => setMode("signup")} fullWidth>Sign Up</Button>
-        </Container>
+        </div>
       </div>
     );
   }
 
   if (mode === "signin") {
     const steps = [
-      <div key="email" className="flex flex-col gap-3">
-        <Input value={siEmail} onChange={e => setSiEmail(e.target.value)} placeholder="Email" />
-      </div>,
-      <div key="password" className="flex flex-col gap-3">
-        <Input type="password" value={siPassword} onChange={e => setSiPassword(e.target.value)} placeholder="Password" />
-      </div>,
+      <AuthInput key="email" value={siEmail} onChange={e => setSiEmail(e.target.value)} placeholder="Email" />,
+      <AuthInput key="password" type="password" value={siPassword} onChange={e => setSiPassword(e.target.value)} placeholder="Password" />,
     ];
 
     const handleContinue = () => {
@@ -56,40 +57,29 @@ export default function AuthPage() {
         setSiStep(siStep + 1);
       } else {
         const ok = login(siEmail, siPassword);
-        if (ok) navigate("/language-select");
+        if (ok) navigate("/concept-select");
         else setSiError("Invalid credentials. Use a@mail.com / A");
       }
     };
 
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
-        <Container className="w-full max-w-sm space-y-3">
-          <div className="flex justify-center mb-1">
-            <TitleBar className="font-semibold">Sign In</TitleBar>
-          </div>
+        <div className="w-full max-w-sm space-y-3">
           {steps[siStep]}
           {siError && <p className="text-sm text-destructive">{siError}</p>}
           <Button onClick={handleContinue} fullWidth>Continue</Button>
           <Button fullWidth onClick={() => { setMode("choose"); setSiStep(0); setSiError(""); }}>Back</Button>
-        </Container>
+        </div>
       </div>
     );
   }
 
   const suSteps = [
-    <div key="fname" className="flex flex-col gap-3">
-      <Input value={suFirstName} onChange={e => setSuFirstName(e.target.value)} placeholder="First Name" />
-    </div>,
-    <div key="email" className="flex flex-col gap-3">
-      <Input value={suEmail} onChange={e => setSuEmail(e.target.value)} placeholder="Email" />
-    </div>,
-    <div key="password" className="flex flex-col gap-3">
-      <Input type="password" value={suPassword} onChange={e => setSuPassword(e.target.value)} placeholder="Password" />
-    </div>,
-    <div key="confirm" className="flex flex-col gap-3">
-      <Input type="password" value={suConfirm} onChange={e => setSuConfirm(e.target.value)} placeholder="Confirm Password" />
-    </div>,
-    <div key="terms" className="flex items-center gap-2">
+    <AuthInput key="fname" value={suFirstName} onChange={e => setSuFirstName(e.target.value)} placeholder="First Name" />,
+    <AuthInput key="email" value={suEmail} onChange={e => setSuEmail(e.target.value)} placeholder="Email" />,
+    <AuthInput key="password" type="password" value={suPassword} onChange={e => setSuPassword(e.target.value)} placeholder="Password" />,
+    <AuthInput key="confirm" type="password" value={suConfirm} onChange={e => setSuConfirm(e.target.value)} placeholder="Confirm Password" />,
+    <div key="terms" className="flex items-center gap-2 px-2">
       <Checkbox checked={suAgree} onCheckedChange={(v) => setSuAgree(!!v)} id="terms" />
       <label htmlFor="terms" className="text-sm">I agree to the Terms & Services</label>
     </div>,
@@ -109,21 +99,18 @@ export default function AuthPage() {
       setSuStep(suStep + 1);
     } else {
       signup(suFirstName, suEmail, suPassword);
-      navigate("/language-select");
+      navigate("/concept-select");
     }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <Container className="w-full max-w-sm space-y-3">
-        <div className="flex justify-center mb-1">
-          <TitleBar className="font-semibold">Sign Up</TitleBar>
-        </div>
+      <div className="w-full max-w-sm space-y-3">
         {suSteps[suStep]}
         {suError && <p className="text-sm text-destructive">{suError}</p>}
         <Button onClick={handleSuContinue} fullWidth>Continue</Button>
         <Button fullWidth onClick={() => { setMode("choose"); setSuStep(0); setSuError(""); }}>Back</Button>
-      </Container>
+      </div>
     </div>
   );
 }
