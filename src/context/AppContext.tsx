@@ -45,7 +45,7 @@ export function useApp() {
 const defaultState: AppState = {
   isAuthenticated: false,
   user: null,
-  interfaceLanguage: null,
+  interfaceLanguage: "en",
   selectedConcept: null,
   learningLanguage: null,
   introductionCompleted: false,

@@ -35,15 +35,6 @@ function AppRoutes() {
     );
   }
 
-  if (!interfaceLanguage) {
-    return (
-      <Routes>
-        <Route path="/language-select" element={<LanguageSelectPage />} />
-        <Route path="*" element={<Navigate to="/language-select" />} />
-      </Routes>
-    );
-  }
-
   if (!selectedConcept) {
     return (
       <Routes>
