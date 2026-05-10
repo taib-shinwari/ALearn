@@ -146,6 +146,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "onzijdig",
     common: "de-woord",
     yourAnswerWas: "Jouw antwoord",
+    chess: "Schaken",
+    beginner: "Beginner",
+    intermediate: "Gemiddeld",
+    advanced: "Gevorderd",
+    manageCourses: "Cursussen beheren",
   },
   en: {
     practice: "Practice",
@@ -237,6 +242,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "neuter",
     common: "common (de-word)",
     yourAnswerWas: "Your answer",
+    chess: "Chess",
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    manageCourses: "Manage courses",
   },
   ar: {
     practice: "تدريب",
@@ -328,6 +338,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "محايد",
     common: "كلمة de",
     yourAnswerWas: "إجابتك",
+    chess: "الشطرنج",
+    beginner: "مبتدئ",
+    intermediate: "متوسط",
+    advanced: "متقدم",
+    manageCourses: "إدارة الدورات",
   },
 };
 
@@ -583,6 +598,49 @@ export const categories: Category[] = [
     ],
   },
 ];
+
+export type Difficulty = "beginner" | "intermediate" | "advanced";
+
+/** Difficulty tier per subcategory id (used by the Learning Path). */
+export const subcategoryDifficulty: Record<string, Difficulty> = {
+  begroeting: "beginner",
+  dier: "beginner",
+  mens: "beginner",
+  fruit: "beginner",
+  groente: "intermediate",
+  kleding: "intermediate",
+  lichaam: "intermediate",
+  eten: "intermediate",
+  beschrijving: "intermediate",
+  emoties: "intermediate",
+  weer: "intermediate",
+  "dagelijkse-acties": "advanced",
+  beweging: "advanced",
+  communicatie: "advanced",
+  frequentie: "advanced",
+  plaats: "advanced",
+};
+
+export interface PathSubcategoryRef {
+  category: Category;
+  subcategory: Subcategory;
+}
+
+export function getLearningPathByDifficulty(): Record<Difficulty, PathSubcategoryRef[]> {
+  const out: Record<Difficulty, PathSubcategoryRef[]> = {
+    beginner: [],
+    intermediate: [],
+    advanced: [],
+  };
+  for (const cat of categories) {
+    for (const sub of cat.subcategories) {
+      const d = subcategoryDifficulty[sub.id] ?? "intermediate";
+      out[d].push({ category: cat, subcategory: sub });
+    }
+  }
+  return out;
+}
+
 
 // Helper functions
 export function getAllWords(): WordDetail[] {

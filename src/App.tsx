@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
-import LanguageSelectPage from "./pages/LanguageSelectPage";
+
 import ConceptSelectPage from "./pages/ConceptSelectPage";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
@@ -25,21 +25,12 @@ const queryClient = new QueryClient();
 const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
 
 function AppRoutes() {
-  const { isAuthenticated, interfaceLanguage, selectedConcept, introductionCompleted } = useApp();
+  const { isAuthenticated, selectedConcept, introductionCompleted } = useApp();
 
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="*" element={<AuthPage />} />
-      </Routes>
-    );
-  }
-
-  if (!interfaceLanguage) {
-    return (
-      <Routes>
-        <Route path="/language-select" element={<LanguageSelectPage />} />
-        <Route path="*" element={<Navigate to="/language-select" />} />
       </Routes>
     );
   }

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Settings, Search, Play, X } from "lucide-react";
+import { ArrowLeft, Settings, Search, Play, X, ChevronDown } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -11,6 +11,13 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
@@ -20,6 +27,52 @@ const langLabels: Record<string, string> = {
 
 interface LayoutProps {
   children: ReactNode;
+}
+
+function CoursesDropdown() {
+  const navigate = useNavigate();
+  const { courses, learningLanguage, selectedConcept, setActiveCourse } = useApp();
+  const { t } = useCourseLanguage();
+  const label =
+    (learningLanguage && langLabels[learningLanguage]) || t("courses");
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="truncate gap-1">
+          {label}
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[200px]">
+        {courses.length === 0 ? (
+          <DropdownMenuItem disabled>{t("noCourses")}</DropdownMenuItem>
+        ) : (
+          courses.map((c, i) => {
+            const active =
+              c.toLang === learningLanguage && c.concept === selectedConcept;
+            return (
+              <DropdownMenuItem
+                key={i}
+                onSelect={() => {
+                  setActiveCourse(c);
+                  navigate(`/${c.concept}`);
+                }}
+                className={active ? "font-semibold" : ""}
+              >
+                {(langLabels[c.toLang] || c.toLang)}
+                {c.concept !== "language" && ` · ${c.concept}`}
+                {active && " ✓"}
+              </DropdownMenuItem>
+            );
+          })
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate("/courses")}>
+          {t("manageCourses")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 /**
@@ -32,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { learningLanguage, selectedConcept, setPracticeScope } = useApp();
+  const { selectedConcept, setPracticeScope } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
   const isSettings = location.pathname.startsWith("/settings");
@@ -148,9 +201,7 @@ export default function Layout({ children }: LayoutProps) {
             <TitleBar className="font-semibold">{t("yourCourses")}</TitleBar>
           )}
           {!searchOpen && !isSearch && !isCourses && (
-            <Button onClick={() => navigate("/courses")} className="truncate">
-              {(learningLanguage && langLabels[learningLanguage]) || t("courses")} ›
-            </Button>
+            <CoursesDropdown />
           )}
         </div>
 
