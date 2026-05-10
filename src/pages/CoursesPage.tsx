@@ -15,6 +15,7 @@ const availableLanguages = [
 
 const availableConcepts = [
   { code: "language", labelKey: "language" },
+  { code: "chess", labelKey: "chess" },
 ];
 
 function getLearnableLanguages(fromLang: string) {
