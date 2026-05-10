@@ -146,6 +146,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "onzijdig",
     common: "de-woord",
     yourAnswerWas: "Jouw antwoord",
+    chess: "Schaken",
+    beginner: "Beginner",
+    intermediate: "Gemiddeld",
+    advanced: "Gevorderd",
+    manageCourses: "Cursussen beheren",
   },
   en: {
     practice: "Practice",
@@ -237,6 +242,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "neuter",
     common: "common (de-word)",
     yourAnswerWas: "Your answer",
+    chess: "Chess",
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    manageCourses: "Manage courses",
   },
   ar: {
     practice: "تدريب",
@@ -328,6 +338,11 @@ export const uiLabels: Record<string, Record<string, string>> = {
     neuter: "محايد",
     common: "كلمة de",
     yourAnswerWas: "إجابتك",
+    chess: "الشطرنج",
+    beginner: "مبتدئ",
+    intermediate: "متوسط",
+    advanced: "متقدم",
+    manageCourses: "إدارة الدورات",
   },
 };
 
