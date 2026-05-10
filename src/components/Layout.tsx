@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Settings, Search, Play, X } from "lucide-react";
+import { ArrowLeft, Settings, Search, Play, X, ChevronDown } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -11,6 +11,13 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
