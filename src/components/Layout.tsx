@@ -85,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { learningLanguage, selectedConcept, setPracticeScope } = useApp();
+  const { selectedConcept, setPracticeScope } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
   const isSettings = location.pathname.startsWith("/settings");
