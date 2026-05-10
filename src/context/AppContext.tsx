@@ -84,7 +84,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setState(defaultState);
+    setState({ ...defaultState });
   };
 
   const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
