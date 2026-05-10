@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider, useApp } from "@/context/AppContext";
 import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
-import LanguageSelectPage from "./pages/LanguageSelectPage";
+
 import ConceptSelectPage from "./pages/ConceptSelectPage";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
