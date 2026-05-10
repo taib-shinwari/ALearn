@@ -25,7 +25,7 @@ const queryClient = new QueryClient();
 const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
 
 function AppRoutes() {
-  const { isAuthenticated, interfaceLanguage, selectedConcept, introductionCompleted } = useApp();
+  const { isAuthenticated, selectedConcept, introductionCompleted } = useApp();
 
   if (!isAuthenticated) {
     return (
