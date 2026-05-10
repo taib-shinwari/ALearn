@@ -584,6 +584,49 @@ export const categories: Category[] = [
   },
 ];
 
+export type Difficulty = "beginner" | "intermediate" | "advanced";
+
+/** Difficulty tier per subcategory id (used by the Learning Path). */
+export const subcategoryDifficulty: Record<string, Difficulty> = {
+  begroeting: "beginner",
+  dier: "beginner",
+  mens: "beginner",
+  fruit: "beginner",
+  groente: "intermediate",
+  kleding: "intermediate",
+  lichaam: "intermediate",
+  eten: "intermediate",
+  beschrijving: "intermediate",
+  emoties: "intermediate",
+  weer: "intermediate",
+  "dagelijkse-acties": "advanced",
+  beweging: "advanced",
+  communicatie: "advanced",
+  frequentie: "advanced",
+  plaats: "advanced",
+};
+
+export interface PathSubcategoryRef {
+  category: Category;
+  subcategory: Subcategory;
+}
+
+export function getLearningPathByDifficulty(): Record<Difficulty, PathSubcategoryRef[]> {
+  const out: Record<Difficulty, PathSubcategoryRef[]> = {
+    beginner: [],
+    intermediate: [],
+    advanced: [],
+  };
+  for (const cat of categories) {
+    for (const sub of cat.subcategories) {
+      const d = subcategoryDifficulty[sub.id] ?? "intermediate";
+      out[d].push({ category: cat, subcategory: sub });
+    }
+  }
+  return out;
+}
+
+
 // Helper functions
 export function getAllWords(): WordDetail[] {
   const words: WordDetail[] = [];
