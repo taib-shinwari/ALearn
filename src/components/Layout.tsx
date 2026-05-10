@@ -155,9 +155,7 @@ export default function Layout({ children }: LayoutProps) {
             <TitleBar className="font-semibold">{t("yourCourses")}</TitleBar>
           )}
           {!searchOpen && !isSearch && !isCourses && (
-            <Button onClick={() => navigate("/courses")} className="truncate">
-              {(learningLanguage && langLabels[learningLanguage]) || t("courses")} ›
-            </Button>
+            <CoursesDropdown />
           )}
         </div>
 
