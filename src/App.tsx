@@ -18,6 +18,9 @@ import WordDetailPage from "./pages/WordDetailPage";
 import PracticePage from "./pages/PracticePage";
 import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
+import ChessHomePage from "./pages/chess/ChessHomePage";
+import ChessLessonPage from "./pages/chess/ChessLessonPage";
+import ChessPuzzlePage from "./pages/chess/ChessPuzzlePage";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
