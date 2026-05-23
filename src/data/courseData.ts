@@ -365,6 +365,17 @@ export const uiLabels: Record<string, Record<string, string>> = {
     intermediate: "متوسط",
     advanced: "متقدم",
     manageCourses: "إدارة الدورات",
+    theme: "السمة", themeLight: "فاتح", themeDark: "داكن", themeSystem: "النظام",
+    accessibility: "إمكانية الوصول", textSize: "حجم النص",
+    textSizeSmall: "صغير", textSizeMedium: "متوسط", textSizeLarge: "كبير",
+    highContrast: "تباين عالٍ", highContrastDesc: "حدود ونصوص بأبيض وأسود نقي",
+    other: "أخرى",
+    chessPractice: "تدريب", chessPuzzles: "ألغاز",
+    completed: "مكتمل", lesson: "درس", puzzle: "لغز",
+    whiteToMove: "دور الأبيض", blackToMove: "دور الأسود",
+    yourTurn: "دورك", correctMove: "نقلة صحيحة!",
+    wrongMove: "نقلة خاطئة، حاول مجددًا",
+    resetBoard: "إعادة ضبط الرقعة", revisit: "مراجعة",
   },
 };
 
