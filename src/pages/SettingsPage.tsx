@@ -6,6 +6,8 @@ import { LanguageSection } from "@/components/settings/sections/LanguageSection"
 import { CourseSection } from "@/components/settings/sections/CourseSection";
 import { AboutSection } from "@/components/settings/sections/AboutSection";
 import { DictionarySection } from "@/components/settings/sections/DictionarySection";
+import { ThemeSection } from "@/components/settings/sections/ThemeSection";
+import { AccessibilitySection } from "@/components/settings/sections/AccessibilitySection";
 import { getSubcategories } from "@/components/settings/constants";
 import type { SettingsCategoryId } from "@/components/settings/types";
 
@@ -33,10 +35,12 @@ export default function SettingsPage() {
       return <DictionarySection />;
     }
     switch (activeCategory) {
-      case "profile":  return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
-      case "language": return <LanguageSection />;
-      case "course":   return <CourseSection />;
-      case "about":    return <AboutSection />;
+      case "profile":       return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
+      case "language":      return <LanguageSection />;
+      case "course":        return <CourseSection />;
+      case "about":         return <AboutSection />;
+      case "theme":         return <ThemeSection />;
+      case "accessibility": return <AccessibilitySection />;
       default: return null;
     }
   };

@@ -22,7 +22,7 @@ export function LanguageSection() {
           <CardButton
             key={l.code}
             onClick={() => setInterfaceLanguage(l.code)}
-            className={active ? "bg-black text-white border-white" : ""}
+            className={active ? "bg-foreground text-background border-background" : ""}
           >
             <div className="flex items-center justify-between">
               <span className="font-medium">{l.native}</span>

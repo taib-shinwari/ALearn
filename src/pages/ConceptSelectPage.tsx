@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 
 const concepts = [
-  { code: "language", labelKey: "language" },
-  { code: "chess", labelKey: "chess" },
+  { code: "language", labelKey: "language", group: "language" as const },
+  { code: "chess",    labelKey: "chess",    group: "other"    as const },
 ];
 
 export default function ConceptSelectPage() {
@@ -19,7 +19,6 @@ export default function ConceptSelectPage() {
       const learningLang = interfaceLanguage === "en" ? "nl" : "en";
       setLearningLanguage(learningLang);
     } else {
-      // chess: no target language; pick interface language as placeholder
       setLearningLanguage(interfaceLanguage || "en");
     }
     navigate(`/${code}`);
@@ -27,13 +26,25 @@ export default function ConceptSelectPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="flex flex-col gap-3 w-full max-w-sm">
+      <div className="flex flex-col gap-5 w-full max-w-sm">
         <h2 className="text-xl font-semibold text-center">{t("selectConcept")}</h2>
-        {concepts.map(c => (
-          <Button key={c.code} fullWidth onClick={() => handleSelect(c.code)}>
-            {t(c.labelKey)}
-          </Button>
-        ))}
+        {(["language", "other"] as const).map(group => {
+          const items = concepts.filter(c => c.group === group);
+          return (
+            <div key={group}>
+              <h3 className="text-xs uppercase tracking-wider opacity-60 mb-2">
+                {group === "language" ? t("language") : t("other")}
+              </h3>
+              <div className="flex flex-col gap-2">
+                {items.map(c => (
+                  <Button key={c.code} fullWidth onClick={() => handleSelect(c.code)}>
+                    {t(c.labelKey)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

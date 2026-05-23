@@ -91,6 +91,7 @@ export default function Layout({ children }: LayoutProps) {
   const isSettings = location.pathname.startsWith("/settings");
   const isCourses = location.pathname.startsWith("/courses");
   const isSearch = location.pathname.startsWith("/search");
+  const isChess = location.pathname.startsWith("/chess");
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Cmd/Ctrl+K toggles inline search
@@ -149,6 +150,10 @@ export default function Layout({ children }: LayoutProps) {
       navigate(conceptPrefix);
       return;
     }
+    if (isChess) {
+      navigate("/chess");
+      return;
+    }
     if (isHome) return;
     if (contentSegs.length <= 1) navigate(conceptPrefix);
     else navigate(conceptPrefix + "/" + contentSegs.slice(0, -1).join("/"));
@@ -167,7 +172,8 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/practice");
   };
 
-  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
+  // Chess concept has its own structure — no global practice/breadcrumbs.
+  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome && !isChess;
 
   // ── Settings-specific mobile top bar ───────────────────────────────
   if (useSettingsBar) {

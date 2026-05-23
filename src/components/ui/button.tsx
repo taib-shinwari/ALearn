@@ -20,7 +20,7 @@ export function buttonVariants({
   };
 
   return cn(
-    "relative rounded-[40px] bg-white border-2 border-black text-black transition-colors duration-200",
+    "relative rounded-[40px] bg-background border-2 border-foreground text-foreground transition-colors duration-200",
     "inline-flex items-center justify-center gap-2",
     sizeClasses[size] || sizeClasses.default,
     variant === "destructive" && "border-destructive text-destructive",
@@ -69,13 +69,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           "relative rounded-[40px] transition-colors duration-200 inline-flex items-center justify-center gap-2",
-          !isGhost && "bg-white border-2 border-black text-black hover:bg-black hover:border-white hover:text-white",
-          isGhost && "bg-transparent border-2 border-transparent text-black hover:bg-black hover:border-white hover:text-white",
+          !isGhost && "bg-background border-2 border-foreground text-foreground hover:bg-foreground hover:border-background hover:text-background",
+          isGhost && "bg-transparent border-2 border-transparent text-foreground hover:bg-foreground hover:border-background hover:text-background",
           sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
-          variant === "destructive" && "border-destructive text-destructive hover:bg-destructive hover:text-white",
+          variant === "destructive" && "border-destructive text-destructive hover:bg-destructive hover:text-background",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-black text-white border-white",
+          active && "bg-foreground text-background border-background",
           className
         )}
         {...props}

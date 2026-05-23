@@ -36,7 +36,7 @@ export function CourseSection() {
             <CardButton
               key={i}
               onClick={() => setActiveCourse(c)}
-              className={active ? "bg-black text-white border-white" : ""}
+              className={active ? "bg-foreground text-background border-background" : ""}
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">

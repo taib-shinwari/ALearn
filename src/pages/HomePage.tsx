@@ -67,14 +67,14 @@ export default function HomePage() {
             return (
               <div key={level} className="space-y-1.5">
                 <TitleBar className="font-semibold">{t(level)}</TitleBar>
-                <ol className="relative ml-3 border-l-2 border-black pl-4 space-y-2">
+                <ol className="relative ml-3 border-l-2 border-foreground pl-4 space-y-2">
                   {items.map(({ category, subcategory }, i) => {
                     const isCurrent = subcategory.id === currentUnit.sub.id;
                     const total = subcategory.words.length;
                     const done = subcategory.words.filter(w => learnedIds.has(w.id)).length;
                     return (
                       <li key={subcategory.id} className="relative">
-                        <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-white border-2 border-black" />
+                        <span className="absolute -left-[22px] top-2 w-3 h-3 rounded-full bg-background border-2 border-foreground" />
                         <CardButton
                           onClick={() => navigate(`${conceptPrefix}/${category.id}/${subcategory.id}`)}
                           className={isCurrent ? "ring-2 ring-black" : ""}

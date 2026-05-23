@@ -59,7 +59,7 @@ export function DictionarySection() {
           }
           return (
             <Link key={id} to={to}>
-              <Container className="hover:bg-black hover:text-white transition-colors">
+              <Container className="hover:bg-foreground hover:text-background transition-colors">
                 <span className="text-sm font-medium">{text}</span>
               </Container>
             </Link>

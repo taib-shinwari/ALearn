@@ -48,7 +48,7 @@ export default function SearchPage() {
     const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`(${escaped})`, "gi");
     return text.split(re).map((p, i) =>
-      re.test(p) ? <mark key={i} className="bg-black text-white px-0.5 rounded-sm">{p}</mark> : p
+      re.test(p) ? <mark key={i} className="bg-foreground text-background px-0.5 rounded-sm">{p}</mark> : p
     );
   };
 
@@ -59,7 +59,7 @@ export default function SearchPage() {
       </TitleBar>
 
       {/* Search input */}
-      <div className="rounded-[20px] bg-white border-2 border-black flex items-center gap-2 px-4 py-3">
+      <div className="rounded-[20px] bg-background border-2 border-foreground flex items-center gap-2 px-4 py-3">
         <SearchIcon className="h-5 w-5 shrink-0" />
         <input
           autoFocus
@@ -67,12 +67,12 @@ export default function SearchPage() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") update(query, category); }}
           placeholder={currentCategory.placeholder}
-          className="flex-1 bg-transparent outline-none text-base placeholder:text-black/50"
+          className="flex-1 bg-transparent outline-none text-base placeholder:text-foreground/50"
         />
         {query && (
           <button
             onClick={() => { setQuery(""); update("", category); }}
-            className="text-sm font-medium px-2 py-1 rounded-md hover:bg-black hover:text-white transition-colors"
+            className="text-sm font-medium px-2 py-1 rounded-md hover:bg-foreground hover:text-background transition-colors"
             aria-label="Clear"
           >
             ×
@@ -88,7 +88,7 @@ export default function SearchPage() {
             <Button
               key={cat.id}
               onClick={() => { setCategory(cat.id); update(query, cat.id); }}
-              className={cn(active && "bg-black text-white border-white")}
+              className={cn(active && "bg-foreground text-background border-background")}
             >
               {cat.label}
             </Button>
@@ -98,18 +98,18 @@ export default function SearchPage() {
 
       {/* Results */}
       {!query ? (
-        <div className="text-center py-16 text-black/60">
+        <div className="text-center py-16 text-foreground/60">
           <SearchIcon className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Type to search across {currentCategory.label.toLowerCase()}.</p>
         </div>
       ) : results.length === 0 ? (
-        <div className="text-center py-16 text-black/60">
+        <div className="text-center py-16 text-foreground/60">
           <SearchIcon className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">No results for "{query}"</p>
         </div>
       ) : (
         <>
-          <div className="text-xs text-black/60 px-1">
+          <div className="text-xs text-foreground/60 px-1">
             {results.length} result{results.length !== 1 ? "s" : ""} in {getResultTypeLabel(category)}
           </div>
           <div className="grid gap-2">
