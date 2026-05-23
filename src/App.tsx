@@ -67,10 +67,19 @@ function AppRoutes() {
       <Route path="/courses" element={withLayout(<CoursesPage />)} />
       <Route path="/search" element={withLayout(<SearchPage />)} />
       <Route path="/home" element={withLayout(<HomePage />)} />
+
+      {/* Chess routes — distinct concept layout */}
+      <Route path="/chess" element={withLayout(<ChessHomePage />)} />
+      <Route path="/chess/practice/:lessonId" element={withLayout(<ChessLessonPage />)} />
+      <Route path="/chess/puzzles/:puzzleId" element={withLayout(<ChessPuzzlePage />)} />
+
       <Route path="/:concept" element={withLayout(<HomePage />)} />
       <Route path="/:concept/:category" element={withLayout(<CategoryPage />)} />
       <Route path="/:concept/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
       <Route path="/:concept/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
+
+      <Route path="/" element={<Navigate to={`/${selectedConcept}`} replace />} />
+      <Route path="*" element={<NotFound />} />
 
       <Route path="/" element={<Navigate to={`/${selectedConcept}`} replace />} />
       <Route path="*" element={<NotFound />} />
