@@ -93,7 +93,7 @@ export function HeaderSearch({ open, onClose }: Props) {
 
   return (
     <div ref={containerRef} className="relative flex-1 max-w-xl">
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-black rounded-full">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 border-foreground rounded-full">
         <SearchIcon className="h-4 w-4 shrink-0" />
         <input
           ref={inputRef}
@@ -101,7 +101,7 @@ export function HeaderSearch({ open, onClose }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder={currentCategory.placeholder}
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-black/50 min-w-0"
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-foreground/50 min-w-0"
           aria-label="Search"
         />
 
@@ -110,7 +110,7 @@ export function HeaderSearch({ open, onClose }: Props) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-colors"
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border-2 border-foreground bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
               >
                 {currentCategory.label}
                 <ChevronDown className="h-3 w-3" />
@@ -140,7 +140,7 @@ export function HeaderSearch({ open, onClose }: Props) {
             type="button"
             onClick={() => { setQuery(""); inputRef.current?.focus(); }}
             aria-label="Clear"
-            className="p-1 rounded-md hover:bg-black hover:text-white transition-colors"
+            className="p-1 rounded-md hover:bg-foreground hover:text-background transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -149,11 +149,11 @@ export function HeaderSearch({ open, onClose }: Props) {
 
       {/* Results dropdown */}
       {query && (
-        <div className="absolute left-0 right-0 mt-2 bg-white border-2 border-black rounded-[20px] shadow-xl overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-2 bg-background border-2 border-foreground rounded-[20px] shadow-xl overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
           {results.length > 0 ? (
             <div className="p-2">
               <div className="flex items-center justify-between px-2 py-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-black/60">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
                   {getResultTypeLabel(category)}
                 </span>
                 <button onClick={goToSearchPage} className="text-xs font-medium hover:underline">
@@ -169,7 +169,7 @@ export function HeaderSearch({ open, onClose }: Props) {
                     onMouseEnter={() => setSelectedIndex(i)}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors group",
-                      active ? "bg-black text-white" : "bg-white text-black hover:bg-black hover:text-white"
+                      active ? "bg-foreground text-background" : "bg-background text-foreground hover:bg-foreground hover:text-background"
                     )}
                   >
                     <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-current shrink-0">
@@ -188,7 +188,7 @@ export function HeaderSearch({ open, onClose }: Props) {
               })}
             </div>
           ) : (
-            <div className="py-8 text-center text-sm text-black/60">
+            <div className="py-8 text-center text-sm text-foreground/60">
               <SearchIcon className="h-5 w-5 mx-auto mb-2 opacity-50" />
               No results for "{query}"
             </div>

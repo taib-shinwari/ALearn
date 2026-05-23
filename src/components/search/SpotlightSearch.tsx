@@ -95,14 +95,14 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/40" onClick={close} />
+      <div className="fixed inset-0 z-50 bg-foreground/40" onClick={close} />
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 pointer-events-none">
         <div
-          className="w-full max-w-2xl bg-white border-2 border-black rounded-[20px] shadow-xl overflow-hidden pointer-events-auto"
+          className="w-full max-w-2xl bg-background border-2 border-foreground rounded-[20px] shadow-xl overflow-hidden pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Input row */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-black">
+          <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-foreground">
             <SearchIcon className="h-5 w-5 shrink-0" />
             <input
               ref={inputRef}
@@ -110,7 +110,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder={currentCategory.placeholder}
-              className="flex-1 bg-transparent outline-none text-base placeholder:text-black/50"
+              className="flex-1 bg-transparent outline-none text-base placeholder:text-foreground/50"
               aria-label="Search"
             />
 
@@ -119,7 +119,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border-2 border-foreground bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
                   >
                     {currentCategory.label}
                     <ChevronDown className="h-3 w-3" />
@@ -149,7 +149,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                 type="button"
                 onClick={() => { setQuery(""); inputRef.current?.focus(); }}
                 aria-label="Clear"
-                className="p-1 rounded-md hover:bg-black hover:text-white transition-colors"
+                className="p-1 rounded-md hover:bg-foreground hover:text-background transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -162,7 +162,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
               {results.length > 0 ? (
                 <div className="p-2">
                   <div className="flex items-center justify-between px-2 py-1.5">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-black/60">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
                       {getResultTypeLabel(category)}
                     </span>
                     <button
@@ -181,7 +181,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                         onMouseEnter={() => setSelectedIndex(i)}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors group",
-                          active ? "bg-black text-white" : "bg-white text-black hover:bg-black hover:text-white"
+                          active ? "bg-foreground text-background" : "bg-background text-foreground hover:bg-foreground hover:text-background"
                         )}
                       >
                         <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-current">
@@ -208,7 +208,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                   })}
                 </div>
               ) : (
-                <div className="py-10 text-center text-sm text-black/60">
+                <div className="py-10 text-center text-sm text-foreground/60">
                   <SearchIcon className="h-6 w-6 mx-auto mb-2 opacity-50" />
                   No results for "{query}"
                 </div>

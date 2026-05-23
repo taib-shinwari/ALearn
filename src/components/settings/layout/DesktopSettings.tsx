@@ -63,7 +63,7 @@ export function DesktopSettings({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={t("searchSettings")}
-              className="pl-9 pr-9 rounded-full border-2 border-black"
+              className="pl-9 pr-9 rounded-full border-2 border-foreground"
             />
             {query && (
               <button
@@ -93,7 +93,7 @@ export function DesktopSettings({
                   }}
                   className={cn(
                     "justify-start gap-2",
-                    isActive && "bg-black text-white border-white hover:bg-black"
+                    isActive && "bg-foreground text-background border-background hover:bg-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -112,7 +112,7 @@ export function DesktopSettings({
                           onClick={() => onSubcategoryChange(sub.id)}
                           className={cn(
                             "justify-start gap-2 text-sm",
-                            subActive && "bg-black text-white border-white hover:bg-black"
+                            subActive && "bg-foreground text-background border-background hover:bg-foreground"
                           )}
                         >
                           <SubIcon className="h-3.5 w-3.5" />
