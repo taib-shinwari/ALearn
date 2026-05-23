@@ -10,7 +10,7 @@ import { useState, useMemo } from "react";
 const availableLanguages = [
   { code: "en", label: "English" },
   { code: "nl", label: "Nederlands" },
-  { code: "ar", label: "العربية" },
+  { code: "ar", label: "العربية القرآنية" },
 ];
 
 const availableConcepts = [

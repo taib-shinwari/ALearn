@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 const languages = [
   { code: "en", label: "English" },
   { code: "nl", label: "Nederlands" },
-  { code: "ar", label: "العربية" },
+  { code: "ar", label: "العربية القرآنية" },
 ];
 
 export default function LanguageSelectPage() {
