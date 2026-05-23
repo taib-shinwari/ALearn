@@ -7,6 +7,9 @@ export interface Course {
   toLang: string;
 }
 
+export type ThemeChoice = "light" | "dark" | "system";
+export type TextSize = "sm" | "md" | "lg";
+
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
@@ -17,6 +20,9 @@ interface AppState {
   courses: Course[];
   reviews: ReviewState[];
   practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
+  theme: ThemeChoice;
+  textSize: TextSize;
+  highContrast: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -32,6 +38,9 @@ interface AppContextType extends AppState {
   getReview: (wordId: string) => ReviewState;
   recordReview: (wordId: string, correct: boolean) => void;
   setPracticeScope: (scope: AppState["practiceScope"]) => void;
+  setTheme: (t: ThemeChoice) => void;
+  setTextSize: (t: TextSize) => void;
+  setHighContrast: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -52,14 +61,26 @@ const defaultState: AppState = {
   courses: [],
   reviews: [],
   practiceScope: null,
+  theme: "system",
+  textSize: "md",
+  highContrast: false,
 };
+
+function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
+  const root = document.documentElement;
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = theme === "dark" || (theme === "system" && prefersDark);
+  root.classList.toggle("dark", isDark);
+  root.classList.toggle("hc", hc);
+  root.classList.remove("text-sm", "text-md", "text-lg");
+  root.classList.add(`text-${textSize}`);
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Strip out any legacy streak/xp fields
       const { streak, xp, lastPracticeDate, ...clean } = parsed;
       return { ...defaultState, ...clean };
     }
@@ -69,6 +90,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("appState", JSON.stringify(state));
   }, [state]);
+
+  // Apply theme/HC/text-size whenever they change
+  useEffect(() => {
+    applyAppearance(state.theme, state.textSize, state.highContrast);
+  }, [state.theme, state.textSize, state.highContrast]);
+
+  // React to system theme changes when in "system" mode
+  useEffect(() => {
+    if (state.theme !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => applyAppearance(state.theme, state.textSize, state.highContrast);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [state.theme, state.textSize, state.highContrast]);
 
   const login = (email: string, password: string) => {
     if (email === "a@mail.com" && password === "A") {
@@ -84,7 +119,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setState({ ...defaultState });
+    setState(s => ({ ...defaultState, theme: s.theme, textSize: s.textSize, highContrast: s.highContrast }));
   };
 
   const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
@@ -124,13 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getReview = (wordId: string): ReviewState => {
     const existing = state.reviews.find(r => r.wordId === wordId);
     if (!existing) return createReviewState(wordId);
-    // Migrate older shapes that miss new fields
-    return {
-      ease: 2.5,
-      reps: existing.learned ? 1 : 0,
-      lapses: 0,
-      ...existing,
-    };
+    return { ease: 2.5, reps: existing.learned ? 1 : 0, lapses: 0, ...existing };
   };
 
   const recordReview = (wordId: string, correct: boolean) => {
@@ -147,15 +176,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const setPracticeScope = (scope: AppState["practiceScope"]) => {
-    setState(s => ({ ...s, practiceScope: scope }));
-  };
+  const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
+  const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
+  const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
+  const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
 
   return (
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
       getReview, recordReview, setPracticeScope,
+      setTheme, setTextSize, setHighContrast,
     }}>
       {children}
     </AppContext.Provider>
