@@ -11,6 +11,7 @@ import {
   getAllPathLessons,
   lessonProgress,
 } from "@/data/learningUnits";
+import { getCategoryForSubcategory } from "@/data/courseData";
 
 function loc<T extends { en: string; nl: string; ar?: string }>(o: T, lang: string): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,10 +233,6 @@ function labelFor(kind: "lesson" | "review" | "checkpoint", lang: string) {
 
 // Map a subcategory id to a navigable dictionary URL.
 function subcategoryToPath(conceptPrefix: string, subcategoryId: string): string | null {
-  // We rely on the same data; find the owning category.
-  // Lazy require to avoid circular import noise.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { getCategoryForSubcategory } = require("@/data/courseData");
   const cat = getCategoryForSubcategory(subcategoryId);
   if (!cat) return null;
   return `${conceptPrefix}/${cat.id}/${subcategoryId}`;
