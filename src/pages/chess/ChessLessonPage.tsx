@@ -59,13 +59,12 @@ export default function ChessLessonPage() {
     }])),
   };
 
-  const onPieceDrop = ({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null }) => {
+  const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
     if (!targetSquare) return false;
     if (sourceSquare !== lesson.highlight) return false;
     try {
       const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
       if (!move) return false;
-      // Force re-render with new game instance
       setGame(new Chess(game.fen()));
       if (!done) { completeLesson(lesson.id); setDone(true); }
       return true;
@@ -79,16 +78,14 @@ export default function ChessLessonPage() {
         <p className="text-sm leading-relaxed">{loc(lesson.description, uiLang)}</p>
       </Container>
 
-      <div className="rounded-[20px] overflow-hidden border-2 border-foreground bg-background">
+      <div className="rounded-[20px] overflow-hidden border border-border bg-background">
         <Chessboard
-          options={{
-            position: game.fen(),
-            onPieceDrop,
-            squareStyles,
-            allowDragging: true,
-            showNotation: true,
-            animationDurationInMs: 150,
-          }}
+          position={game.fen()}
+          onPieceDrop={onPieceDrop}
+          customSquareStyles={squareStyles}
+          arePiecesDraggable={true}
+          showBoardNotation={true}
+          animationDuration={150}
         />
       </div>
 

@@ -18,10 +18,10 @@ export const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
         ref={ref}
         type="button"
         className={cn(
-          "rounded-[20px] bg-background border-2 border-foreground text-foreground p-4 text-left",
+          "rounded-[20px] bg-background border border-border text-foreground p-4 text-left",
           "transition-colors duration-200",
-          "hover:bg-foreground hover:border-background hover:text-background",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-black",
+          "hover:bg-muted/60 hover:border-border",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           "disabled:opacity-50 disabled:pointer-events-none",
           className
         )}

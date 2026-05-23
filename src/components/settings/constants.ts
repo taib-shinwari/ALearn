@@ -6,7 +6,6 @@ export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
   { id: "theme",         labelKey: "theme",              fallback: "Theme",          icon: Palette,        hasSubcategories: false },
   { id: "accessibility", labelKey: "accessibility",      fallback: "Accessibility",  icon: Accessibility,  hasSubcategories: false },
   { id: "language",      labelKey: "interfaceLanguage",  fallback: "Language",       icon: Globe,          hasSubcategories: false },
-  { id: "course",        labelKey: "courseSettings",     fallback: "Course",         icon: BookOpen,       hasSubcategories: false },
   { id: "about",         labelKey: "about",              fallback: "About",          icon: Info,           hasSubcategories: false },
 ];
 

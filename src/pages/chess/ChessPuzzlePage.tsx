@@ -49,7 +49,7 @@ export default function ChessPuzzlePage() {
     setFeedback(null);
   };
 
-  const onPieceDrop = ({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null }) => {
+  const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
     if (!targetSquare || solved) return false;
     const trial = new Chess(game.fen());
     try {
@@ -64,7 +64,7 @@ export default function ChessPuzzlePage() {
         return true;
       }
       setFeedback("wrong");
-      return false; // snap back
+      return false;
     } catch { return false; }
   };
 
@@ -77,16 +77,14 @@ export default function ChessPuzzlePage() {
         </p>
       </Container>
 
-      <div className="rounded-[20px] overflow-hidden border-2 border-foreground bg-background">
+      <div className="rounded-[20px] overflow-hidden border border-border bg-background">
         <Chessboard
-          options={{
-            position: game.fen(),
-            onPieceDrop,
-            boardOrientation: puzzle.sideToMove === "w" ? "white" : "black",
-            allowDragging: !solved,
-            showNotation: true,
-            animationDurationInMs: 150,
-          }}
+          position={game.fen()}
+          onPieceDrop={onPieceDrop}
+          boardOrientation={puzzle.sideToMove === "w" ? "white" : "black"}
+          arePiecesDraggable={!solved}
+          showBoardNotation={true}
+          animationDuration={150}
         />
       </div>
 
