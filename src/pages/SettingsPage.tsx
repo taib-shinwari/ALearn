@@ -35,10 +35,12 @@ export default function SettingsPage() {
       return <DictionarySection />;
     }
     switch (activeCategory) {
-      case "profile":  return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
-      case "language": return <LanguageSection />;
-      case "course":   return <CourseSection />;
-      case "about":    return <AboutSection />;
+      case "profile":       return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
+      case "language":      return <LanguageSection />;
+      case "course":        return <CourseSection />;
+      case "about":         return <AboutSection />;
+      case "theme":         return <ThemeSection />;
+      case "accessibility": return <AccessibilitySection />;
       default: return null;
     }
   };
