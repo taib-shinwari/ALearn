@@ -14,12 +14,11 @@ const availableLanguages = [
 ];
 
 const availableConcepts = [
-  { code: "language", labelKey: "language" },
-  { code: "chess", labelKey: "chess" },
+  { code: "language", labelKey: "language", group: "language" as const },
+  { code: "chess",    labelKey: "chess",    group: "other"    as const },
 ];
 
 function getLearnableLanguages(fromLang: string) {
-  // Words exist only in nl/en, target must differ from interface language
   return availableLanguages.filter(l => l.code !== fromLang && (l.code === "nl" || l.code === "en"));
 }
 
@@ -34,29 +33,19 @@ export default function CoursesPage() {
   const { t } = useCourseLanguage();
 
   const [mode, setMode] = useState<Mode>("list");
-  const [step, setStep] = useState<0 | 1 | 2>(0); // 0: from-lang, 1: concept, 2: to-lang
-  const [newFrom, setNewFrom] = useState<string | null>(null);
+  const [step, setStep] = useState<0 | 1>(0); // 0: concept, 1: to-lang
   const [newConcept, setNewConcept] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const isActive = (c: Course) =>
     c.fromLang === interfaceLanguage && c.concept === selectedConcept && c.toLang === learningLanguage;
 
-  // List view: filter visible items based on chosen interface language + concept.
-  // We also derive a top breadcrumb showing the current navigation depth.
-  const [listFromLang, setListFromLang] = useState<string | null>(interfaceLanguage);
+  // List view filters by current interface language (no drill).
   const [listConcept, setListConcept] = useState<string | null>(selectedConcept);
-
-  // Reset list-mode breadcrumb when entering list mode fresh
-  const resetList = () => {
-    setListFromLang(interfaceLanguage);
-    setListConcept(selectedConcept);
-  };
 
   const startCreate = () => {
     setMode("create");
     setStep(0);
-    setNewFrom(null);
     setNewConcept(null);
     setError("");
   };
@@ -64,89 +53,86 @@ export default function CoursesPage() {
   const cancelCreate = () => {
     setMode("list");
     setStep(0);
-    setNewFrom(null);
     setNewConcept(null);
     setError("");
-    resetList();
+    setListConcept(selectedConcept);
   };
 
   const goBackStep = () => {
     setError("");
     if (step === 0) cancelCreate();
-    else setStep((step - 1) as 0 | 1);
+    else setStep(0);
   };
 
-  const handleSelectFrom = (code: string) => { setNewFrom(code); setStep(1); };
-  const handleSelectConcept = (code: string) => { setNewConcept(code); setStep(2); };
-  const handleSelectTo = (code: string) => {
-    const course: Course = { fromLang: newFrom!, concept: newConcept!, toLang: code };
-    const ok = addCourse(course);
-    if (!ok) {
-      setError(t("alreadyAdded"));
+  const handleSelectConcept = (code: string) => {
+    if (code === "chess") {
+      // Chess has no target language — create directly under current interface lang
+      const course: Course = { fromLang: interfaceLanguage!, concept: "chess", toLang: interfaceLanguage! };
+      const ok = addCourse(course);
+      if (!ok && courses.some(c => c.concept === "chess" && c.fromLang === interfaceLanguage)) {
+        setActiveCourse(course);
+      }
+      setMode("list");
+      navigate(`/chess`);
       return;
     }
+    setNewConcept(code);
+    setStep(1);
+  };
+
+  const handleSelectTo = (code: string) => {
+    const course: Course = { fromLang: interfaceLanguage!, concept: newConcept!, toLang: code };
+    const ok = addCourse(course);
+    if (!ok) { setError(t("alreadyAdded")); return; }
     setMode("list");
     navigate(`/${course.concept}`);
   };
 
-  // ----- LIST MODE: drill-down by interfaceLang -> concept -> course -----
-  const interfaceLanguagesWithCourses = useMemo(() => {
-    const set = new Set(courses.map(c => c.fromLang));
-    return availableLanguages.filter(l => set.has(l.code));
-  }, [courses]);
-
-  const conceptsForListLang = useMemo(() => {
-    if (!listFromLang) return [];
-    const set = new Set(courses.filter(c => c.fromLang === listFromLang).map(c => c.concept));
+  // ----- LIST MODE -----
+  const conceptsForList = useMemo(() => {
+    const set = new Set(courses.filter(c => c.fromLang === interfaceLanguage).map(c => c.concept));
     return availableConcepts.filter(c => set.has(c.code));
-  }, [courses, listFromLang]);
+  }, [courses, interfaceLanguage]);
 
   const coursesForListSelection = useMemo(() => {
-    if (!listFromLang || !listConcept) return [];
-    return courses.filter(c => c.fromLang === listFromLang && c.concept === listConcept);
-  }, [courses, listFromLang, listConcept]);
+    if (!listConcept) return [];
+    return courses.filter(c => c.fromLang === interfaceLanguage && c.concept === listConcept);
+  }, [courses, interfaceLanguage, listConcept]);
 
-  // Top breadcrumb segments (above the title) for list mode.
-  // Each segment is interactive: clicking it navigates back to that drill level.
+  // Breadcrumb segments — interface language is NEVER shown here
   interface Crumb { label: string; onClick?: () => void }
   const listCrumbs: Crumb[] = [];
   if (mode === "list") {
-    if (listFromLang) {
-      listCrumbs.push({
-        label: langLabel(listFromLang),
-        onClick: listConcept ? () => setListConcept(null) : undefined,
-      });
-    }
     if (listConcept) {
       const c = availableConcepts.find(x => x.code === listConcept);
       listCrumbs.push({ label: c ? t(c.labelKey) : listConcept });
     }
   } else {
-    if (newFrom) {
-      listCrumbs.push({
-        label: langLabel(newFrom),
-        onClick: step > 0 ? () => { setStep(0); setNewConcept(null); } : undefined,
-      });
-    }
     if (newConcept) {
       const c = availableConcepts.find(x => x.code === newConcept);
       listCrumbs.push({
         label: c ? t(c.labelKey) : newConcept,
-        onClick: step > 1 ? () => setStep(1) : undefined,
+        onClick: step > 0 ? () => setStep(0) : undefined,
       });
     }
   }
 
-  const drillBack = () => {
-    if (listConcept) { setListConcept(null); return; }
-    if (listFromLang) { setListFromLang(null); return; }
-  };
+  const drillBack = () => { if (listConcept) setListConcept(null); };
+  const showListBack = mode === "list" && !!listConcept;
 
-  const showListBack = mode === "list" && (listFromLang || listConcept);
+  // For chess concept selection in list mode — clicking goes straight to /chess
+  const onPickListConcept = (code: string) => {
+    if (code === "chess") {
+      const course = courses.find(c => c.fromLang === interfaceLanguage && c.concept === "chess");
+      if (course) setActiveCourse(course);
+      navigate("/chess");
+      return;
+    }
+    setListConcept(code);
+  };
 
   return (
     <div className="px-6 max-w-3xl mx-auto w-full">
-      {/* Top breadcrumb (thin container, sized to content, interactive) */}
       {listCrumbs.length > 0 && (
         <nav aria-label="courses-breadcrumb" className="mb-3">
           <TitleBar>
@@ -156,17 +142,11 @@ export default function CoursesPage() {
                 return (
                   <li key={i} className="flex items-center gap-1">
                     {c.onClick && !isLast ? (
-                      <button
-                        type="button"
-                        onClick={c.onClick}
-                        className="hover:underline cursor-pointer"
-                      >
-                        {c.label}
-                      </button>
+                      <button type="button" onClick={c.onClick} className="hover:underline cursor-pointer">{c.label}</button>
                     ) : (
                       <span className={isLast ? "font-medium" : ""}>{c.label}</span>
                     )}
-                    <span className="px-1">/</span>
+                    {!isLast && <span className="px-1">/</span>}
                   </li>
                 );
               })}
@@ -175,23 +155,16 @@ export default function CoursesPage() {
         </nav>
       )}
 
-      {/* Action row (header shows "Your Courses") */}
       <div className="flex items-center gap-2 mb-4 justify-end">
         {mode === "list" ? (
           <>
             {showListBack && (
-              <Button size="icon" onClick={drillBack} aria-label={t("back")}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <Button size="icon" onClick={drillBack} aria-label={t("back")}><ArrowLeft className="h-5 w-5" /></Button>
             )}
-            <Button size="icon" onClick={startCreate} aria-label={t("create")}>
-              <Plus className="h-5 w-5" />
-            </Button>
+            <Button size="icon" onClick={startCreate} aria-label={t("create")}><Plus className="h-5 w-5" /></Button>
           </>
         ) : (
-          <Button size="icon" onClick={goBackStep} aria-label={t("back")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Button size="icon" onClick={goBackStep} aria-label={t("back")}><ArrowLeft className="h-5 w-5" /></Button>
         )}
       </div>
 
@@ -199,37 +172,36 @@ export default function CoursesPage() {
       {mode === "list" && (
         <>
           {courses.length === 0 ? (
-            <Container className="py-2">
-              <p className="text-sm">{t("noCourses")}</p>
-            </Container>
-          ) : !listFromLang ? (
-            // Step A: pick interface language (only those with active courses)
-            <div className="flex flex-col gap-2">
-              {interfaceLanguagesWithCourses.map(l => (
-                <Button key={l.code} fullWidth onClick={() => setListFromLang(l.code)}>
-                  {l.label}
-                </Button>
-              ))}
-            </div>
+            <Container className="py-2"><p className="text-sm">{t("noCourses")}</p></Container>
           ) : !listConcept ? (
-            // Step B: pick concept (only those with courses for this interface lang)
-            <div className="flex flex-col gap-2">
-              {conceptsForListLang.map(c => (
-                <Button key={c.code} fullWidth onClick={() => setListConcept(c.code)}>
-                  {t(c.labelKey)}
-                </Button>
-              ))}
+            // Step A: concepts grouped (Language / Other)
+            <div className="space-y-5">
+              {(["language", "other"] as const).map(group => {
+                const items = conceptsForList.filter(c => c.group === group);
+                if (items.length === 0) return null;
+                return (
+                  <div key={group}>
+                    <h3 className="text-xs uppercase tracking-wider opacity-60 mb-2">
+                      {group === "language" ? t("language") : t("other")}
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {items.map(c => (
+                        <Button key={c.code} fullWidth onClick={() => onPickListConcept(c.code)}>
+                          {t(c.labelKey)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            // Step C: list courses (toLang only); active = black bg + checkmark
             <div className="flex flex-col gap-2">
               {coursesForListSelection.map((c, i) => {
                 const active = isActive(c);
                 return (
                   <Button
-                    key={i}
-                    fullWidth
-                    active={active}
+                    key={i} fullWidth active={active}
                     onClick={() => { setActiveCourse(c); navigate(`/${c.concept}`); }}
                     className="justify-between"
                   >
@@ -243,41 +215,40 @@ export default function CoursesPage() {
         </>
       )}
 
-      {/* CREATE MODE */}
+      {/* CREATE MODE — interface language is implicit (current setting) */}
       {mode === "create" && (
         <>
           {step === 0 && (
             <>
-              <h2 className="text-sm font-medium mb-3">{t("interfaceLanguage")}</h2>
-              <div className="flex flex-col gap-2">
-                {availableLanguages.map(l => (
-                  <Button key={l.code} fullWidth onClick={() => handleSelectFrom(l.code)}>
-                    {l.label}
-                  </Button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {step === 1 && newFrom && (
-            <>
               <h2 className="text-sm font-medium mb-3">{t("selectConceptShort")}</h2>
-              <div className="flex flex-col gap-2">
-                {availableConcepts.map(c => (
-                  <Button key={c.code} fullWidth onClick={() => handleSelectConcept(c.code)}>
-                    {t(c.labelKey)}
-                  </Button>
-                ))}
+              <div className="space-y-5">
+                {(["language", "other"] as const).map(group => {
+                  const items = availableConcepts.filter(c => c.group === group);
+                  return (
+                    <div key={group}>
+                      <h3 className="text-xs uppercase tracking-wider opacity-60 mb-2">
+                        {group === "language" ? t("language") : t("other")}
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {items.map(c => (
+                          <Button key={c.code} fullWidth onClick={() => handleSelectConcept(c.code)}>
+                            {t(c.labelKey)}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
 
-          {step === 2 && newFrom && newConcept && (
+          {step === 1 && newConcept && (
             <>
               <h2 className="text-sm font-medium mb-3">{t("selectCourse")}</h2>
               <div className="flex flex-col gap-2">
-                {getLearnableLanguages(newFrom).map(l => {
-                  const exists = courses.some(c => c.fromLang === newFrom && c.concept === newConcept && c.toLang === l.code);
+                {getLearnableLanguages(interfaceLanguage!).map(l => {
+                  const exists = courses.some(c => c.fromLang === interfaceLanguage && c.concept === newConcept && c.toLang === l.code);
                   return (
                     <Button key={l.code} fullWidth disabled={exists} onClick={() => handleSelectTo(l.code)}>
                       {l.label} {exists && t("alreadyAdded")}
