@@ -69,13 +69,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           "relative rounded-[40px] transition-colors duration-200 inline-flex items-center justify-center gap-2",
-          !isGhost && "bg-background border-2 border-foreground text-foreground hover:bg-foreground hover:border-background hover:text-background",
-          isGhost && "bg-transparent border-2 border-transparent text-foreground hover:bg-foreground hover:border-background hover:text-background",
+          !isGhost && "bg-background border border-border text-foreground hover:bg-muted/60",
+          isGhost && "bg-transparent border border-transparent text-foreground hover:bg-muted/60",
           sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
-          variant === "destructive" && "border-destructive text-destructive hover:bg-destructive hover:text-background",
+          variant === "destructive" && "border-destructive text-destructive hover:bg-destructive/10",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-foreground text-background border-background",
+          active && "bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background",
           className
         )}
         {...props}

@@ -38,9 +38,9 @@
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 15% 18%;
-    --input: 214 16% 88%;
-    --ring: 222 15% 18%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 222 15% 35%;
 
     --radius: 0.5rem;
 
@@ -92,9 +92,9 @@
     --accent-foreground: 40 10% 94%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 40 10% 94%;
-    --border: 40 10% 94%;
+    --border: 222 14% 26%;
     --input: 222 14% 22%;
-    --ring: 40 10% 94%;
+    --ring: 222 10% 60%;
   }
 
   .dark.hc {
