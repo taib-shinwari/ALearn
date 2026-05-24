@@ -2,19 +2,21 @@ import { useApp } from "@/context/AppContext";
 import { uiLabels, Lang, WordLang } from "@/data/courseData";
 
 /**
- * Returns the interface language and learning language for the active course.
- * - uiLang: language for UI labels and category/subcategory names (can be nl/en/ar)
- * - courseLang: language being learned (only nl/en — words exist in those)
+ * - uiLang: language for UI labels (nl/en/ar)
+ * - targetLang: the language being learned (may be ar for Quranic Arabic)
+ * - courseLang: WordLang used for word lookups (falls back to en when ar)
  */
 export function useCourseLanguage() {
   const { interfaceLanguage, learningLanguage } = useApp();
 
   const uiLang = (interfaceLanguage || "en") as Lang;
-  const courseLang = (learningLanguage || "nl") as WordLang;
+  const targetLang = (learningLanguage || "nl") as Lang;
+  const courseLang = (targetLang === "ar" ? "en" : targetLang) as WordLang;
 
   const t = (key: string): string => {
     return uiLabels[uiLang]?.[key] || uiLabels["en"]?.[key] || key;
   };
 
-  return { uiLang, courseLang, t };
+  return { uiLang, targetLang, courseLang, t };
 }
+

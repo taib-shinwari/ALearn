@@ -10,6 +10,12 @@ export interface Course {
 export type ThemeChoice = "light" | "dark" | "system";
 export type TextSize = "sm" | "md" | "lg";
 
+export type LessonProgressEntry = {
+  stars: 0 | 1 | 2 | 3;
+  completedAt?: number;
+  attempts: number;
+};
+
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
@@ -19,10 +25,11 @@ interface AppState {
   introductionCompleted: boolean;
   courses: Course[];
   reviews: ReviewState[];
-  practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
+  practiceScope: { type: "global" | "category" | "subcategory" | "word" | "lesson"; id?: string; lessonId?: string } | null;
   theme: ThemeChoice;
   textSize: TextSize;
   highContrast: boolean;
+  pathProgress: Record<string, LessonProgressEntry>;
 }
 
 interface AppContextType extends AppState {
@@ -38,6 +45,7 @@ interface AppContextType extends AppState {
   getReview: (wordId: string) => ReviewState;
   recordReview: (wordId: string, correct: boolean) => void;
   setPracticeScope: (scope: AppState["practiceScope"]) => void;
+  markLessonComplete: (lessonId: string, stars?: 0 | 1 | 2 | 3) => void;
   setTheme: (t: ThemeChoice) => void;
   setTextSize: (t: TextSize) => void;
   setHighContrast: (v: boolean) => void;
