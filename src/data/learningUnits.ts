@@ -121,11 +121,13 @@ export interface LessonProgress {
 export function lessonProgress(
   lesson: PathLesson,
   learnedIds: Set<string>,
+  pathProgress?: Record<string, { stars: number; completedAt?: number }>,
 ): LessonProgress {
   const words = getWordsForSubcategory(lesson.subcategoryId);
   const total = words.length || 1;
   const done = words.filter(w => learnedIds.has(w.id)).length;
-  return { done, total, completed: total > 0 && done >= total };
+  const explicit = !!pathProgress?.[lesson.id]?.completedAt;
+  return { done, total, completed: explicit || (total > 0 && done >= total) };
 }
 
 /** Returns all units flat, in order. Used to find the next active lesson. */

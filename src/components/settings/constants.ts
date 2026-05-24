@@ -1,4 +1,4 @@
-import { User, Globe, BookOpen, Info, LogOut, Trash2, BookMarked, Palette, Accessibility } from "lucide-react";
+import { User, Globe, LogOut, Trash2, BookMarked, Palette, Accessibility } from "lucide-react";
 import type { SettingsCategoryConfig, SettingsSubcategoryConfig } from "./types";
 
 export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
@@ -6,7 +6,6 @@ export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
   { id: "theme",         labelKey: "theme",              fallback: "Theme",          icon: Palette,        hasSubcategories: false },
   { id: "accessibility", labelKey: "accessibility",      fallback: "Accessibility",  icon: Accessibility,  hasSubcategories: false },
   { id: "language",      labelKey: "interfaceLanguage",  fallback: "Language",       icon: Globe,          hasSubcategories: false },
-  { id: "about",         labelKey: "about",              fallback: "About",          icon: Info,           hasSubcategories: false },
 ];
 
 export const PROFILE_SUBCATEGORIES: SettingsSubcategoryConfig[] = [

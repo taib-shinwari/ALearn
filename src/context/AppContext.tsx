@@ -10,6 +10,12 @@ export interface Course {
 export type ThemeChoice = "light" | "dark" | "system";
 export type TextSize = "sm" | "md" | "lg";
 
+export type LessonProgressEntry = {
+  stars: 0 | 1 | 2 | 3;
+  completedAt?: number;
+  attempts: number;
+};
+
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
@@ -19,10 +25,11 @@ interface AppState {
   introductionCompleted: boolean;
   courses: Course[];
   reviews: ReviewState[];
-  practiceScope: { type: "global" | "category" | "subcategory" | "word"; id?: string } | null;
+  practiceScope: { type: "global" | "category" | "subcategory" | "word" | "lesson"; id?: string; lessonId?: string } | null;
   theme: ThemeChoice;
   textSize: TextSize;
   highContrast: boolean;
+  pathProgress: Record<string, LessonProgressEntry>;
 }
 
 interface AppContextType extends AppState {
@@ -38,6 +45,7 @@ interface AppContextType extends AppState {
   getReview: (wordId: string) => ReviewState;
   recordReview: (wordId: string, correct: boolean) => void;
   setPracticeScope: (scope: AppState["practiceScope"]) => void;
+  markLessonComplete: (lessonId: string, stars?: 0 | 1 | 2 | 3) => void;
   setTheme: (t: ThemeChoice) => void;
   setTextSize: (t: TextSize) => void;
   setHighContrast: (v: boolean) => void;
@@ -64,6 +72,7 @@ const defaultState: AppState = {
   theme: "system",
   textSize: "md",
   highContrast: false,
+  pathProgress: {},
 };
 
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
@@ -177,6 +186,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
+  const markLessonComplete = (lessonId: string, stars: 0 | 1 | 2 | 3 = 3) => {
+    setState(s => {
+      const prev = s.pathProgress[lessonId];
+      const next: LessonProgressEntry = {
+        stars: Math.max(prev?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
+        completedAt: Date.now(),
+        attempts: (prev?.attempts ?? 0) + 1,
+      };
+      return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
+    });
+  };
   const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
   const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
   const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
@@ -185,7 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
-      getReview, recordReview, setPracticeScope,
+      getReview, recordReview, setPracticeScope, markLessonComplete,
       setTheme, setTextSize, setHighContrast,
     }}>
       {children}

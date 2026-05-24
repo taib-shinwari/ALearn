@@ -20,7 +20,7 @@ const encouragements = ["greatJob", "keepGoing", "nice", "perfect", "wellDone", 
 
 export default function PracticePage() {
   const navigate = useNavigate();
-  const { practiceScope, reviews, recordReview, selectedConcept } = useApp();
+  const { practiceScope, reviews, recordReview, selectedConcept, markLessonComplete } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
   const answerLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
 
@@ -142,6 +142,12 @@ export default function PracticePage() {
     if (isCorrect === false) nextQueue = [...queue, current];
 
     if (step >= nextQueue.length - 1) {
+      // Mark lesson complete if this practice was launched from a path lesson
+      if (practiceScope?.lessonId) {
+        const accuracy = total > 0 ? completed / total : 0;
+        const stars: 0 | 1 | 2 | 3 = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : accuracy > 0 ? 1 : 0;
+        markLessonComplete(practiceScope.lessonId, stars);
+      }
       navigate(exitPath);
       return;
     }

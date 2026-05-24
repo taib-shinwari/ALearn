@@ -11,6 +11,7 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
+import { AICallButton } from "@/components/AICallButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -256,6 +257,9 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <div>{children}</div>
+
+      {/* Floating tutor — hidden on settings & courses so it never blocks lists */}
+      {!isSettings && !isCourses && <AICallButton />}
     </div>
   );
 }

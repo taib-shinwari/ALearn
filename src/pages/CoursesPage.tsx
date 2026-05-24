@@ -19,7 +19,8 @@ const availableConcepts = [
 ];
 
 function getLearnableLanguages(fromLang: string) {
-  return availableLanguages.filter(l => l.code !== fromLang && (l.code === "nl" || l.code === "en"));
+  // The 3-language rule: cannot learn the language you use as interface.
+  return availableLanguages.filter(l => l.code !== fromLang);
 }
 
 const langLabel = (code: string) =>

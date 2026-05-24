@@ -1,100 +1,79 @@
+# Plan
 
+## 1. Enable Quranic Arabic as a learnable course
+**Why missing:** `getLearnableLanguages()` in `src/pages/CoursesPage.tsx` (line 21‑23) hard‑filters to only `nl`/`en`.
 
-## Plan: Duolingo-Inspired UX Overhaul
+- Allow `ar` as a target language. Keep the 3‑language mutual exclusion: a language used as interface cannot be a target, and vice‑versa.
+- Seed minimal Quranic Arabic word data so the Learning Path has something to point at (small starter set: greetings, common nouns, a few verbs). Stored under existing `courseData` shape (add `ar` words to subcategories or a parallel `ar` course bundle keyed by `toLang`).
+- Update `learningUnits.ts` so lessons resolve their content based on the *active* target language (currently subcategory ids are Dutch‑centric).
 
-### Overview
-Replace the current minimal UI with a Duolingo-inspired experience featuring custom Button/Container components, streak tracking, progress visualization, richer course data, and improved navigation flow.
+## 2. Persistent learning‑path progress
+**Current state:** progress is derived from `reviews` in `AppContext`, which already persists to `localStorage`. But lesson “completed/locked” is recomputed each render from word‑level reviews only — explicit lesson completion (e.g. checkpoints) and per‑lesson stars aren't stored.
 
-### 1. New Component Architecture
+- Add a `pathProgress` slice to `AppContext`:
+  ```ts
+  pathProgress: Record<string /* lessonId */, {
+    stars: 0|1|2|3;
+    completedAt?: number;
+    attempts: number;
+  }>
+  ```
+- Persist via the existing `localStorage` effect (already in place).
+- Update `lessonProgress()` in `learningUnits.ts` to merge word‑review derived progress *and* explicit `pathProgress`.
+- After a Practice session that was launched from a lesson, mark that lesson complete (pass `lessonId` through `practiceScope`).
+- Locked state uses persisted progress, so refresh keeps the right node highlighted.
 
-**Replace `src/components/ui/button.tsx`** with the user-provided custom Button (rounded-pill style, black/white border, hover inversion). Adapt the import path from `@/Middle/Library/utils` to `@/lib/utils`.
+## 3. Refactor Learning Path UI → Brilliant style
+Replace the current zig‑zag in `src/components/LearningPath.tsx` with a Brilliant‑inspired layout:
 
-**Create `src/components/ui/container.tsx`** using the user-provided Container component (for non-interactable card surfaces).
+```text
+┌─ Section: Everyday Basics ──────────────┐
+│ ┌────────────────────────────────────┐  │
+│ │ ◐  Unit 1 · Say Hello              │  │
+│ │     Greetings & goodbyes           │  │
+│ │     ●●●○  3 / 4 lessons            │  │
+│ │     [ Continue ]                   │  │
+│ └────────────────────────────────────┘  │
+│ ┌────────────────────────────────────┐  │
+│ │ 🔒 Unit 2 · People & Pets          │  │
+│ └────────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+```
 
-**Update all pages** to use the new `variant` and `size` props (`primary`, `secondary`, `ghost`, etc.) since the API changes slightly.
+- Stacked **unit cards** with progress ring + subtitle + Continue CTA.
+- Tapping a card expands inline to show its 1–2 lessons (chips with state: done / current / locked).
+- Section header is a slim chapter title, no big gradient banner.
+- Glass styling consistent with the rest of the app (matches Core memory rules).
+- Current lesson has a subtle pulse; locked units are dimmed with a lock icon.
 
-### 2. Streak System
+## 4. Remove "About" from Settings
+- Delete the `about` entry from `SETTINGS_CATEGORIES` in `src/components/settings/constants.ts`.
+- Remove the `case "about"` branch and import from `SettingsPage.tsx`.
+- Delete `src/components/settings/sections/AboutSection.tsx`.
 
-**Update `AppContext.tsx`** — add to state:
-- `streak: number` (consecutive days practiced)
-- `lastPracticeDate: string | null` (ISO date string)
-- `xp: number` (experience points)
+## 5. "Call AI" button — talk to a tutor
+A floating Call button (phone icon, glass styling) available on Home / Learning Path / inside a lesson.
 
-**Logic**: On each `recordReview`, check if `lastPracticeDate` is today (no change), yesterday (increment streak), or older (reset to 1). Award XP per correct answer.
+- Opens a full‑screen call UI: animated orb, live caption, mute / end‑call controls.
+- Uses **Lovable AI** via a `chat` edge function streaming responses.
+- Voice in: Web Speech API `SpeechRecognition` (browser native, no extra deps).
+- Voice out: `SpeechSynthesis` with a voice matching the active target language (`ar`, `nl`, `en`).
+- System prompt is target‑language aware: *"You are a friendly tutor helping the user practice {targetLang}. Speak mostly in {targetLang}, fall back to {interfaceLang} for explanations. Keep replies under 2 sentences."*
+- No backend persistence of the conversation (in‑memory only) — matches "no XP/streaks/subs" minimalism.
 
-**Display on HomePage**: Show streak flame icon with count, and XP total in the navbar area.
+Requires enabling **Lovable Cloud** + **Lovable AI Gateway** (no API keys needed from the user).
 
-### 3. Progress Tracking Per Category/Subcategory
+## Files touched
+- `src/pages/CoursesPage.tsx` — allow `ar` target
+- `src/data/courseData.ts` — seed minimal Arabic content (or new `src/data/arabicCourse.ts`)
+- `src/data/learningUnits.ts` — target‑lang aware + merge persisted progress
+- `src/context/AppContext.tsx` — add `pathProgress` slice + setter
+- `src/components/LearningPath.tsx` — Brilliant‑style card layout
+- `src/pages/PracticePage.tsx` — accept `lessonId` in scope, mark complete on finish
+- `src/components/settings/constants.ts`, `src/pages/SettingsPage.tsx`, delete `AboutSection.tsx`
+- `src/components/AICallButton.tsx` *(new)* + `src/components/AICallOverlay.tsx` *(new)*
+- `src/components/Layout.tsx` — mount the floating Call button
+- `supabase/functions/ai-tutor/index.ts` *(new edge function)* — streams to Lovable AI Gateway
 
-**Add to AppContext**: derive progress from `reviews` — count words with `learned: true` vs total words per category/subcategory.
-
-**HomePage**: Show progress bars or fraction (e.g., "3/4") on each category card.
-
-**CategoryPage / SubcategoryPage**: Show word-level progress indicators (green dot = learned, gray = new).
-
-### 4. Expanded Course Data
-
-**Expand `courseData.ts`** with more subcategories and words:
-- Nouns: add Kleding (clothing), Lichaam (body), Eten (food/meals)
-- Adjectives: add Emoties (emotions), Weer (weather)
-- Verbs: add Beweging (movement), Communicatie (communication)
-- Add a 4th category: **Bijwoord** (Adverb) with subcategories
-
-This gives the app more depth and makes practice sessions feel less repetitive.
-
-### 5. UX Improvements (Duolingo-Inspired)
-
-**HomePage redesign**:
-- Top area: greeting ("Hi, Demo!"), streak flame + count, XP badge
-- Global practice button prominent with progress ring showing overall completion
-- Category grid using Container component with progress indicators
-- Remove navbar text buttons; use icons only
-
-**Practice flow improvements**:
-- Add a session summary screen at the end (words practiced, accuracy %, XP earned, streak update)
-- Animate progress bar transitions
-- Add encouraging messages on correct answers (randomized: "Nice!", "Great job!", "Keep going!")
-
-**Word detail page**:
-- Use Container for the card instead of raw border div
-- Add audio placeholder icon (for future TTS)
-- Show example sentence if available
-
-**Navigation**:
-- Back buttons use the new ghost Button style
-- Consistent page transitions
-
-### 6. Settings Page Enhancement
-
-- Show user profile (name, email)
-- Show streak stats and XP
-- Logout button
-- Dark mode toggle (since the Button component supports dark mode)
-
-### Technical Details
-
-- The custom Button drops `class-variance-authority` and `@radix-ui/react-slot` dependencies for the button — uses plain `cn()` utility instead
-- Container is a simple presentational wrapper
-- All existing `variant="outline"` / `variant="default"` / `variant="destructive"` / `variant="ghost"` usages across ~10 files need updating to match the new Button API
-- Streak/XP state persists via the existing localStorage mechanism in AppContext
-- No new dependencies needed
-
-### Files to Create/Modify
-
-| File | Action |
-|------|--------|
-| `src/components/ui/button.tsx` | Replace with custom component |
-| `src/components/ui/container.tsx` | Create new |
-| `src/context/AppContext.tsx` | Add streak, lastPracticeDate, xp |
-| `src/data/courseData.ts` | Expand with more words/categories, add example sentences |
-| `src/pages/HomePage.tsx` | Redesign with streak, XP, progress |
-| `src/pages/PracticePage.tsx` | Add session summary, encouraging messages |
-| `src/pages/CategoryPage.tsx` | Add progress indicators, use Container |
-| `src/pages/SubcategoryPage.tsx` | Add progress indicators, use Container |
-| `src/pages/WordDetailPage.tsx` | Use Container, add example sentences |
-| `src/pages/SettingsPage.tsx` | Add profile info, streak stats |
-| `src/pages/AuthPage.tsx` | Update button variants |
-| `src/pages/CoursesPage.tsx` | Update button variants |
-| `src/pages/IntroductionPage.tsx` | Update button variants |
-| `src/hooks/useCourseLanguage.ts` | Add new UI label keys |
-
+## Out of scope (per your message)
+No XP, streaks, leaderboards, subscriptions, hearts, or gem economy.

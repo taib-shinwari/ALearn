@@ -1,6 +1,6 @@
 import { LucideIcon } from "lucide-react";
 
-export type SettingsCategoryId = "profile" | "language" | "course" | "about" | "theme" | "accessibility";
+export type SettingsCategoryId = "profile" | "language" | "course" | "theme" | "accessibility";
 export type ProfileSubId = "account" | "signout";
 export type SubId = ProfileSubId | string;
 
