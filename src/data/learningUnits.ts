@@ -44,7 +44,7 @@ export const PATH_SECTIONS: PathSection[] = [
         subtitle: { en: "Letters and sounds", nl: "Letters en klanken", ar: "حروف وأصوات" },
         hue: 200,
         lessons: [
-          { id: "u0-l1", title: { en: "Alphabet", nl: "Alfabet", ar: "الحروف" }, subcategoryId: "begroeting", kind: "lesson" },
+          { id: "u0-l1", title: { en: "Alphabet", nl: "Alfabet", ar: "الحروف" }, subcategoryId: "alfabet", kind: "lesson" },
         ],
       },
     ],
