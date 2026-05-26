@@ -7,6 +7,7 @@ import { categories, getWordsForCategory, localizedName } from "@/data/courseDat
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useState } from "react";
 import { LearningPath } from "@/components/LearningPath";
+import { AICallButton } from "@/components/AICallButton";
 
 export default function HomePage() {
   const { introductionCompleted, selectedConcept, setPracticeScope } = useApp();
