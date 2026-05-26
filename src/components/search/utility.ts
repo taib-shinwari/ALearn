@@ -29,7 +29,7 @@ export function searchByCategory(query: string, category: SearchCategory, opts: 
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const { uiLang, courseLang, conceptSlug } = opts;
-  const otherLang: WordLang = courseLang === "nl" ? "en" : "nl";
+  const otherLang: WordLang = courseLang === "en" ? "nl" : "en";
 
   const catResults: SearchResult[] = [];
   const subResults: SearchResult[] = [];
