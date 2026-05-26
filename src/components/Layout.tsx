@@ -11,7 +11,7 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
-import { AICallButton } from "@/components/AICallButton";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -228,10 +228,11 @@ export default function Layout({ children }: LayoutProps) {
 
       {showPracticeAndCrumbs && (
         <>
-          <div className="px-6">
+          <div className="px-6 flex items-center gap-2">
             <Button onClick={handlePractice} fullWidth className="gap-2">
               <Play className="h-4 w-4" /> {t("practice")}
             </Button>
+            
           </div>
 
           <nav aria-label="breadcrumb" className="px-6 mt-3 mb-4">
@@ -257,9 +258,6 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <div>{children}</div>
-
-      {/* Floating tutor — hidden on settings & courses so it never blocks lists */}
-      {!isSettings && !isCourses && <AICallButton />}
     </div>
   );
 }

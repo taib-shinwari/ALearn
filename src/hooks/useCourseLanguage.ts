@@ -11,7 +11,9 @@ export function useCourseLanguage() {
 
   const uiLang = (interfaceLanguage || "en") as Lang;
   const targetLang = (learningLanguage || "nl") as Lang;
-  const courseLang = (targetLang === "ar" ? "en" : targetLang) as WordLang;
+  // Word lookups now support "ar" directly; consumers should use getWordText
+  // which falls back to English when Arabic content is missing.
+  const courseLang = targetLang as WordLang;
 
   const t = (key: string): string => {
     return uiLabels[uiLang]?.[key] || uiLabels["en"]?.[key] || key;

@@ -17,7 +17,7 @@ export function TitleBar({ children, className, fullWidth = false }: TitleBarPro
   return (
     <div
       className={cn(
-        "rounded-[40px] bg-background border-2 border-foreground text-foreground px-4 py-2 text-sm",
+        "rounded-[40px] bg-background border-2 border-border text-foreground px-4 py-2 text-sm",
         fullWidth ? "block w-full" : "inline-flex items-center w-fit max-w-full",
         className
       )}

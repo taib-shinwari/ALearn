@@ -247,7 +247,7 @@ function LessonRow({
 
   return (
     <Container className={cn("p-3 flex items-center gap-3", locked && "opacity-60")}>
-      <div className="h-8 w-8 rounded-full border border-foreground flex items-center justify-center shrink-0">
+      <div className="h-8 w-8 rounded-full border border-border flex items-center justify-center shrink-0">
         {locked ? <Lock className="h-3.5 w-3.5" /> : <Icon className="h-4 w-4" />}
       </div>
       <div className="flex-1 min-w-0">

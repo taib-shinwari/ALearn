@@ -59,7 +59,7 @@ export function SettingsMobileBar({
               onChange={e => settingsStore.setSearchQuery(e.target.value)}
               onBlur={() => { if (!settingsBar.searchQuery) setSearchExpanded(false); }}
               placeholder={t("searchSettings")}
-              className="pl-9 pr-9 rounded-full border-2 border-foreground w-full"
+              className="pl-9 pr-9 rounded-full border-2 border-border w-full"
             />
             <button
               onClick={() => { settingsStore.setSearchQuery(""); setSearchExpanded(false); }}

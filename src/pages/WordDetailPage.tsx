@@ -25,15 +25,17 @@ export default function WordDetailPage() {
   const word = subcategory?.words.find(w => w.id === wordId);
 
   const targetTextEarly = word ? word[courseLang].word : "";
+  // Only show photos for nouns — verbs/adjectives/adverbs don't map cleanly to a single image.
+  const showImage = categoryId === "zelfstandig-naamwoord";
   useEffect(() => {
     setImgUrl(null);
-    if (!targetTextEarly) return;
+    if (!targetTextEarly || !showImage) return;
     let cancelled = false;
     fetchWordImage(targetTextEarly, courseLang).then(url => {
       if (!cancelled) setImgUrl(url);
     });
     return () => { cancelled = true; };
-  }, [wordId, targetTextEarly, courseLang]);
+  }, [wordId, targetTextEarly, courseLang, showImage]);
 
   if (!word) {
     return <div className="px-6 text-sm">{t("notFound")}</div>;
@@ -42,21 +44,34 @@ export default function WordDetailPage() {
   const handleFlip = () => setFlip(f => ((f + 1) % 3) as FlipState);
   const interfaceWordLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
   const showLang: WordLang = flip === 2 ? interfaceWordLang : courseLang;
-  const data = word[showLang];
-  const definition = showLang === "nl" ? word.nl.definitie : word.en.definition;
-  const plural = showLang === "nl" ? word.nl.meervoud : word.en.plural;
-  const diminutive = showLang === "nl" ? word.nl.verkleinwoord : word.en.diminutive;
-  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.conjugation;
-  const example = showLang === "nl" ? word.nl.voorbeeld : word.en.example;
+
+  // Resolve a localized data block with Arabic-then-English-then-Dutch fallback.
+  const dataFor = (lang: WordLang) => {
+    if (lang === "ar") return word.ar ?? word.en;
+    return word[lang];
+  };
+  const data = dataFor(showLang);
+  const en = word.en;
+  const nl = word.nl;
+  const definition = showLang === "nl" ? nl.definitie
+    : showLang === "ar" ? (word.ar?.definition ?? en.definition)
+    : en.definition;
+  const plural = showLang === "nl" ? nl.meervoud : en.plural;
+  const diminutive = showLang === "nl" ? nl.verkleinwoord : en.diminutive;
+  const conjugation = showLang === "nl" ? nl.vervoeging : en.conjugation;
+  const example = showLang === "nl" ? nl.voorbeeld
+    : showLang === "ar" ? (word.ar?.example ?? en.example)
+    : en.example;
   const pronunciation = data.pronunciation;
-  const gender = data.gender;
+  // gender only exists on nl/en blocks
+  const gender = showLang === "nl" ? nl.gender : showLang === "en" ? en.gender : undefined;
   const genderLabel = gender === "m" ? t("masculine")
     : gender === "f" ? t("feminine")
     : gender === "n" ? t("neuter")
     : gender === "c" ? t("common") : null;
 
-  const targetText = word[courseLang].word;
-  const frontPron = word[courseLang].pronunciation;
+  const targetText = (courseLang === "ar" ? word.ar?.word : word[courseLang].word) ?? word.en.word;
+  const frontPron = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang].pronunciation) ?? undefined;
   const marked = isMarked(courseLang, word.id);
 
   // Container length differs based on whether full word details are shown
@@ -77,7 +92,7 @@ export default function WordDetailPage() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); speak(targetText, courseLang); }}
-              className="rounded-full p-2 bg-background border-2 border-foreground hover:bg-foreground hover:text-background transition-colors"
+              className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
               aria-label={t("play")}
             >
               <Volume2 className="h-4 w-4" />
@@ -87,7 +102,7 @@ export default function WordDetailPage() {
             type="button"
             onClick={(e) => { e.stopPropagation(); toggle(courseLang, word.id); }}
             className={cn(
-              "rounded-full p-2 border-2 border-foreground transition-colors",
+              "rounded-full p-2 border-2 border-border transition-colors",
               marked ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background"
             )}
             aria-label={marked ? t("unmark") : t("mark")}
@@ -115,7 +130,7 @@ export default function WordDetailPage() {
                   <span className="text-sm opacity-70 font-mono">{pronunciation}</span>
                 )}
                 {genderLabel && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-foreground bg-background">
+                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background">
                     {t("gender")}: {genderLabel}
                   </span>
                 )}
@@ -144,7 +159,7 @@ export default function WordDetailPage() {
 
           {/* Image lives inside the same container; only render when not errored */}
           {imgUrl && (
-            <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-foreground bg-background aspect-[4/3]">
+            <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-border bg-background aspect-[4/3]">
               <img
                 src={imgUrl}
                 alt={targetText}

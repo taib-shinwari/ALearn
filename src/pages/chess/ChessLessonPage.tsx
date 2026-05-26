@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
-import { Check, RotateCcw } from "lucide-react";
-import { getChessLesson } from "@/data/chessData";
+import { Check, RotateCcw, ArrowRight } from "lucide-react";
+import { getChessLesson, CHESS_LESSONS } from "@/data/chessData";
 import { useChessProgress } from "@/hooks/useChessProgress";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { ChessBoard } from "@/components/chess/ChessBoard";
@@ -72,15 +72,32 @@ export default function ChessLessonPage() {
         onMove={handleMove}
       />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button onClick={reset} className="gap-2">
           <RotateCcw className="h-4 w-4" /> {t("resetBoard")}
         </Button>
         {done && (
-          <span className="ml-auto inline-flex items-center gap-1 text-sm">
+          <span className="inline-flex items-center gap-1 text-sm">
             <Check className="h-4 w-4" /> {t("completed")}
           </span>
         )}
+        {done && (() => {
+          const idx = CHESS_LESSONS.findIndex(l => l.id === lesson.id);
+          const next = CHESS_LESSONS[idx + 1];
+          return next ? (
+            <Button
+              active
+              className="ml-auto gap-2"
+              onClick={() => navigate(`/chess/practice/${next.id}`)}
+            >
+              {loc(next.title, uiLang)} <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button active className="ml-auto gap-2" onClick={() => navigate("/chess")}>
+              {t("back")} <ArrowRight className="h-4 w-4" />
+            </Button>
+          );
+        })()}
       </div>
     </div>
   );

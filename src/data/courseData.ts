@@ -1,8 +1,8 @@
 // Bilingual+ course data (Dutch ↔ English, with Arabic UI labels)
 
 export type Lang = "nl" | "en" | "ar";
-// Words and word-level details only exist in nl/en
-export type WordLang = "nl" | "en";
+// Words can exist in nl / en / ar (ar is optional and falls back to en).
+export type WordLang = "nl" | "en" | "ar";
 
 /** "m" = male/masculine, "f" = female/feminine, "n" = neuter, "c" = common (de-woord) */
 export type WordGender = "m" | "f" | "n" | "c";
@@ -29,6 +29,13 @@ export interface WordDetail {
     example?: string;
     pronunciation?: string;
     gender?: WordGender;
+  };
+  /** Optional Quranic Arabic translation. Falls back to English when absent. */
+  ar?: {
+    word: string;
+    definition?: string;
+    example?: string;
+    pronunciation?: string;
   };
 }
 
@@ -403,15 +410,27 @@ export const categories: Category[] = [
     name: { nl: "Zelfstandig Naamwoord", en: "Noun", ar: "اسم" },
     subcategories: [
       {
+        id: "alfabet",
+        name: { nl: "Alfabet", en: "Alphabet", ar: "الحروف" },
+        words: [
+          { id: "letter-a", nl: { word: "A", definitie: "Letter A.", voorbeeld: "Appel begint met A." }, en: { word: "A", definition: "Letter A.", example: "Apple starts with A." }, ar: { word: "ا", definition: "الحرف ألف.", example: "أَب يبدأ بـ ألف.", pronunciation: "alif" } },
+          { id: "letter-b", nl: { word: "B", definitie: "Letter B.", voorbeeld: "Boom begint met B." }, en: { word: "B", definition: "Letter B.", example: "Book starts with B." }, ar: { word: "ب", definition: "الحرف باء.", example: "بَيت يبدأ بـ باء.", pronunciation: "ba" } },
+          { id: "letter-c", nl: { word: "C", definitie: "Letter C.", voorbeeld: "Cijfer begint met C." }, en: { word: "C", definition: "Letter C.", example: "Cat starts with C." }, ar: { word: "ت", definition: "الحرف تاء.", example: "تُفاح يبدأ بـ تاء.", pronunciation: "ta" } },
+          { id: "letter-d", nl: { word: "D", definitie: "Letter D.", voorbeeld: "Dier begint met D." }, en: { word: "D", definition: "Letter D.", example: "Dog starts with D." }, ar: { word: "ث", definition: "الحرف ثاء.", example: "ثَوب يبدأ بـ ثاء.", pronunciation: "tha" } },
+          { id: "letter-e", nl: { word: "E", definitie: "Letter E.", voorbeeld: "Eend begint met E." }, en: { word: "E", definition: "Letter E.", example: "Egg starts with E." }, ar: { word: "ج", definition: "الحرف جيم.", example: "جَمل يبدأ بـ جيم.", pronunciation: "jim" } },
+          { id: "letter-f", nl: { word: "F", definitie: "Letter F.", voorbeeld: "Fiets begint met F." }, en: { word: "F", definition: "Letter F.", example: "Fish starts with F." }, ar: { word: "ح", definition: "الحرف حاء.", example: "حِصان يبدأ بـ حاء.", pronunciation: "ha" } },
+        ],
+      },
+      {
         id: "begroeting",
         name: { nl: "Begroeting", en: "Greeting", ar: "تحية" },
         words: [
-          { id: "hallo", nl: { word: "Hallo", definitie: "Een informele begroeting.", voorbeeld: "Hallo, hoe gaat het?" }, en: { word: "Hello", definition: "An informal greeting.", example: "Hello, how are you?" } },
-          { id: "goedemorgen", nl: { word: "Goedemorgen", definitie: "Begroeting gebruikt in de ochtend.", voorbeeld: "Goedemorgen, lekker geslapen?" }, en: { word: "Good morning", definition: "Greeting used in the morning.", example: "Good morning, did you sleep well?" } },
-          { id: "goedemiddag", nl: { word: "Goedemiddag", definitie: "Begroeting gebruikt in de middag.", voorbeeld: "Goedemiddag mevrouw." }, en: { word: "Good afternoon", definition: "Greeting used in the afternoon.", example: "Good afternoon, ma'am." } },
-          { id: "goedenavond", nl: { word: "Goedenavond", definitie: "Begroeting gebruikt in de avond.", voorbeeld: "Goedenavond allemaal!" }, en: { word: "Good evening", definition: "Greeting used in the evening.", example: "Good evening everyone!" } },
-          { id: "tot-ziens", nl: { word: "Tot ziens", definitie: "Formeel afscheid.", voorbeeld: "Tot ziens en een fijne dag!" }, en: { word: "Goodbye", definition: "Formal farewell.", example: "Goodbye and have a nice day!" } },
-          { id: "doei", nl: { word: "Doei", definitie: "Informeel afscheid.", voorbeeld: "Doei, tot morgen!" }, en: { word: "Bye", definition: "Informal farewell.", example: "Bye, see you tomorrow!" } },
+          { id: "hallo", nl: { word: "Hallo", definitie: "Een informele begroeting.", voorbeeld: "Hallo, hoe gaat het?" }, en: { word: "Hello", definition: "An informal greeting.", example: "Hello, how are you?" }, ar: { word: "السلام عليكم", definition: "تحية إسلامية.", example: "السلام عليكم، كيف حالك؟", pronunciation: "as-salaamu ʿalaykum" } },
+          { id: "goedemorgen", nl: { word: "Goedemorgen", definitie: "Begroeting gebruikt in de ochtend.", voorbeeld: "Goedemorgen, lekker geslapen?" }, en: { word: "Good morning", definition: "Greeting used in the morning.", example: "Good morning, did you sleep well?" }, ar: { word: "صباح الخير", definition: "تحية في الصباح.", example: "صباح الخير، هل نمت جيدًا؟", pronunciation: "ṣabāḥu l-khayr" } },
+          { id: "goedemiddag", nl: { word: "Goedemiddag", definitie: "Begroeting gebruikt in de middag.", voorbeeld: "Goedemiddag mevrouw." }, en: { word: "Good afternoon", definition: "Greeting used in the afternoon.", example: "Good afternoon, ma'am." }, ar: { word: "مساء الخير", definition: "تحية في المساء.", example: "مساء الخير سيدتي.", pronunciation: "masāʾu l-khayr" } },
+          { id: "goedenavond", nl: { word: "Goedenavond", definitie: "Begroeting gebruikt in de avond.", voorbeeld: "Goedenavond allemaal!" }, en: { word: "Good evening", definition: "Greeting used in the evening.", example: "Good evening everyone!" }, ar: { word: "مساء النور", definition: "تحية مسائية.", example: "مساء النور للجميع!", pronunciation: "masāʾu n-nūr" } },
+          { id: "tot-ziens", nl: { word: "Tot ziens", definitie: "Formeel afscheid.", voorbeeld: "Tot ziens en een fijne dag!" }, en: { word: "Goodbye", definition: "Formal farewell.", example: "Goodbye and have a nice day!" }, ar: { word: "مع السلامة", definition: "وداع رسمي.", example: "مع السلامة، يومًا سعيدًا!", pronunciation: "maʿa s-salāma" } },
+          { id: "doei", nl: { word: "Doei", definitie: "Informeel afscheid.", voorbeeld: "Doei, tot morgen!" }, en: { word: "Bye", definition: "Informal farewell.", example: "Bye, see you tomorrow!" }, ar: { word: "إلى اللقاء", definition: "وداع غير رسمي.", example: "إلى اللقاء، أراك غدًا!", pronunciation: "ilā al-liqāʾ" } },
         ],
       },
       {
@@ -719,6 +738,7 @@ export function getCategoryForSubcategory(subcategoryId: string): Category | und
 }
 
 export function getWordText(word: WordDetail, lang: WordLang): string {
+  if (lang === "ar") return word.ar?.word ?? word.en.word;
   return word[lang].word;
 }
 

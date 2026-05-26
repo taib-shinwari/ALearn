@@ -29,7 +29,7 @@ export function searchByCategory(query: string, category: SearchCategory, opts: 
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const { uiLang, courseLang, conceptSlug } = opts;
-  const otherLang: WordLang = courseLang === "nl" ? "en" : "nl";
+  const otherLang: WordLang = courseLang === "en" ? "nl" : "en";
 
   const catResults: SearchResult[] = [];
   const subResults: SearchResult[] = [];
@@ -62,7 +62,7 @@ export function searchByCategory(query: string, category: SearchCategory, opts: 
       }
 
       for (const word of sub.words) {
-        const wTarget = word[courseLang]?.word || "";
+        const wTarget = (courseLang === "ar" ? word.ar?.word : word[courseLang]?.word) || word.en.word;
         const wOther = word[otherLang]?.word || "";
         if (
           wTarget.toLowerCase().includes(q) ||

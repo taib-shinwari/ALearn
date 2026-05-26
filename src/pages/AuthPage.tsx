@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 type AuthMode = "choose" | "signin" | "signup";
 
 const inputCls = cn(
-  "w-full h-11 rounded-[40px] bg-background border-2 border-foreground text-foreground",
+  "w-full h-11 rounded-[40px] bg-background border-2 border-border text-foreground",
   "px-5 placeholder:text-foreground/50",
   "focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0",
 );

@@ -59,7 +59,7 @@ export default function SearchPage() {
       </TitleBar>
 
       {/* Search input */}
-      <div className="rounded-[20px] bg-background border-2 border-foreground flex items-center gap-2 px-4 py-3">
+      <div className="rounded-[20px] bg-background border-2 border-border flex items-center gap-2 px-4 py-3">
         <SearchIcon className="h-5 w-5 shrink-0" />
         <input
           autoFocus

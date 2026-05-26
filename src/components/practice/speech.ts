@@ -3,6 +3,7 @@ import { WordLang } from "@/data/courseData";
 const VOICE_LOCALE: Record<WordLang, string> = {
   nl: "nl-NL",
   en: "en-US",
+  ar: "ar-SA",
 };
 
 /** Speak the given text using the browser's SpeechSynthesis API. */

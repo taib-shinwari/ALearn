@@ -7,6 +7,7 @@ import { categories, getWordsForCategory, localizedName } from "@/data/courseDat
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useState } from "react";
 import { LearningPath } from "@/components/LearningPath";
+import { AICallButton } from "@/components/AICallButton";
 
 export default function HomePage() {
   const { introductionCompleted, selectedConcept, setPracticeScope } = useApp();
@@ -38,6 +39,7 @@ export default function HomePage() {
         <Button onClick={goPracticeAll} active className="gap-2 ml-auto">
           <Play className="h-4 w-4" /> {t("practice")}
         </Button>
+        <AICallButton />
       </div>
 
       {pathOpen ? (
