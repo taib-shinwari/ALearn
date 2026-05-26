@@ -75,7 +75,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           fullWidth && "w-full",
           variant === "destructive" && "border-destructive text-destructive hover:bg-destructive/10",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-foreground text-background border-border hover:bg-foreground/90 hover:text-background",
+          active && "bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background",
           className
         )}
         {...props}
