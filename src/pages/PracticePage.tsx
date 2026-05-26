@@ -170,7 +170,7 @@ export default function PracticePage() {
     if (!SR) return;
     if (listening) { recRef.current?.stop?.(); return; }
     const rec = new SR();
-    rec.lang = courseLang === "nl" ? "nl-NL" : "en-US";
+    rec.lang = courseLang === "nl" ? "nl-NL" : courseLang === "ar" ? "ar-SA" : "en-US";
     rec.interimResults = false;
     rec.maxAlternatives = 1;
     rec.onresult = (e: any) => {
