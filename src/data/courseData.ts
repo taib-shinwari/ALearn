@@ -1,8 +1,8 @@
 // Bilingual+ course data (Dutch ↔ English, with Arabic UI labels)
 
 export type Lang = "nl" | "en" | "ar";
-// Words and word-level details only exist in nl/en
-export type WordLang = "nl" | "en";
+// Words can exist in nl / en / ar (ar is optional and falls back to en).
+export type WordLang = "nl" | "en" | "ar";
 
 /** "m" = male/masculine, "f" = female/feminine, "n" = neuter, "c" = common (de-woord) */
 export type WordGender = "m" | "f" | "n" | "c";
@@ -29,6 +29,13 @@ export interface WordDetail {
     example?: string;
     pronunciation?: string;
     gender?: WordGender;
+  };
+  /** Optional Quranic Arabic translation. Falls back to English when absent. */
+  ar?: {
+    word: string;
+    definition?: string;
+    example?: string;
+    pronunciation?: string;
   };
 }
 
