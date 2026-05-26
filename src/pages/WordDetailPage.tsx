@@ -44,21 +44,34 @@ export default function WordDetailPage() {
   const handleFlip = () => setFlip(f => ((f + 1) % 3) as FlipState);
   const interfaceWordLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
   const showLang: WordLang = flip === 2 ? interfaceWordLang : courseLang;
-  const data = word[showLang];
-  const definition = showLang === "nl" ? word.nl.definitie : word.en.definition;
-  const plural = showLang === "nl" ? word.nl.meervoud : word.en.plural;
-  const diminutive = showLang === "nl" ? word.nl.verkleinwoord : word.en.diminutive;
-  const conjugation = showLang === "nl" ? word.nl.vervoeging : word.en.conjugation;
-  const example = showLang === "nl" ? word.nl.voorbeeld : word.en.example;
+
+  // Resolve a localized data block with Arabic-then-English-then-Dutch fallback.
+  const dataFor = (lang: WordLang) => {
+    if (lang === "ar") return word.ar ?? word.en;
+    return word[lang];
+  };
+  const data = dataFor(showLang);
+  const en = word.en;
+  const nl = word.nl;
+  const definition = showLang === "nl" ? nl.definitie
+    : showLang === "ar" ? (word.ar?.definition ?? en.definition)
+    : en.definition;
+  const plural = showLang === "nl" ? nl.meervoud : en.plural;
+  const diminutive = showLang === "nl" ? nl.verkleinwoord : en.diminutive;
+  const conjugation = showLang === "nl" ? nl.vervoeging : en.conjugation;
+  const example = showLang === "nl" ? nl.voorbeeld
+    : showLang === "ar" ? (word.ar?.example ?? en.example)
+    : en.example;
   const pronunciation = data.pronunciation;
-  const gender = data.gender;
+  // gender only exists on nl/en blocks
+  const gender = showLang === "nl" ? nl.gender : showLang === "en" ? en.gender : undefined;
   const genderLabel = gender === "m" ? t("masculine")
     : gender === "f" ? t("feminine")
     : gender === "n" ? t("neuter")
     : gender === "c" ? t("common") : null;
 
-  const targetText = word[courseLang].word;
-  const frontPron = word[courseLang].pronunciation;
+  const targetText = (courseLang === "ar" ? word.ar?.word : word[courseLang].word) ?? word.en.word;
+  const frontPron = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang].pronunciation) ?? undefined;
   const marked = isMarked(courseLang, word.id);
 
   // Container length differs based on whether full word details are shown
