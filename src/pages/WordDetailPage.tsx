@@ -25,15 +25,17 @@ export default function WordDetailPage() {
   const word = subcategory?.words.find(w => w.id === wordId);
 
   const targetTextEarly = word ? word[courseLang].word : "";
+  // Only show photos for nouns — verbs/adjectives/adverbs don't map cleanly to a single image.
+  const showImage = categoryId === "zelfstandig-naamwoord";
   useEffect(() => {
     setImgUrl(null);
-    if (!targetTextEarly) return;
+    if (!targetTextEarly || !showImage) return;
     let cancelled = false;
     fetchWordImage(targetTextEarly, courseLang).then(url => {
       if (!cancelled) setImgUrl(url);
     });
     return () => { cancelled = true; };
-  }, [wordId, targetTextEarly, courseLang]);
+  }, [wordId, targetTextEarly, courseLang, showImage]);
 
   if (!word) {
     return <div className="px-6 text-sm">{t("notFound")}</div>;
