@@ -62,7 +62,7 @@ export function searchByCategory(query: string, category: SearchCategory, opts: 
       }
 
       for (const word of sub.words) {
-        const wTarget = word[courseLang]?.word || "";
+        const wTarget = (courseLang === "ar" ? word.ar?.word : word[courseLang]?.word) || word.en.word;
         const wOther = word[otherLang]?.word || "";
         if (
           wTarget.toLowerCase().includes(q) ||
