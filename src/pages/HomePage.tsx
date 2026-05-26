@@ -39,6 +39,7 @@ export default function HomePage() {
         <Button onClick={goPracticeAll} active className="gap-2 ml-auto">
           <Play className="h-4 w-4" /> {t("practice")}
         </Button>
+        <AICallButton />
       </div>
 
       {pathOpen ? (
