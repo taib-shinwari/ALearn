@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
-import { Check, Lock, Star, Trophy, BookOpen, Play, ChevronDown } from "lucide-react";
+import { Check, Lock, Play, Star, Trophy, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Container } from "@/components/ui/container";
+import { Button } from "@/components/ui/button";
 import {
   PATH_SECTIONS,
   PathLesson,
@@ -20,11 +22,9 @@ function loc<T extends { en: string; nl: string; ar?: string }>(o: T, lang: stri
 }
 
 /**
- * Brilliant-inspired learning path:
- * - Slim chapter (section) header.
- * - Stacked unit cards with a progress ring and Continue CTA.
- * - Tap a card to expand and reveal its lessons inline.
- * - Locked units are dimmed with a lock icon.
+ * Learning path built entirely from <Container/> + <Button/> primitives —
+ * no custom color tokens, no bespoke gradients. Each Unit is a Container.
+ * Tap it to expand and reveal its lessons (also Container/Button only).
  */
 export function LearningPath() {
   const navigate = useNavigate();
@@ -54,7 +54,6 @@ export function LearningPath() {
     if (cat) navigate(`${conceptPrefix}/${cat.id}/${lesson.subcategoryId}`);
   };
 
-  // Determine the first not-yet-completed unit so we can auto-expand it.
   const initialOpenUnit = useMemo(() => {
     for (const s of PATH_SECTIONS) {
       for (const u of s.units) {
@@ -65,7 +64,7 @@ export function LearningPath() {
   }, [currentLessonId]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {PATH_SECTIONS.map(section => (
         <SectionBlock
           key={section.id}
@@ -98,25 +97,14 @@ function SectionBlock({
   onStart: (l: PathLesson) => void;
   onBrowse: (l: PathLesson) => void;
 }) {
-  // Track which units are previously unlocked (sequential gating across units).
   let prevUnitDone = true;
-
   return (
     <section className="space-y-3">
-      {/* Slim chapter header */}
-      <div className="flex items-baseline gap-3 px-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-          {t("unit")} {section.number}
-        </span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-      <h3 className="text-xl font-bold leading-tight px-1">{loc(section.title, uiLang)}</h3>
-
       <div className="space-y-3">
         {section.units.map(unit => {
           const wasUnlocked = prevUnitDone;
           const allDone = unit.lessons.every(l =>
-            lessonProgress(l, learnedIds, pathProgress).completed
+            lessonProgress(l, learnedIds, pathProgress).completed,
           );
           prevUnitDone = allDone;
 
@@ -124,6 +112,7 @@ function SectionBlock({
             <UnitCard
               key={unit.id}
               unit={unit}
+              section={section}
               uiLang={uiLang}
               t={t}
               locked={!wasUnlocked}
@@ -142,10 +131,11 @@ function SectionBlock({
 }
 
 function UnitCard({
-  unit, uiLang, t, locked, currentLessonId, learnedIds, pathProgress,
+  unit, section, uiLang, t, locked, currentLessonId, learnedIds, pathProgress,
   defaultOpen, onStart, onBrowse,
 }: {
   unit: PathUnit;
+  section: PathSection;
   uiLang: string;
   t: (k: string) => string;
   locked: boolean;
@@ -158,112 +148,93 @@ function UnitCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
-  const totalLessons = unit.lessons.length;
-  const doneLessons = unit.lessons.filter(l =>
-    lessonProgress(l, learnedIds, pathProgress).completed
+  const total = unit.lessons.length;
+  const done = unit.lessons.filter(l =>
+    lessonProgress(l, learnedIds, pathProgress).completed,
   ).length;
-  const pct = totalLessons === 0 ? 0 : Math.round((doneLessons / totalLessons) * 100);
 
-  // The active lesson within this unit (if any)
   const activeIdx = unit.lessons.findIndex(l => l.id === currentLessonId);
   const continueLesson =
-    activeIdx >= 0 ? unit.lessons[activeIdx] : unit.lessons.find(l => !lessonProgress(l, learnedIds, pathProgress).completed) ?? unit.lessons[unit.lessons.length - 1];
+    activeIdx >= 0 ? unit.lessons[activeIdx]
+    : unit.lessons.find(l => !lessonProgress(l, learnedIds, pathProgress).completed)
+    ?? unit.lessons[unit.lessons.length - 1];
+  const continueDone = continueLesson
+    ? lessonProgress(continueLesson, learnedIds, pathProgress).completed
+    : true;
 
   return (
-    <article
+    <Container
       className={cn(
-        "glass-card rounded-2xl overflow-hidden transition-all",
+        "transition-all p-4 space-y-3",
         locked && "opacity-60",
       )}
-      style={{
-        borderTop: `3px solid hsl(${unit.hue} 70% 55%)`,
-      }}
     >
-      <button
-        type="button"
+      {/* Top row: small "Unit #" tag at the left, name centered */}
+      <div className="relative flex items-center justify-center min-h-[28px]">
+        <div className="absolute left-0 top-0">
+          <Container className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
+            {t("unit") || "Unit"} {section.number}
+          </Container>
+        </div>
+        <h3 className="text-base font-semibold text-center px-20 truncate">
+          {loc(unit.title, uiLang)}
+        </h3>
+        {locked && <Lock className="absolute right-0 top-1 h-4 w-4 text-muted-foreground" />}
+      </div>
+
+      {/* Single primary CTA — opens/closes the unit */}
+      <Button
         onClick={() => !locked && setOpen(o => !o)}
         disabled={locked}
-        className="w-full text-left p-4 flex items-center gap-4"
+        fullWidth
+        active={!locked && open}
+        className="gap-2"
       >
-        <ProgressRing hue={unit.hue} pct={pct} locked={locked} done={doneLessons} total={totalLessons} />
-
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-semibold leading-tight truncate">
-            {loc(unit.title, uiLang)}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {loc(unit.subtitle, uiLang)} · {doneLessons}/{totalLessons} {t("lesson") || "lessons"}
-          </p>
-        </div>
-
-        {locked ? (
-          <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronDown
-            className={cn(
-              "h-5 w-5 text-muted-foreground transition-transform shrink-0",
-              open && "rotate-180",
-            )}
-          />
-        )}
-      </button>
+        {open ? (uiLang === "nl" ? "Sluiten" : uiLang === "ar" ? "إغلاق" : "Close")
+              : continueDone
+                ? (uiLang === "nl" ? "Herhaal" : uiLang === "ar" ? "كرر" : "Replay")
+                : done > 0
+                  ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
+                  : (uiLang === "nl" ? "Beginnen" : uiLang === "ar" ? "ابدأ" : "Start")}
+        <span className="opacity-60 text-[11px]">· {done}/{total}</span>
+      </Button>
 
       {open && !locked && (
-        <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
+        <div className="space-y-2 pt-1">
           {unit.lessons.map((lesson, i) => {
             const prog = lessonProgress(lesson, learnedIds, pathProgress);
             const stars = pathProgress[lesson.id]?.stars ?? 0;
             const isCurrent = lesson.id === currentLessonId;
             const lessonLocked = !prog.completed && !isCurrent &&
               unit.lessons.slice(0, i).some(p => !lessonProgress(p, learnedIds, pathProgress).completed);
-
             return (
               <LessonRow
                 key={lesson.id}
-                hue={unit.hue}
                 lesson={lesson}
                 uiLang={uiLang}
                 t={t}
                 prog={prog}
                 stars={stars}
-                current={isCurrent}
                 locked={lessonLocked}
                 onStart={() => onStart(lesson)}
                 onBrowse={() => onBrowse(lesson)}
               />
             );
           })}
-
-          {continueLesson && !lessonProgress(continueLesson, learnedIds, pathProgress).completed && (
-            <button
-              type="button"
-              onClick={() => onStart(continueLesson)}
-              className="w-full mt-2 rounded-xl py-3 px-4 font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-              style={{
-                background: `linear-gradient(135deg, hsl(${unit.hue} 75% 55%), hsl(${unit.hue} 70% 45%))`,
-                boxShadow: `0 4px 0 hsl(${unit.hue} 60% 35%)`,
-              }}
-            >
-              <Play className="h-4 w-4" />
-              {pct > 0 ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue") : (uiLang === "nl" ? "Beginnen" : uiLang === "ar" ? "ابدأ" : "Start")}
-            </button>
-          )}
         </div>
       )}
-    </article>
+    </Container>
   );
 }
 
 function LessonRow({
-  hue, lesson, uiLang, t, prog, stars, current, locked, onStart, onBrowse,
+  lesson, uiLang, t, prog, stars, locked, onStart, onBrowse,
 }: {
-  hue: number;
   lesson: PathLesson;
   uiLang: string;
   t: (k: string) => string;
   prog: { done: number; total: number; completed: boolean };
   stars: number;
-  current: boolean;
   locked: boolean;
   onStart: () => void;
   onBrowse: () => void;
@@ -275,85 +246,33 @@ function LessonRow({
     : BookOpen;
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 p-2 rounded-xl",
-        current && "bg-muted/40 ring-1 ring-border",
-      )}
-    >
-      <div
-        className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
-        style={{
-          background: locked ? "hsl(var(--muted))"
-            : prog.completed ? `hsl(${hue} 55% 45%)`
-            : current ? `hsl(${hue} 75% 55%)`
-            : `hsl(${hue} 70% 92%)`,
-          color: locked ? "hsl(var(--muted-foreground))"
-            : prog.completed || current ? "white"
-            : `hsl(${hue} 50% 30%)`,
-        }}
-      >
-        {locked ? <Lock className="h-4 w-4" /> : <Icon className="h-5 w-5" strokeWidth={2.5} />}
+    <Container className={cn("p-3 flex items-center gap-3", locked && "opacity-60")}>
+      <div className="h-8 w-8 rounded-full border border-foreground flex items-center justify-center shrink-0">
+        {locked ? <Lock className="h-3.5 w-3.5" /> : <Icon className="h-4 w-4" />}
       </div>
-
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-tight truncate">{loc(lesson.title, uiLang)}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {prog.done}/{prog.total}
-          {stars > 0 && (
-            <span className="ml-2 text-amber-500">{"★".repeat(stars)}{"☆".repeat(3 - stars)}</span>
-          )}
+        <p className="text-sm font-semibold leading-tight truncate">
+          {loc(lesson.title, uiLang)}
         </p>
+        {stars > 0 && (
+          <p className="text-[11px] text-amber-500 mt-0.5">
+            {"★".repeat(stars)}{"☆".repeat(3 - stars)}
+          </p>
+        )}
       </div>
-
       {!locked && (
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onBrowse}
-            className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60"
-          >
+          <Button size="sm" onClick={onBrowse} variant="ghost">
             {uiLang === "nl" ? "bekijk" : uiLang === "ar" ? "تصفح" : "browse"}
-          </button>
-          <button
-            type="button"
-            onClick={onStart}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-            style={{ background: `hsl(${hue} 70% 50%)` }}
-          >
-            {prog.completed ? (uiLang === "nl" ? "Herhaal" : uiLang === "ar" ? "كرر" : "Replay") : t("practice")}
-          </button>
+          </Button>
+          <Button size="sm" active onClick={onStart} className="gap-1">
+            <Play className="h-3 w-3" />
+            {prog.completed
+              ? (uiLang === "nl" ? "Herhaal" : uiLang === "ar" ? "كرر" : "Replay")
+              : t("practice")}
+          </Button>
         </div>
       )}
-    </div>
-  );
-}
-
-function ProgressRing({
-  hue, pct, locked, done, total,
-}: { hue: number; pct: number; locked: boolean; done: number; total: number }) {
-  const size = 52;
-  const stroke = 5;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (pct / 100) * c;
-  const color = locked ? "hsl(var(--muted-foreground))" : `hsl(${hue} 70% 50%)`;
-
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="hsl(var(--muted))" strokeWidth={stroke} fill="none" />
-        <circle
-          cx={size / 2} cy={size / 2} r={r}
-          stroke={color} strokeWidth={stroke} fill="none"
-          strokeDasharray={c} strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 400ms ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold" style={{ color }}>
-        {done}/{total}
-      </div>
-    </div>
+    </Container>
   );
 }
