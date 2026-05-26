@@ -34,6 +34,22 @@ export interface PathSection {
 
 export const PATH_SECTIONS: PathSection[] = [
   {
+    id: "foundations",
+    number: 1,
+    title: { en: "Foundations", nl: "Fundament", ar: "الأساس" },
+    units: [
+      {
+        id: "u0",
+        title: { en: "Alphabet", nl: "Alfabet", ar: "الحروف" },
+        subtitle: { en: "Letters and sounds", nl: "Letters en klanken", ar: "حروف وأصوات" },
+        hue: 200,
+        lessons: [
+          { id: "u0-l1", title: { en: "Alphabet", nl: "Alfabet", ar: "الحروف" }, subcategoryId: "begroeting", kind: "lesson" },
+        ],
+      },
+    ],
+  },
+  {
     id: "everyday",
     number: 1,
     title: { en: "Everyday Basics", nl: "Dagelijkse Basis", ar: "الأساسيات اليومية" },
