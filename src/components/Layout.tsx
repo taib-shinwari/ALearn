@@ -11,7 +11,7 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
-import { AICallButton } from "@/components/AICallButton";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
