@@ -92,7 +92,7 @@ export function WordMedia({ word, lang }: Props) {
       )}
 
       {imgUrl && (
-        <div className="rounded-[24px] overflow-hidden border-2 border-foreground bg-background aspect-[4/3] flex items-center justify-center">
+        <div className="rounded-[24px] overflow-hidden border-2 border-border bg-background aspect-[4/3] flex items-center justify-center">
           <img
             src={imgUrl}
             alt={word}

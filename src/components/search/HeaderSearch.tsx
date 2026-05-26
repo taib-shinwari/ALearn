@@ -93,7 +93,7 @@ export function HeaderSearch({ open, onClose }: Props) {
 
   return (
     <div ref={containerRef} className="relative flex-1 max-w-xl">
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 border-foreground rounded-full">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 border-border rounded-full">
         <SearchIcon className="h-4 w-4 shrink-0" />
         <input
           ref={inputRef}
@@ -110,7 +110,7 @@ export function HeaderSearch({ open, onClose }: Props) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border-2 border-foreground bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border-2 border-border bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
               >
                 {currentCategory.label}
                 <ChevronDown className="h-3 w-3" />
@@ -149,7 +149,7 @@ export function HeaderSearch({ open, onClose }: Props) {
 
       {/* Results dropdown */}
       {query && (
-        <div className="absolute left-0 right-0 mt-2 bg-background border-2 border-foreground rounded-[20px] shadow-xl overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-2 bg-background border-2 border-border rounded-[20px] shadow-xl overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
           {results.length > 0 ? (
             <div className="p-2">
               <div className="flex items-center justify-between px-2 py-1.5">

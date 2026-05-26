@@ -63,7 +63,7 @@ export function DesktopSettings({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={t("searchSettings")}
-              className="pl-9 pr-9 rounded-full border-2 border-foreground"
+              className="pl-9 pr-9 rounded-full border-2 border-border"
             />
             {query && (
               <button

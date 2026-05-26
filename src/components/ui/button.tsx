@@ -20,7 +20,7 @@ export function buttonVariants({
   };
 
   return cn(
-    "relative rounded-[40px] bg-background border-2 border-foreground text-foreground transition-colors duration-200",
+    "relative rounded-[40px] bg-background border-2 border-border text-foreground transition-colors duration-200",
     "inline-flex items-center justify-center gap-2",
     sizeClasses[size] || sizeClasses.default,
     variant === "destructive" && "border-destructive text-destructive",
@@ -75,7 +75,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           fullWidth && "w-full",
           variant === "destructive" && "border-destructive text-destructive hover:bg-destructive/10",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background",
+          active && "bg-foreground text-background border-border hover:bg-foreground/90 hover:text-background",
           className
         )}
         {...props}

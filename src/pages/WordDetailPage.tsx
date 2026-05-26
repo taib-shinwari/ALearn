@@ -77,7 +77,7 @@ export default function WordDetailPage() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); speak(targetText, courseLang); }}
-              className="rounded-full p-2 bg-background border-2 border-foreground hover:bg-foreground hover:text-background transition-colors"
+              className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
               aria-label={t("play")}
             >
               <Volume2 className="h-4 w-4" />
@@ -87,7 +87,7 @@ export default function WordDetailPage() {
             type="button"
             onClick={(e) => { e.stopPropagation(); toggle(courseLang, word.id); }}
             className={cn(
-              "rounded-full p-2 border-2 border-foreground transition-colors",
+              "rounded-full p-2 border-2 border-border transition-colors",
               marked ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background"
             )}
             aria-label={marked ? t("unmark") : t("mark")}
@@ -115,7 +115,7 @@ export default function WordDetailPage() {
                   <span className="text-sm opacity-70 font-mono">{pronunciation}</span>
                 )}
                 {genderLabel && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-foreground bg-background">
+                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background">
                     {t("gender")}: {genderLabel}
                   </span>
                 )}
@@ -144,7 +144,7 @@ export default function WordDetailPage() {
 
           {/* Image lives inside the same container; only render when not errored */}
           {imgUrl && (
-            <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-foreground bg-background aspect-[4/3]">
+            <div className="mt-4 rounded-[14px] overflow-hidden border-2 border-border bg-background aspect-[4/3]">
               <img
                 src={imgUrl}
                 alt={targetText}

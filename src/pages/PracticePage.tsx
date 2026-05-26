@@ -200,7 +200,7 @@ export default function PracticePage() {
         <Button size="icon" onClick={() => navigate(exitPath)}>
           <X className="h-5 w-5" />
         </Button>
-        <div className="flex-1 h-3 bg-background border-2 border-foreground rounded-full overflow-hidden">
+        <div className="flex-1 h-3 bg-background border-2 border-border rounded-full overflow-hidden">
           <div className="h-full bg-foreground transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function PracticePage() {
             placeholder={t("yourAnswer")}
             disabled={checked}
             className={cn(
-              "h-12 text-base border-2 border-foreground rounded-[40px] px-4",
+              "h-12 text-base border-2 border-border rounded-[40px] px-4",
               checked && (isCorrect ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")
             )}
             autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
@@ -316,7 +316,7 @@ export default function PracticePage() {
           <>
             <Button fullWidth disabled={!canCheck} onClick={handleCheck}>{t("check")}</Button>
             <Button fullWidth onClick={advance}
-              className="bg-foreground text-background border-background hover:bg-background hover:text-foreground hover:border-foreground">
+              className="bg-foreground text-background border-background hover:bg-background hover:text-foreground hover:border-border">
               {t("skip")}
             </Button>
           </>

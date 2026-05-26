@@ -71,7 +71,7 @@ export function ChessBoard({
   };
 
   return (
-    <div className="w-full aspect-square rounded-[16px] overflow-hidden border-2 border-foreground bg-background select-none">
+    <div className="w-full aspect-square rounded-[16px] overflow-hidden border-2 border-border bg-background select-none">
       <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
         {ranks.map(r => files.map(f => {
           const sq = idxToSq(r * 8 + f);

@@ -98,11 +98,11 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
       <div className="fixed inset-0 z-50 bg-foreground/40" onClick={close} />
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 pointer-events-none">
         <div
-          className="w-full max-w-2xl bg-background border-2 border-foreground rounded-[20px] shadow-xl overflow-hidden pointer-events-auto"
+          className="w-full max-w-2xl bg-background border-2 border-border rounded-[20px] shadow-xl overflow-hidden pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Input row */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-foreground">
+          <div className="flex items-center gap-2 px-4 py-3 border-b-2 border-border">
             <SearchIcon className="h-5 w-5 shrink-0" />
             <input
               ref={inputRef}
@@ -119,7 +119,7 @@ export function SpotlightSearch({ open, onOpenChange }: Props) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border-2 border-foreground bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
+                    className="flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border-2 border-border bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
                   >
                     {currentCategory.label}
                     <ChevronDown className="h-3 w-3" />

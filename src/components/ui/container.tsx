@@ -14,7 +14,7 @@ export function Container({ children, className }: ContainerProps) {
   return (
     <div
       className={cn(
-        "rounded-[20px] bg-background border-2 border-foreground text-foreground p-4",
+        "rounded-[20px] bg-background border-2 border-border text-foreground p-4",
         className
       )}
     >
