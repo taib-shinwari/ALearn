@@ -232,7 +232,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button onClick={handlePractice} fullWidth className="gap-2">
               <Play className="h-4 w-4" /> {t("practice")}
             </Button>
-            {contentSegs.length === 0 && <AICallButton />}
+            
           </div>
 
           <nav aria-label="breadcrumb" className="px-6 mt-3 mb-4">
