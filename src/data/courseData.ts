@@ -726,6 +726,7 @@ export function getCategoryForSubcategory(subcategoryId: string): Category | und
 }
 
 export function getWordText(word: WordDetail, lang: WordLang): string {
+  if (lang === "ar") return word.ar?.word ?? word.en.word;
   return word[lang].word;
 }
 
