@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
@@ -9,6 +7,8 @@ import { Check, RotateCcw } from "lucide-react";
 import { getChessPuzzle } from "@/data/chessData";
 import { useChessProgress } from "@/hooks/useChessProgress";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { ChessBoard } from "@/components/chess/ChessBoard";
+import { parseFen, makeMove, legalMovesFrom, Position } from "@/lib/chess/engine";
 
 function loc<T extends { en: string; nl: string; ar?: string }>(o: T, lang: string): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,13 +24,17 @@ export default function ChessPuzzlePage() {
   const { progress, completePuzzle } = useChessProgress();
   const puzzle = puzzleId ? getChessPuzzle(puzzleId) : undefined;
 
-  const [game, setGame] = useState(() => new Chess(puzzle?.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"));
+  const initial = useMemo<Position>(
+    () => parseFen(puzzle?.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"),
+    [puzzle],
+  );
+  const [pos, setPos] = useState<Position>(initial);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [solved, setSolved] = useState(false);
 
   useEffect(() => {
     if (!puzzle) return;
-    setGame(new Chess(puzzle.fen));
+    setPos(parseFen(puzzle.fen));
     setFeedback(null);
     setSolved(progress.puzzles.includes(puzzle.id));
   }, [puzzle, progress.puzzles]);
@@ -44,28 +48,23 @@ export default function ChessPuzzlePage() {
     );
   }
 
-  const reset = () => {
-    setGame(new Chess(puzzle.fen));
-    setFeedback(null);
-  };
+  const reset = () => { setPos(parseFen(puzzle.fen)); setFeedback(null); };
 
-  const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
-    if (!targetSquare || solved) return false;
-    const trial = new Chess(game.fen());
-    try {
-      const move = trial.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
-      if (!move) return false;
-      const isSolution = puzzle.solution.some(s => s === move.san || s.replace(/[+#]/g, "") === move.san.replace(/[+#]/g, ""));
-      if (isSolution) {
-        setGame(trial);
-        setFeedback("correct");
-        setSolved(true);
-        completePuzzle(puzzle.id);
-        return true;
-      }
-      setFeedback("wrong");
-      return false;
-    } catch { return false; }
+  const handleMove = (from: string, to: string) => {
+    if (solved) return false;
+    const legal = legalMovesFrom(pos, from).find(m => m.to === to);
+    if (!legal) return false;
+
+    const isSolution = puzzle.solution.some(s => s.from === from && s.to === to);
+    if (isSolution) {
+      setPos(makeMove(pos, legal));
+      setFeedback("correct");
+      setSolved(true);
+      completePuzzle(puzzle.id);
+      return true;
+    }
+    setFeedback("wrong");
+    return false;
   };
 
   return (
@@ -75,21 +74,18 @@ export default function ChessPuzzlePage() {
         <p className="text-sm font-medium">
           {puzzle.sideToMove === "w" ? t("whiteToMove") : t("blackToMove")}
         </p>
+        <p className="text-xs text-muted-foreground mt-1">{loc(puzzle.hint, uiLang)}</p>
       </Container>
 
-      <div className="rounded-[20px] overflow-hidden border border-border bg-background">
-        <Chessboard
-          position={game.fen()}
-          onPieceDrop={onPieceDrop}
-          boardOrientation={puzzle.sideToMove === "w" ? "white" : "black"}
-          arePiecesDraggable={!solved}
-          showBoardNotation={true}
-          animationDuration={150}
-        />
-      </div>
+      <ChessBoard
+        position={pos}
+        orientation={puzzle.sideToMove === "w" ? "white" : "black"}
+        onMove={handleMove}
+        disabled={solved}
+      />
 
       {feedback === "correct" && (
-        <Container className="border-foreground">
+        <Container>
           <p className="text-sm font-semibold flex items-center gap-2">
             <Check className="h-4 w-4" /> {t("correctMove")}
           </p>

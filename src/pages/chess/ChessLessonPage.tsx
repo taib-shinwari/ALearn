@@ -1,7 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
@@ -9,6 +7,8 @@ import { Check, RotateCcw } from "lucide-react";
 import { getChessLesson } from "@/data/chessData";
 import { useChessProgress } from "@/hooks/useChessProgress";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { ChessBoard } from "@/components/chess/ChessBoard";
+import { parseFen, makeMove, legalMovesFrom, Position } from "@/lib/chess/engine";
 
 function loc<T extends { en: string; nl: string; ar?: string }>(o: T, lang: string): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,22 +22,16 @@ export default function ChessLessonPage() {
   const { progress, completeLesson } = useChessProgress();
   const lesson = lessonId ? getChessLesson(lessonId) : undefined;
 
-  const [game, setGame] = useState(() => new Chess(lesson?.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"));
+  const initial = useMemo<Position>(
+    () => parseFen(lesson?.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"),
+    [lesson],
+  );
+  const [pos, setPos] = useState<Position>(initial);
   const [done, setDone] = useState(false);
-
-  // Squares the highlighted piece can legally move to.
-  const legalSquares = useMemo(() => {
-    if (!lesson) return [] as string[];
-    try {
-      const moves = game.moves({ square: lesson.highlight as any, verbose: true }) as Array<{ to: string }>;
-      return moves.map(m => m.to);
-    } catch { return []; }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson, game.fen()]);
 
   useEffect(() => {
     if (!lesson) return;
-    setGame(new Chess(lesson.fen));
+    setPos(parseFen(lesson.fen));
     setDone(progress.lessons.includes(lesson.id));
   }, [lesson, progress.lessons]);
 
@@ -50,26 +44,19 @@ export default function ChessLessonPage() {
     );
   }
 
-  const reset = () => { setGame(new Chess(lesson.fen)); setDone(progress.lessons.includes(lesson.id)); };
+  const highlight = [lesson.highlight, ...legalMovesFrom(pos, lesson.highlight).map(m => m.to)];
 
-  const squareStyles: Record<string, React.CSSProperties> = {
-    [lesson.highlight]: { boxShadow: "inset 0 0 0 3px hsl(var(--ring))" },
-    ...Object.fromEntries(legalSquares.map(sq => [sq, {
-      background: "radial-gradient(circle, hsl(var(--foreground) / 0.35) 22%, transparent 25%)",
-    }])),
+  const handleMove = (from: string, to: string) => {
+    if (from !== lesson.highlight) return false;
+    const moves = legalMovesFrom(pos, from);
+    const m = moves.find(mv => mv.to === to);
+    if (!m) return false;
+    setPos(makeMove(pos, m));
+    if (!done) { completeLesson(lesson.id); setDone(true); }
+    return true;
   };
 
-  const onPieceDrop = (sourceSquare: string, targetSquare: string) => {
-    if (!targetSquare) return false;
-    if (sourceSquare !== lesson.highlight) return false;
-    try {
-      const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
-      if (!move) return false;
-      setGame(new Chess(game.fen()));
-      if (!done) { completeLesson(lesson.id); setDone(true); }
-      return true;
-    } catch { return false; }
-  };
+  const reset = () => setPos(parseFen(lesson.fen));
 
   return (
     <div className="px-6 space-y-4 max-w-md mx-auto w-full">
@@ -78,16 +65,12 @@ export default function ChessLessonPage() {
         <p className="text-sm leading-relaxed">{loc(lesson.description, uiLang)}</p>
       </Container>
 
-      <div className="rounded-[20px] overflow-hidden border border-border bg-background">
-        <Chessboard
-          position={game.fen()}
-          onPieceDrop={onPieceDrop}
-          customSquareStyles={squareStyles}
-          arePiecesDraggable={true}
-          showBoardNotation={true}
-          animationDuration={150}
-        />
-      </div>
+      <ChessBoard
+        position={pos}
+        highlightSquares={highlight}
+        restrictTo={lesson.highlight}
+        onMove={handleMove}
+      />
 
       <div className="flex items-center gap-2">
         <Button onClick={reset} className="gap-2">
