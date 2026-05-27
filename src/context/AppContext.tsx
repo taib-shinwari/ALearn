@@ -134,7 +134,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...defaultState, theme: s.theme, textSize: s.textSize, highContrast: s.highContrast }));
   };
 
-  const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
+  const setInterfaceLanguage = (lang: string) => setState(s => {
+    // If the user just made their interface language the same as what they
+    // were learning, swap the learning target to something else.
+    let learningLanguage = s.learningLanguage;
+    if (learningLanguage === lang) {
+      const fallback = ["en", "nl", "ar"].find(l => l !== lang) ?? null;
+      learningLanguage = fallback;
+    }
+    return { ...s, interfaceLanguage: lang, learningLanguage };
+  });
   const setSelectedConcept = (concept: string) => setState(s => ({ ...s, selectedConcept: concept }));
   const setLearningLanguage = (lang: string) => {
     setState(s => {
