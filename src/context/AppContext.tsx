@@ -117,16 +117,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
 
+  const ensureCourse = (s: AppState, fromLang: string): AppState => {
+    const toLang = s.learningLanguage && s.learningLanguage !== fromLang
+      ? s.learningLanguage
+      : (["en", "nl", "ar"].find(l => l !== fromLang) ?? "en");
+    const course: Course = { fromLang, concept: "language", toLang };
+    const exists = s.courses.some(c => c.fromLang === fromLang && c.concept === "language" && c.toLang === toLang);
+    return {
+      ...s,
+      learningLanguage: toLang,
+      courses: exists ? s.courses : [...s.courses, course],
+    };
+  };
+
   const login = (email: string, password: string) => {
     if (email === "a@mail.com" && password === "A") {
-      setState(s => ({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }));
+      setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }, s.interfaceLanguage ?? "en"));
       return true;
     }
     return false;
   };
 
   const signup = (firstName: string, email: string, _password: string) => {
-    setState(s => ({ ...s, isAuthenticated: true, user: { firstName, email } }));
+    setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName, email } }, s.interfaceLanguage ?? "en"));
     return true;
   };
 
