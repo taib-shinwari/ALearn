@@ -63,7 +63,7 @@ const defaultState: AppState = {
   isAuthenticated: false,
   user: null,
   interfaceLanguage: "en",
-  selectedConcept: null,
+  selectedConcept: "language",
   learningLanguage: null,
   introductionCompleted: false,
   courses: [],
