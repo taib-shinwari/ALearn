@@ -2,7 +2,7 @@ import { useApp } from "@/context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
-import { Play, Map, X } from "lucide-react";
+import { Play, Map, X, Type } from "lucide-react";
 import { categories, getWordsForCategory, localizedName } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useState } from "react";
@@ -31,10 +31,14 @@ export default function HomePage() {
   return (
     <div className="px-6 space-y-6 max-w-2xl mx-auto w-full">
       {/* Top action row */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button onClick={() => setPathOpen(o => !o)} className="gap-2">
           {pathOpen ? <X className="h-4 w-4" /> : <Map className="h-4 w-4" />}
           {t("learningPath")}
+        </Button>
+        <Button onClick={() => navigate("/alphabet")} className="gap-2">
+          <Type className="h-4 w-4" />
+          {uiLang === "nl" ? "Alfabet" : uiLang === "ar" ? "الحروف" : "Alphabet"}
         </Button>
         <Button onClick={goPracticeAll} active className="gap-2 ml-auto">
           <Play className="h-4 w-4" /> {t("practice")}
