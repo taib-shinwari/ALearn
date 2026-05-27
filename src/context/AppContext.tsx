@@ -91,7 +91,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (saved) {
       const parsed = JSON.parse(saved);
       const { streak, xp, lastPracticeDate, ...clean } = parsed;
-      return { ...defaultState, ...clean };
+      const merged = { ...defaultState, ...clean, selectedConcept: "language" };
+      // Drop any non-language courses (chess removed)
+      merged.courses = (merged.courses ?? []).filter((c: Course) => c.concept === "language");
+      return merged;
     }
     return defaultState;
   });
