@@ -35,7 +35,7 @@ export interface PathSection {
 export const PATH_SECTIONS: PathSection[] = [
   {
     id: "everyday",
-    number: 2,
+    number: 1,
     title: { en: "Everyday Basics", nl: "Dagelijkse Basis", ar: "الأساسيات اليومية" },
     units: [
       {
@@ -62,7 +62,7 @@ export const PATH_SECTIONS: PathSection[] = [
   },
   {
     id: "food",
-    number: 3,
+    number: 2,
     title: { en: "At the Table", nl: "Aan Tafel", ar: "على المائدة" },
     units: [
       {
@@ -79,7 +79,7 @@ export const PATH_SECTIONS: PathSection[] = [
   },
   {
     id: "describe",
-    number: 4,
+    number: 3,
     title: { en: "Describe the World", nl: "Beschrijf de Wereld", ar: "صف العالم" },
     units: [
       {
@@ -95,7 +95,7 @@ export const PATH_SECTIONS: PathSection[] = [
   },
   {
     id: "actions",
-    number: 5,
+    number: 4,
     title: { en: "Take Action", nl: "Kom in Actie", ar: "اتخذ خطوة" },
     units: [
       {
