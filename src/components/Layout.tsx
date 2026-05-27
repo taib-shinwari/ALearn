@@ -15,7 +15,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -64,10 +63,6 @@ function LanguagesDropdown() {
             );
           })
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate("/languages")}>
-          {t("manageCourses")}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
