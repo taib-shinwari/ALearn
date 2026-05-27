@@ -1,57 +1,54 @@
-import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useApp, Course } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { CardButton } from "@/components/ui/card-button";
 import { Container } from "@/components/ui/container";
 import { Check } from "lucide-react";
 
-const LANG_NAMES: Record<string, string> = {
-  nl: "Nederlands",
-  en: "English",
-  ar: "العربية",
-};
+const LANGS: { code: "nl" | "en" | "ar"; native: string }[] = [
+  { code: "nl", native: "Nederlands" },
+  { code: "en", native: "English" },
+  { code: "ar", native: "العربية القرآنية" },
+];
 
 export function CourseSection() {
-  const { courses, learningLanguage, selectedConcept, setActiveCourse } = useApp();
+  const { learningLanguage, interfaceLanguage, courses, setActiveCourse, addCourse } = useApp();
   const { t } = useCourseLanguage();
-  const navigate = useNavigate();
+
+  const pick = (toLang: string) => {
+    const existing = courses.find(c => c.fromLang === interfaceLanguage && c.toLang === toLang);
+    if (existing) setActiveCourse(existing);
+    else addCourse({ fromLang: interfaceLanguage!, concept: "language", toLang } as Course);
+  };
+
+  // Cannot learn the language you use as interface.
+  const selectable = LANGS.filter(l => l.code !== interfaceLanguage);
 
   return (
     <div className="space-y-3">
       <Container>
         <p className="text-xs opacity-70 mb-1">{t("activeCourse")}</p>
         <p className="font-semibold">
-          {(learningLanguage && LANG_NAMES[learningLanguage]) || "—"}
+          {(learningLanguage && (LANGS.find(l => l.code === learningLanguage)?.native ?? learningLanguage)) || "—"}
         </p>
       </Container>
 
       <p className="text-sm opacity-70">{t("changeCourse")}</p>
 
-      {courses.length === 0 ? (
-        <p className="text-sm opacity-60">{t("noCourses")}</p>
-      ) : (
-        courses.map((c, i) => {
-          const active = c.toLang === learningLanguage && c.concept === selectedConcept;
-          return (
-            <CardButton
-              key={i}
-              onClick={() => setActiveCourse(c)}
-              className={active ? "bg-foreground text-background border-background" : ""}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium">
-                  {LANG_NAMES[c.toLang] || c.toLang}
-                </span>
-                {active && <Check className="h-4 w-4" />}
-              </div>
-            </CardButton>
-          );
-        })
-      )}
-
-      <CardButton onClick={() => navigate("/courses")}>
-        + {t("courses")}
-      </CardButton>
+      {selectable.map(l => {
+        const active = learningLanguage === l.code;
+        return (
+          <CardButton
+            key={l.code}
+            onClick={() => pick(l.code)}
+            className={active ? "bg-foreground text-background border-border" : ""}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{l.native}</span>
+              {active && <Check className="h-4 w-4" />}
+            </div>
+          </CardButton>
+        );
+      })}
     </div>
   );
 }
