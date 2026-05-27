@@ -2,8 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Settings, Search, Play, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Settings, Search, Play, ChevronDown } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -30,12 +29,12 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-function CoursesDropdown() {
+function LanguagesDropdown() {
   const navigate = useNavigate();
-  const { courses, learningLanguage, selectedConcept, setActiveCourse } = useApp();
+  const { courses, learningLanguage, setActiveCourse } = useApp();
   const { t } = useCourseLanguage();
   const label =
-    (learningLanguage && langLabels[learningLanguage]) || t("courses");
+    (learningLanguage && langLabels[learningLanguage]) || t("language");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -49,26 +48,24 @@ function CoursesDropdown() {
           <DropdownMenuItem disabled>{t("noCourses")}</DropdownMenuItem>
         ) : (
           courses.map((c, i) => {
-            const active =
-              c.toLang === learningLanguage && c.concept === selectedConcept;
+            const active = c.toLang === learningLanguage;
             return (
               <DropdownMenuItem
                 key={i}
                 onSelect={() => {
                   setActiveCourse(c);
-                  navigate(`/${c.concept}`);
+                  navigate("/language");
                 }}
                 className={active ? "font-semibold" : ""}
               >
                 {(langLabels[c.toLang] || c.toLang)}
-                {c.concept !== "language" && ` · ${c.concept}`}
                 {active && " ✓"}
               </DropdownMenuItem>
             );
           })
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate("/courses")}>
+        <DropdownMenuItem onSelect={() => navigate("/languages")}>
           {t("manageCourses")}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -76,26 +73,18 @@ function CoursesDropdown() {
   );
 }
 
-/**
- * Global layout wrapping pages that share the top bar.
- * Practice button + breadcrumbs hidden on /settings and /courses.
- * On mobile + /settings, the top bar is replaced by a settings-specific bar
- * (back + title + search) driven by `settingsStore`.
- */
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { selectedConcept, setPracticeScope } = useApp();
+  const { setPracticeScope } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
   const isSettings = location.pathname.startsWith("/settings");
-  const isCourses = location.pathname.startsWith("/courses");
+  const isCourses = location.pathname.startsWith("/languages") || location.pathname.startsWith("/courses");
   const isSearch = location.pathname.startsWith("/search");
-  const isChess = location.pathname.startsWith("/chess");
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Cmd/Ctrl+K toggles inline search
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -107,7 +96,6 @@ export default function Layout({ children }: LayoutProps) {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // Subscribe to the settings store (mobile top bar swap)
   const [settingsBar, setSettingsBar] = useState(settingsStore.getState());
   useEffect(() => {
     const unsub = settingsStore.subscribe(() => setSettingsBar(settingsStore.getState()));
@@ -120,12 +108,12 @@ export default function Layout({ children }: LayoutProps) {
   const isHome =
     rawSegments.length === 0 ||
     rawSegments[0] === "home" ||
-    (rawSegments.length === 1 && selectedConcept && rawSegments[0] === selectedConcept);
-  const contentSegs = !isHome && rawSegments[0] === selectedConcept
+    (rawSegments.length === 1 && rawSegments[0] === "language");
+  const contentSegs = !isHome && rawSegments[0] === "language"
     ? rawSegments.slice(1)
     : (isHome ? [] : rawSegments);
 
-  const conceptPrefix = selectedConcept ? `/${selectedConcept}` : "/home";
+  const conceptPrefix = "/language";
 
   const crumbs: { label: string; to: string }[] = [{ label: t("root"), to: conceptPrefix }];
   if (contentSegs.length >= 1) {
@@ -147,36 +135,22 @@ export default function Layout({ children }: LayoutProps) {
   const showBack = !isHome;
 
   const handleBack = () => {
-    if (isSettings || isCourses) {
-      navigate(conceptPrefix);
-      return;
-    }
-    if (isChess) {
-      navigate("/chess");
-      return;
-    }
+    if (isSettings || isCourses) { navigate(conceptPrefix); return; }
     if (isHome) return;
     if (contentSegs.length <= 1) navigate(conceptPrefix);
     else navigate(conceptPrefix + "/" + contentSegs.slice(0, -1).join("/"));
   };
 
   const handlePractice = () => {
-    if (contentSegs.length === 0) {
-      setPracticeScope({ type: "global" });
-    } else if (contentSegs.length === 1) {
-      setPracticeScope({ type: "category", id: contentSegs[0] });
-    } else if (contentSegs.length === 2) {
-      setPracticeScope({ type: "subcategory", id: contentSegs[1] });
-    } else {
-      setPracticeScope({ type: "word", id: contentSegs[2] });
-    }
+    if (contentSegs.length === 0) setPracticeScope({ type: "global" });
+    else if (contentSegs.length === 1) setPracticeScope({ type: "category", id: contentSegs[0] });
+    else if (contentSegs.length === 2) setPracticeScope({ type: "subcategory", id: contentSegs[1] });
+    else setPracticeScope({ type: "word", id: contentSegs[2] });
     navigate("/practice");
   };
 
-  // Chess concept has its own structure — no global practice/breadcrumbs.
-  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome && !isChess;
+  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
 
-  // ── Settings-specific mobile top bar ───────────────────────────────
   if (useSettingsBar) {
     return (
       <SettingsMobileBar
@@ -191,7 +165,6 @@ export default function Layout({ children }: LayoutProps) {
     );
   }
 
-  // ── Default top bar ────────────────────────────────────────────────
   return (
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
       <div className="flex items-center justify-between gap-2 p-4">
@@ -208,7 +181,7 @@ export default function Layout({ children }: LayoutProps) {
             <TitleBar className="font-semibold">{t("yourCourses")}</TitleBar>
           )}
           {!searchOpen && !isSearch && !isCourses && (
-            <CoursesDropdown />
+            <LanguagesDropdown />
           )}
         </div>
 
@@ -232,7 +205,6 @@ export default function Layout({ children }: LayoutProps) {
             <Button onClick={handlePractice} fullWidth className="gap-2">
               <Play className="h-4 w-4" /> {t("practice")}
             </Button>
-            
           </div>
 
           <nav aria-label="breadcrumb" className="px-6 mt-3 mb-4">
