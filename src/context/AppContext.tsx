@@ -63,7 +63,7 @@ const defaultState: AppState = {
   isAuthenticated: false,
   user: null,
   interfaceLanguage: "en",
-  selectedConcept: null,
+  selectedConcept: "language",
   learningLanguage: null,
   introductionCompleted: false,
   courses: [],
@@ -91,7 +91,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (saved) {
       const parsed = JSON.parse(saved);
       const { streak, xp, lastPracticeDate, ...clean } = parsed;
-      return { ...defaultState, ...clean };
+      const merged = { ...defaultState, ...clean, selectedConcept: "language" };
+      // Drop any non-language courses (chess removed)
+      merged.courses = (merged.courses ?? []).filter((c: Course) => c.concept === "language");
+      return merged;
     }
     return defaultState;
   });
@@ -114,16 +117,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
 
+  const ensureCourse = (s: AppState, fromLang: string): AppState => {
+    const toLang = s.learningLanguage && s.learningLanguage !== fromLang
+      ? s.learningLanguage
+      : (["en", "nl", "ar"].find(l => l !== fromLang) ?? "en");
+    const course: Course = { fromLang, concept: "language", toLang };
+    const exists = s.courses.some(c => c.fromLang === fromLang && c.concept === "language" && c.toLang === toLang);
+    return {
+      ...s,
+      learningLanguage: toLang,
+      courses: exists ? s.courses : [...s.courses, course],
+    };
+  };
+
   const login = (email: string, password: string) => {
     if (email === "a@mail.com" && password === "A") {
-      setState(s => ({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }));
+      setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }, s.interfaceLanguage ?? "en"));
       return true;
     }
     return false;
   };
 
   const signup = (firstName: string, email: string, _password: string) => {
-    setState(s => ({ ...s, isAuthenticated: true, user: { firstName, email } }));
+    setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName, email } }, s.interfaceLanguage ?? "en"));
     return true;
   };
 
@@ -131,7 +147,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...defaultState, theme: s.theme, textSize: s.textSize, highContrast: s.highContrast }));
   };
 
-  const setInterfaceLanguage = (lang: string) => setState(s => ({ ...s, interfaceLanguage: lang }));
+  const setInterfaceLanguage = (lang: string) => setState(s => {
+    // If the user just made their interface language the same as what they
+    // were learning, swap the learning target to something else.
+    let learningLanguage = s.learningLanguage;
+    if (learningLanguage === lang) {
+      const fallback = ["en", "nl", "ar"].find(l => l !== lang) ?? null;
+      learningLanguage = fallback;
+    }
+    return { ...s, interfaceLanguage: lang, learningLanguage };
+  });
   const setSelectedConcept = (concept: string) => setState(s => ({ ...s, selectedConcept: concept }));
   const setLearningLanguage = (lang: string) => {
     setState(s => {

@@ -7,7 +7,6 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
 
-import ConceptSelectPage from "./pages/ConceptSelectPage";
 import HomePage from "./pages/HomePage";
 import CoursesPage from "./pages/CoursesPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -18,9 +17,6 @@ import WordDetailPage from "./pages/WordDetailPage";
 import PracticePage from "./pages/PracticePage";
 import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
-import ChessHomePage from "./pages/chess/ChessHomePage";
-import ChessLessonPage from "./pages/chess/ChessLessonPage";
-import ChessPuzzlePage from "./pages/chess/ChessPuzzlePage";
 import { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -28,21 +24,12 @@ const queryClient = new QueryClient();
 const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
 
 function AppRoutes() {
-  const { isAuthenticated, selectedConcept, introductionCompleted } = useApp();
+  const { isAuthenticated, introductionCompleted } = useApp();
 
   if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="*" element={<AuthPage />} />
-      </Routes>
-    );
-  }
-
-  if (!selectedConcept) {
-    return (
-      <Routes>
-        <Route path="/concept-select" element={<ConceptSelectPage />} />
-        <Route path="*" element={<Navigate to="/concept-select" />} />
       </Routes>
     );
   }
@@ -58,30 +45,21 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Practice flow has no top bar */}
       <Route path="/practice" element={<PracticePage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
 
-      {/* Pages with the global layout (top bar everywhere except practice) */}
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
-      <Route path="/courses" element={withLayout(<CoursesPage />)} />
+      <Route path="/languages" element={withLayout(<CoursesPage />)} />
+      <Route path="/courses" element={<Navigate to="/languages" replace />} />
       <Route path="/search" element={withLayout(<SearchPage />)} />
       <Route path="/home" element={withLayout(<HomePage />)} />
 
-      {/* Chess routes — distinct concept layout */}
-      <Route path="/chess" element={withLayout(<ChessHomePage />)} />
-      <Route path="/chess/practice/:lessonId" element={withLayout(<ChessLessonPage />)} />
-      <Route path="/chess/puzzles/:puzzleId" element={withLayout(<ChessPuzzlePage />)} />
+      <Route path="/language" element={withLayout(<HomePage />)} />
+      <Route path="/language/:category" element={withLayout(<CategoryPage />)} />
+      <Route path="/language/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
+      <Route path="/language/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
 
-      <Route path="/:concept" element={withLayout(<HomePage />)} />
-      <Route path="/:concept/:category" element={withLayout(<CategoryPage />)} />
-      <Route path="/:concept/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
-      <Route path="/:concept/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
-
-      <Route path="/" element={<Navigate to={`/${selectedConcept}`} replace />} />
-      <Route path="*" element={<NotFound />} />
-
-      <Route path="/" element={<Navigate to={`/${selectedConcept}`} replace />} />
+      <Route path="/" element={<Navigate to="/language" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
