@@ -64,10 +64,6 @@ function LanguagesDropdown() {
             );
           })
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate("/languages")}>
-          {t("manageCourses")}
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

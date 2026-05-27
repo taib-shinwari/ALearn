@@ -8,7 +8,7 @@ import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
 
 import HomePage from "./pages/HomePage";
-import CoursesPage from "./pages/CoursesPage";
+import AlphabetPage from "./pages/AlphabetPage";
 import SettingsPage from "./pages/SettingsPage";
 import IntroductionPage from "./pages/IntroductionPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -49,8 +49,9 @@ function AppRoutes() {
       <Route path="/introduction" element={<IntroductionPage />} />
 
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
-      <Route path="/languages" element={withLayout(<CoursesPage />)} />
-      <Route path="/courses" element={<Navigate to="/languages" replace />} />
+      <Route path="/alphabet" element={withLayout(<AlphabetPage />)} />
+      <Route path="/languages" element={<Navigate to="/settings" replace />} />
+      <Route path="/courses" element={<Navigate to="/settings" replace />} />
       <Route path="/search" element={withLayout(<SearchPage />)} />
       <Route path="/home" element={withLayout(<HomePage />)} />
 
