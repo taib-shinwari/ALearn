@@ -214,7 +214,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
-  const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
   const markLessonComplete = (lessonId: string, stars: 0 | 1 | 2 | 3 = 3) => {
     setState(s => {
       const prev = s.pathProgress[lessonId];
