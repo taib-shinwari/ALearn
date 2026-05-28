@@ -117,6 +117,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (state.theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => applyAppearance(state.theme, state.textSize, state.highContrast);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
 
   // Cloud sync: hydrate from Lovable Cloud on session start, debounce writes
@@ -125,8 +127,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     { pathProgress: state.pathProgress, reviews: state.reviews },
     ({ pathProgress, reviews }) => setState(s => ({ ...s, pathProgress, reviews })),
   );
-    return () => mq.removeEventListener("change", handler);
-  }, [state.theme, state.textSize, state.highContrast]);
 
   const ensureCourse = (s: AppState, fromLang: string): AppState => {
     const toLang = s.learningLanguage && s.learningLanguage !== fromLang
