@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
 import { useCloudProgress } from "@/hooks/useCloudProgress";
+import type { TypeStats } from "@/lib/adaptiveEngine";
+import type { ExerciseType } from "@/components/practice/exerciseGenerator";
 
 export interface Course {
   fromLang: string;
@@ -34,6 +36,7 @@ interface AppState {
   textSize: TextSize;
   highContrast: boolean;
   pathProgress: Record<string, LessonProgressEntry>;
+  exerciseStats: TypeStats;
 }
 
 interface AppContextType extends AppState {
@@ -50,6 +53,7 @@ interface AppContextType extends AppState {
   recordReview: (wordId: string, correct: boolean) => void;
   setPracticeScope: (scope: AppState["practiceScope"]) => void;
   markLessonComplete: (lessonId: string, stars?: 0 | 1 | 2 | 3) => void;
+  recordExerciseResult: (type: ExerciseType, correct: boolean) => void;
   setTheme: (t: ThemeChoice) => void;
   setTextSize: (t: TextSize) => void;
   setHighContrast: (v: boolean) => void;
@@ -78,7 +82,9 @@ const defaultState: AppState = {
   highContrast: false,
   pathProgress: {},
 };
-
+  pathProgress: {},
+  exerciseStats: {},
+};
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
   const root = document.documentElement;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
