@@ -261,7 +261,3 @@ export function AppProvider({ children }: { children: ReactNode }) {
     </AppContext.Provider>
   );
 }
-      {children}
-    </AppContext.Provider>
-  );
-}
