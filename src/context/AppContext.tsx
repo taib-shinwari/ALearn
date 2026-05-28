@@ -81,8 +81,6 @@ const defaultState: AppState = {
   textSize: "md",
   highContrast: false,
   pathProgress: {},
-};
-  pathProgress: {},
   exerciseStats: {},
 };
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
