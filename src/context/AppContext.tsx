@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
 import { useCloudProgress } from "@/hooks/useCloudProgress";
+import type { TypeStats } from "@/lib/adaptiveEngine";
+import type { ExerciseType } from "@/components/practice/exerciseGenerator";
 
 export interface Course {
   fromLang: string;
@@ -34,6 +36,7 @@ interface AppState {
   textSize: TextSize;
   highContrast: boolean;
   pathProgress: Record<string, LessonProgressEntry>;
+  exerciseStats: TypeStats;
 }
 
 interface AppContextType extends AppState {
@@ -50,6 +53,7 @@ interface AppContextType extends AppState {
   recordReview: (wordId: string, correct: boolean) => void;
   setPracticeScope: (scope: AppState["practiceScope"]) => void;
   markLessonComplete: (lessonId: string, stars?: 0 | 1 | 2 | 3) => void;
+  recordExerciseResult: (type: ExerciseType, correct: boolean) => void;
   setTheme: (t: ThemeChoice) => void;
   setTextSize: (t: TextSize) => void;
   setHighContrast: (v: boolean) => void;
@@ -77,8 +81,8 @@ const defaultState: AppState = {
   textSize: "md",
   highContrast: false,
   pathProgress: {},
+  exerciseStats: {},
 };
-
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
   const root = document.documentElement;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -235,6 +239,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
     });
   };
+  const recordExerciseResult = (type: ExerciseType, correct: boolean) => {
+    setState(s => {
+      const prev = s.exerciseStats[type] ?? { attempts: 0, correct: 0 };
+      const next = { attempts: prev.attempts + 1, correct: prev.correct + (correct ? 1 : 0) };
+      return { ...s, exerciseStats: { ...s.exerciseStats, [type]: next } };
+    });
+  };
   const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
   const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
   const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
@@ -243,7 +254,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
-      getReview, recordReview, setPracticeScope, markLessonComplete,
+      getReview, recordReview, setPracticeScope, markLessonComplete, recordExerciseResult,
       setTheme, setTextSize, setHighContrast,
     }}>
       {children}

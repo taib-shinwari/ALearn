@@ -10,19 +10,38 @@ import {
   getAllWords, getWordsForCategory, getWordsForSubcategory, getWordById,
   globalLearningOrder, WordDetail, WordLang,
 } from "@/data/courseData";
-import { getNextWordsForPractice } from "@/lib/spacedRepetition";
+import { selectSessionWords, adaptiveSessionSize } from "@/lib/adaptiveEngine";
+import { siblingWordIdsForLesson, findNodeByLesson } from "@/lib/sessionScope";
+import { getNodeMastery } from "@/lib/mastery";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
-import { buildExercise, answersMatch, Exercise } from "@/components/practice/exerciseGenerator";
+import {
+  buildExercise, buildMatchPairs, answersMatch, normalizeAnswer,
+  Exercise, ExerciseLabels,
+} from "@/components/practice/exerciseGenerator";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
+import { TapTiles } from "@/components/practice/TapTiles";
+import { MatchPairs } from "@/components/practice/MatchPairs";
+import { SessionSummary } from "@/components/practice/SessionSummary";
 
-const SESSION_SIZE = 10;
 const encouragements = ["greatJob", "keepGoing", "nice", "perfect", "wellDone", "awesome"] as const;
 
 export default function PracticePage() {
   const navigate = useNavigate();
-  const { practiceScope, reviews, recordReview, selectedConcept, markLessonComplete } = useApp();
+  const {
+    practiceScope, reviews, recordReview, selectedConcept,
+    markLessonComplete, exerciseStats, recordExerciseResult, pathProgress,
+  } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
   const answerLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
+
+  // STT availability (used for type selection too)
+  const SR: any = typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
+  const sttAvailable = !!SR;
+
+  const sessionStart = useRef(Date.now());
+  const masteryBefore = useRef<Map<string, { title: string; before: number }>>(new Map());
 
   const initialExercises = useMemo<Exercise[]>(() => {
     const allWords = getAllWords();
@@ -32,44 +51,74 @@ export default function PracticePage() {
     else if (practiceScope.type === "subcategory") scopeWordIds = getWordsForSubcategory(practiceScope.id!).map(w => w.id);
     else scopeWordIds = [practiceScope.id!];
 
-    const nextIds = getNextWordsForPractice(reviews, scopeWordIds, SESSION_SIZE);
-    let words = nextIds.map(id => getWordById(id)).filter((w): w is WordDetail => !!w);
+    const siblingWordIds = practiceScope?.lessonId
+      ? siblingWordIdsForLesson(practiceScope.lessonId)
+      : [];
 
-    if (words.length < SESSION_SIZE) {
-      const have = new Set(words.map(w => w.id));
-      const extra = scopeWordIds.filter(id => !have.has(id))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, SESSION_SIZE - words.length)
-        .map(id => getWordById(id))
-        .filter((w): w is WordDetail => !!w);
-      words = [...words, ...extra];
+    // Snapshot mastery before this session for the summary
+    if (practiceScope?.lessonId) {
+      const node = findNodeByLesson(practiceScope.lessonId);
+      if (node) {
+        masteryBefore.current.set(node.id, {
+          title: (node.title as any)[uiLang] || node.title.en,
+          before: getNodeMastery(node, pathProgress),
+        });
+      }
     }
 
-    const labels = {
+    const count = adaptiveSessionSize(reviews);
+    const ids = selectSessionWords({ reviews, scopeWordIds, siblingWordIds, count });
+    const words = ids.map(getWordById).filter((w): w is WordDetail => !!w);
+
+    const labels: ExerciseLabels = {
       whatDoes: t("whatDoes"),
       typeAnswer: t("typeAnswer"),
       listenAndType: t("listenAndType"),
       selectMeaning: t("selectMeaning"),
       speakWord: t("speakWord"),
+      buildSentence: uiLang === "nl" ? "Bouw de zin" : uiLang === "ar" ? "كوّن الجملة" : "Build the sentence",
+      dictation: uiLang === "nl" ? "Schrijf wat je hoort" : uiLang === "ar" ? "اكتب ما تسمع" : "Write what you hear",
+      matchPairs: uiLang === "nl" ? "Verbind de paren" : uiLang === "ar" ? "طابِق الأزواج" : "Match the pairs",
     };
-    return words.map((w, i) => buildExercise(w, i, allWords, courseLang, answerLang, labels));
+
+    const exercises: Exercise[] = words.map((w, i) =>
+      buildExercise(w, i, allWords, courseLang, answerLang, labels, exerciseStats, sttAvailable),
+    );
+
+    // Inject a Match-Pairs round every ~5 cards
+    if (words.length >= 4) {
+      const matchEx = buildMatchPairs(
+        [...words].sort(() => Math.random() - 0.5).slice(0, 4),
+        courseLang, answerLang, labels,
+      );
+      if (matchEx) {
+        const at = Math.min(exercises.length, Math.floor(exercises.length / 2));
+        exercises.splice(at, 0, matchEx);
+      }
+    }
+    return exercises;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [practiceScope, courseLang, answerLang]);
 
-  // The active queue. Wrongly-answered items get re-queued at the end.
   const [queue, setQueue] = useState<Exercise[]>(initialExercises);
   const [step, setStep] = useState(0);
-  const [completed, setCompleted] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [typedAnswer, setTypedAnswer] = useState("");
+  const [picked, setPicked] = useState<number[]>([]);
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [finished, setFinished] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<any>(null);
 
-  useEffect(() => { setQueue(initialExercises); setStep(0); setCompleted(0); }, [initialExercises]);
+  useEffect(() => {
+    setQueue(initialExercises);
+    setStep(0); setCorrectCount(0); setFinished(false);
+    sessionStart.current = Date.now();
+  }, [initialExercises]);
 
   const exitPath = selectedConcept ? `/${selectedConcept}` : "/home";
   const total = initialExercises.length;
@@ -77,15 +126,15 @@ export default function PracticePage() {
 
   useEffect(() => {
     if (!current) return;
-    if (current.type === "listen-type" && isSpeechAvailable()) {
-      const id = setTimeout(() => speak(current.targetText, courseLang), 250);
+    if ((current.type === "listen-type" || current.type === "dictation") && isSpeechAvailable()) {
+      const id = setTimeout(() => speak(current.answer, courseLang), 250);
       return () => clearTimeout(id);
     }
   }, [step, current, courseLang]);
 
   useEffect(() => {
     if (!current) return;
-    if (current.type === "type-target" || current.type === "listen-type") {
+    if (["type-target", "listen-type", "dictation"].includes(current.type)) {
       const id = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(id);
     }
@@ -100,13 +149,48 @@ export default function PracticePage() {
     );
   }
 
-  const isLast = completed >= total - 1 && queue.length === step + 1;
-  const progress = (completed / total) * 100;
+  if (finished) {
+    const deltas: { nodeId: string; title: string; before: number; after: number }[] = [];
+    for (const [nodeId, snap] of masteryBefore.current.entries()) {
+      const node = findNodeByLesson(
+        // find any lesson belonging to this node to refresh mastery
+        // (mastery is per-node so this is just a re-read)
+        practiceScope?.lessonId ?? "",
+      );
+      if (!node || node.id !== nodeId) continue;
+      deltas.push({
+        nodeId,
+        title: snap.title,
+        before: snap.before,
+        after: getNodeMastery(node, pathProgress),
+      });
+    }
+    return (
+      <SessionSummary
+        total={total}
+        correct={correctCount}
+        durationMs={Date.now() - sessionStart.current}
+        deltas={deltas}
+        onContinue={() => navigate(exitPath)}
+        continueLabel={t("continue")}
+        headingLabel={uiLang === "nl" ? "Sessie voltooid!" : uiLang === "ar" ? "اكتملت الجلسة!" : "Session complete!"}
+      />
+    );
+  }
+
+  const isMC = current.type === "mc-target-to-ui" || current.type === "mc-ui-to-target";
+  const isListen = current.type === "listen-type";
+  const isSpeak = current.type === "speak-target";
+  const isDictation = current.type === "dictation";
+  const isTapTiles = current.type === "tap-tiles";
+  const isMatch = current.type === "match-pairs";
+  const isText = current.type === "type-target" || isListen || isDictation;
+
+  const progress = (step / total) * 100;
 
   const handleSelect = (i: number) => {
     if (checked) return;
     setSelected(i);
-    // TTS the option (target language for ui→target, ui language otherwise)
     if (isSpeechAvailable() && current.options) {
       const text = current.options[i];
       const lang: WordLang = current.type === "mc-ui-to-target" ? courseLang : answerLang;
@@ -118,17 +202,22 @@ export default function PracticePage() {
     setChecked(true);
     setIsCorrect(correct);
     recordReview(current.wordId, correct);
-    if (correct) setCompleted(c => c + 1);
+    recordExerciseResult(current.type, correct);
+    if (correct) setCorrectCount(c => c + 1);
   };
 
   const handleCheck = () => {
     let correct = false;
-    if (current.type === "mc-target-to-ui" || current.type === "mc-ui-to-target") {
+    if (isMC) {
       if (selected === null) return;
       correct = selected === current.correct;
-    } else if (current.type === "speak-target") {
+    } else if (isSpeak) {
       if (!transcript.trim()) return;
       correct = answersMatch(transcript, current.answer);
+    } else if (isTapTiles) {
+      if (picked.length === 0) return;
+      const built = picked.map(i => current.options![i]).join(" ");
+      correct = normalizeAnswer(built) === normalizeAnswer(current.answer);
     } else {
       if (!typedAnswer.trim()) return;
       correct = answersMatch(typedAnswer, current.answer);
@@ -137,34 +226,39 @@ export default function PracticePage() {
   };
 
   const advance = () => {
-    // Re-queue incorrect at the end
     let nextQueue = queue;
-    if (isCorrect === false) nextQueue = [...queue, current];
+    if (isCorrect === false && !isMatch) nextQueue = [...queue, current];
 
     if (step >= nextQueue.length - 1) {
-      // Mark lesson complete if this practice was launched from a path lesson
+      // Star the lesson + show summary
       if (practiceScope?.lessonId) {
-        const accuracy = total > 0 ? completed / total : 0;
+        const accuracy = total > 0 ? correctCount / total : 0;
         const stars: 0 | 1 | 2 | 3 = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : accuracy > 0 ? 1 : 0;
         markLessonComplete(practiceScope.lessonId, stars);
       }
-      navigate(exitPath);
+      setFinished(true);
       return;
     }
     setQueue(nextQueue);
     setStep(step + 1);
     setSelected(null);
     setTypedAnswer("");
+    setPicked([]);
     setTranscript("");
     setChecked(false);
     setIsCorrect(null);
   };
 
-  // STT
-  const SR: any = typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    : null;
-  const sttAvailable = !!SR;
+  // Match-pairs auto-completes itself
+  const onMatchComplete = (perfect: boolean, perWord: Record<string, boolean>) => {
+    for (const [wid, ok] of Object.entries(perWord)) {
+      recordReview(wid, ok);
+    }
+    recordExerciseResult("match-pairs", perfect);
+    if (perfect) setCorrectCount(c => c + 1);
+    setChecked(true);
+    setIsCorrect(perfect);
+  };
 
   const toggleListen = () => {
     if (!SR) return;
@@ -173,10 +267,7 @@ export default function PracticePage() {
     rec.lang = courseLang === "nl" ? "nl-NL" : courseLang === "ar" ? "ar-SA" : "en-US";
     rec.interimResults = false;
     rec.maxAlternatives = 1;
-    rec.onresult = (e: any) => {
-      const text = e.results[0][0].transcript || "";
-      setTranscript(text);
-    };
+    rec.onresult = (e: any) => setTranscript(e.results[0][0].transcript || "");
     rec.onend = () => setListening(false);
     rec.onerror = () => setListening(false);
     recRef.current = rec;
@@ -186,12 +277,10 @@ export default function PracticePage() {
   };
 
   const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-  const isMC = current.type === "mc-target-to-ui" || current.type === "mc-ui-to-target";
-  const isListen = current.type === "listen-type";
-  const isSpeak = current.type === "speak-target";
-
-  const canCheck = isMC ? selected !== null
+  const canCheck = isMatch ? false
+    : isMC ? selected !== null
     : isSpeak ? transcript.trim().length > 0
+    : isTapTiles ? picked.length > 0
     : typedAnswer.trim().length > 0;
 
   return (
@@ -208,10 +297,10 @@ export default function PracticePage() {
       <div className="flex-1 p-6 max-w-md mx-auto w-full">
         <h2 className="text-lg font-semibold mb-6">{current.prompt}</h2>
 
-        {(isListen || isSpeak) && (
+        {(isListen || isSpeak || isDictation) && (
           <div className="mb-6 flex justify-center gap-3">
             {isSpeechAvailable() && (
-              <Button size="icon" onClick={() => speak(current.targetText, courseLang)}
+              <Button size="icon" onClick={() => speak(current.answer, courseLang)}
                 aria-label={t("play")} className="h-16 w-16">
                 <Volume2 className="h-7 w-7" />
               </Button>
@@ -230,6 +319,20 @@ export default function PracticePage() {
             <span className="opacity-60 mr-1">»</span>
             <span className="font-medium">{transcript}</span>
           </Container>
+        )}
+
+        {isMatch && current.pairs && (
+          <MatchPairs pairs={current.pairs} onComplete={onMatchComplete} />
+        )}
+
+        {isTapTiles && current.options && (
+          <TapTiles
+            options={current.options}
+            picked={picked}
+            onPick={(i) => setPicked(p => p.includes(i) ? p : [...p, i])}
+            onUnpick={(pos) => setPicked(p => p.filter((_, idx) => idx !== pos))}
+            disabled={checked}
+          />
         )}
 
         {isMC && current.options && (
@@ -251,7 +354,7 @@ export default function PracticePage() {
           </div>
         )}
 
-        {!isMC && !isSpeak && (
+        {isText && (
           <Input
             ref={inputRef}
             value={typedAnswer}
@@ -267,10 +370,12 @@ export default function PracticePage() {
           />
         )}
 
-        {checked && !isCorrect && (() => {
+        {checked && !isCorrect && !isMatch && (() => {
           const correctText = isMC && current.options ? current.options[current.correct!] : current.answer;
           const userText = isMC && current.options && selected !== null ? current.options[selected]
-            : isSpeak ? transcript : typedAnswer;
+            : isSpeak ? transcript
+            : isTapTiles ? picked.map(i => current.options![i]).join(" ")
+            : typedAnswer;
           const correctLang: WordLang = current.type === "mc-target-to-ui" ? answerLang : courseLang;
           return (
             <Container className="mt-4 border-destructive bg-destructive/5">
@@ -291,12 +396,8 @@ export default function PracticePage() {
                   </p>
                 </div>
                 {isSpeechAvailable() && (
-                  <Button
-                    size="icon"
-                    onClick={() => speak(correctText, correctLang)}
-                    aria-label={t("play")}
-                    className="shrink-0"
-                  >
+                  <Button size="icon" onClick={() => speak(correctText, correctLang)}
+                    aria-label={t("play")} className="shrink-0">
                     <Volume2 className="h-5 w-5" />
                   </Button>
                 )}
@@ -312,7 +413,7 @@ export default function PracticePage() {
       </div>
 
       <div className="p-4 max-w-md mx-auto w-full space-y-2">
-        {!checked ? (
+        {!checked && !isMatch ? (
           <>
             <Button fullWidth disabled={!canCheck} onClick={handleCheck}>{t("check")}</Button>
             <Button fullWidth onClick={advance}
@@ -320,11 +421,11 @@ export default function PracticePage() {
               {t("skip")}
             </Button>
           </>
-        ) : (
+        ) : checked ? (
           <Button fullWidth onClick={advance}>
-            {isLast ? t("finish") : t("continue")}
+            {step >= queue.length - 1 ? t("finish") : t("continue")}
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );
