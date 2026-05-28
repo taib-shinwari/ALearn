@@ -14,6 +14,9 @@ export type LessonProgressEntry = {
   stars: 0 | 1 | 2 | 3;
   completedAt?: number;
   attempts: number;
+  /** Decayed mastery 0–5, recomputed lazily by lib/mastery. */
+  masteryLevel?: number;
+  lastPracticedAt?: number;
 };
 
 interface AppState {
@@ -211,12 +214,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
+  const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
   const markLessonComplete = (lessonId: string, stars: 0 | 1 | 2 | 3 = 3) => {
     setState(s => {
       const prev = s.pathProgress[lessonId];
+      const now = Date.now();
       const next: LessonProgressEntry = {
         stars: Math.max(prev?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
-        completedAt: Date.now(),
+        completedAt: now,
+        lastPracticedAt: now,
         attempts: (prev?.attempts ?? 0) + 1,
       };
       return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
