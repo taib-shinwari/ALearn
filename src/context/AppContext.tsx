@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
+import { useCloudProgress } from "@/hooks/useCloudProgress";
 
 export interface Course {
   fromLang: string;
@@ -116,7 +117,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (state.theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => applyAppearance(state.theme, state.textSize, state.highContrast);
-    mq.addEventListener("change", handler);
+  }, [state.theme, state.textSize, state.highContrast]);
+
+  // Cloud sync: hydrate from Lovable Cloud on session start, debounce writes
+  // back. Falls through to pure localStorage when no auth session exists.
+  useCloudProgress(
+    { pathProgress: state.pathProgress, reviews: state.reviews },
+    ({ pathProgress, reviews }) => setState(s => ({ ...s, pathProgress, reviews })),
+  );
     return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
 
