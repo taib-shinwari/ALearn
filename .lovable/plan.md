@@ -1,79 +1,125 @@
-# Plan
 
-## 1. Enable Quranic Arabic as a learnable course
-**Why missing:** `getLearnableLanguages()` in `src/pages/CoursesPage.tsx` (line 21‑23) hard‑filters to only `nl`/`en`.
+# Better-than-Duolingo: phased roadmap
 
-- Allow `ar` as a target language. Keep the 3‑language mutual exclusion: a language used as interface cannot be a target, and vice‑versa.
-- Seed minimal Quranic Arabic word data so the Learning Path has something to point at (small starter set: greetings, common nouns, a few verbs). Stored under existing `courseData` shape (add `ar` words to subcategories or a parallel `ar` course bundle keyed by `toLang`).
-- Update `learningUnits.ts` so lessons resolve their content based on the *active* target language (currently subcategory ids are Dutch‑centric).
+Two focus bets, executed in phases:
+1. **Smarter learning engine** — adaptive, weakness-targeted, mastery-based.
+2. **Deeper AI voice tutor** — natural call you can pick up anytime, with gentle live correction.
 
-## 2. Persistent learning‑path progress
-**Current state:** progress is derived from `reviews` in `AppContext`, which already persists to `localStorage`. But lesson “completed/locked” is recomputed each render from word‑level reviews only — explicit lesson completion (e.g. checkpoints) and per‑lesson stars aren't stored.
+Path structure shifts from a linear list to a **non-linear skill tree** where Speaking / Listening / Vocab / Grammar branches advance independently.
 
-- Add a `pathProgress` slice to `AppContext`:
-  ```ts
-  pathProgress: Record<string /* lessonId */, {
-    stars: 0|1|2|3;
-    completedAt?: number;
-    attempts: number;
-  }>
-  ```
-- Persist via the existing `localStorage` effect (already in place).
-- Update `lessonProgress()` in `learningUnits.ts` to merge word‑review derived progress *and* explicit `pathProgress`.
-- After a Practice session that was launched from a lesson, mark that lesson complete (pass `lessonId` through `practiceScope`).
-- Locked state uses persisted progress, so refresh keeps the right node highlighted.
+---
 
-## 3. Refactor Learning Path UI → Brilliant style
-Replace the current zig‑zag in `src/components/LearningPath.tsx` with a Brilliant‑inspired layout:
+## Phase 1 — Skill-tree foundation + mastery model
 
+Goal: replace the linear unit list with a real tree, and track *mastery per skill node* (not just "lesson done").
+
+**Skill tree**
+- New data model in `src/data/skillTree.ts`:
+  - `SkillNode { id, title, branch: 'speaking'|'listening'|'vocab'|'grammar', tier: number, prereqs: string[], lessons: PathLesson[] }`
+  - Migrate current `PATH_SECTIONS` content into nodes, tagging each by branch.
+- New `SkillTree.tsx` component replacing `LearningPath.tsx`:
+  - Visual tree (CSS grid by tier, SVG connector lines between prereqs).
+  - A node unlocks when *all prereqs* hit mastery ≥ 2 stars (not just "completed").
+  - Branches render side by side on desktop, stacked on mobile.
+- Keep `Container` + `Button` aesthetic — no custom palette.
+
+**Mastery model**
+- Extend `LessonProgressEntry` with `masteryLevel: 0–5` and `lastPracticedAt`.
+- Mastery decays over time (half-life ~10 days) so nodes can become "rusty" and resurface — Brilliant doesn't do this; Duolingo does it poorly.
+- Helper `lib/mastery.ts` exposes `getNodeMastery(node, progress, reviews)` used by the tree to color nodes (locked / available / learning / mastered / rusty).
+
+**Persistence**
+- Store `pathProgress` and `reviews` in Lovable Cloud (table `user_progress`) keyed by `user_id`, mirrored to localStorage for offline. New migration + RLS so each user only reads/writes their own row.
+
+---
+
+## Phase 2 — Adaptive practice engine
+
+Goal: every session targets *your* weaknesses, not the next item in a list.
+
+- Rewrite `lib/spacedRepetition.ts` into `lib/adaptiveEngine.ts`:
+  - SM-2-style intervals **plus** weakness weighting: items with low accuracy or slow response get boosted priority.
+  - Mixed sessions: 60% due reviews, 30% new from current node, 10% interleaved from sibling nodes (interleaving beats blocking — research-backed, neither competitor does it well).
+- Per-exercise calibration: track which exercise *types* the user fails (e.g. listening vs typing) and bias future sessions toward those.
+- Add new exercise types in `components/practice/exerciseGenerator.ts`:
+  - `tap-tiles` (build sentence from word tiles)
+  - `dictation` (full sentence, not just word)
+  - `match-pairs`
+- Session length adapts to recent accuracy (5–15 items).
+- End-of-session screen shows mastery delta per skill node touched.
+
+---
+
+## Phase 3 — AI voice call tutor (the headline feature)
+
+Goal: tap the Call button → instant, natural voice conversation in the target language with gentle correction.
+
+**Conversation flow**
+- Refactor `AICallOverlay.tsx` into a continuous loop instead of push-to-talk:
+  - Browser STT → send transcript → stream LLM reply → TTS plays → auto-restart STT on silence.
+  - Visual: animated orb that pulses while listening / speaking, transcript ticker below.
+- "Hang up" + "mute" buttons. Long-press orb to interrupt the AI.
+
+**Backend (`supabase/functions/ai-tutor`)**
+- Switch to **streaming** via AI SDK (`streamText`, `toUIMessageStreamResponse`) so first audio plays in <1s.
+- System prompt upgrades:
+  - Knows the user's current skill node, recent mistakes, target vocab → naturally weaves them in.
+  - Replies in 1–2 sentences, always asks a follow-up.
+  - Tracks corrections in a structured side-channel tool call `recordCorrection({ original, corrected, rule })` so we can show a post-call debrief.
+- After hang-up: **call summary screen** — list of corrections, new words encountered, mastery bumps applied automatically.
+
+**Voice quality**
+- Keep browser SpeechSynthesis as fallback.
+- Add optional higher-quality TTS via Lovable AI Gateway later (Phase 5).
+
+---
+
+## Phase 4 — Stories & immersion (lightweight)
+
+Short bonus we can ship cheaply once the engine + tutor exist:
+- AI-generated mini-stories (4–6 sentences) at the user's level, using their known vocab.
+- Tap any word → translation + add-to-review.
+- One new story per day per language. Stored in `cached_stories` table, regenerated on demand.
+
+---
+
+## Phase 5 — Polish
+
+- Premium TTS voice via gateway.
+- Pronunciation scoring (compare STT transcript to expected phonemes, basic char-distance heuristic — no extra API).
+- Keyboard shortcuts on practice screen (1–4 to pick MC option, Enter to check).
+- Tree zoom/pan on mobile.
+- Empty-state and onboarding polish for new languages.
+
+---
+
+## Technical details
+
+**Data**
+- `skillTree.ts`: branches `speaking | listening | vocab | grammar`. Each existing subcategory becomes 1–3 nodes (lesson + review + checkpoint).
+- New table `user_progress` (`user_id uuid pk`, `path_progress jsonb`, `reviews jsonb`, `updated_at`). RLS: user can rw own row only. GRANTs for `authenticated` + `service_role`.
+- Local cache in `AppContext` syncs on login, debounced writes on change.
+
+**Adaptive engine selection formula (sketch)**
 ```text
-┌─ Section: Everyday Basics ──────────────┐
-│ ┌────────────────────────────────────┐  │
-│ │ ◐  Unit 1 · Say Hello              │  │
-│ │     Greetings & goodbyes           │  │
-│ │     ●●●○  3 / 4 lessons            │  │
-│ │     [ Continue ]                   │  │
-│ └────────────────────────────────────┘  │
-│ ┌────────────────────────────────────┐  │
-│ │ 🔒 Unit 2 · People & Pets          │  │
-│ └────────────────────────────────────┘  │
-└─────────────────────────────────────────┘
+score(item) = w_due * overdueness
+            + w_weak * (1 - accuracy)
+            + w_type * typeWeakness(item.type)
+            - w_recent * recencyPenalty
+pick top-N by score, then shuffle within score bands
 ```
 
-- Stacked **unit cards** with progress ring + subtitle + Continue CTA.
-- Tapping a card expands inline to show its 1–2 lessons (chips with state: done / current / locked).
-- Section header is a slim chapter title, no big gradient banner.
-- Glass styling consistent with the rest of the app (matches Core memory rules).
-- Current lesson has a subtle pulse; locked units are dimmed with a lock icon.
+**AI tutor streaming**
+- Edge function uses `streamText` + `toUIMessageStreamResponse` from `npm:ai` per the AI SDK pattern. Client uses `fetch` + `ReadableStream` (no `useChat` needed since we render to TTS, not chat bubbles).
+- Tool: `recordCorrection` with Zod schema; results accumulate in client state and feed the debrief screen.
 
-## 4. Remove "About" from Settings
-- Delete the `about` entry from `SETTINGS_CATEGORIES` in `src/components/settings/constants.ts`.
-- Remove the `case "about"` branch and import from `SettingsPage.tsx`.
-- Delete `src/components/settings/sections/AboutSection.tsx`.
+**Files touched**
+- New: `src/data/skillTree.ts`, `src/components/SkillTree.tsx`, `src/lib/mastery.ts`, `src/lib/adaptiveEngine.ts`, `src/components/practice/exercises/{TapTiles,Dictation,MatchPairs}.tsx`, `src/components/ai-tutor/{CallOrb,Debrief}.tsx`, `src/pages/StoryPage.tsx`.
+- Edited: `LearningPath.tsx` → replaced, `AppContext.tsx`, `AICallOverlay.tsx`, `exerciseGenerator.ts`, `PracticePage.tsx`, `HomePage.tsx`, `supabase/functions/ai-tutor/index.ts`.
+- Migrations: `user_progress` table + RLS + GRANTs.
 
-## 5. "Call AI" button — talk to a tutor
-A floating Call button (phone icon, glass styling) available on Home / Learning Path / inside a lesson.
+---
 
-- Opens a full‑screen call UI: animated orb, live caption, mute / end‑call controls.
-- Uses **Lovable AI** via a `chat` edge function streaming responses.
-- Voice in: Web Speech API `SpeechRecognition` (browser native, no extra deps).
-- Voice out: `SpeechSynthesis` with a voice matching the active target language (`ar`, `nl`, `en`).
-- System prompt is target‑language aware: *"You are a friendly tutor helping the user practice {targetLang}. Speak mostly in {targetLang}, fall back to {interfaceLang} for explanations. Keep replies under 2 sentences."*
-- No backend persistence of the conversation (in‑memory only) — matches "no XP/streaks/subs" minimalism.
+## Suggested first slice (start here after you approve)
 
-Requires enabling **Lovable Cloud** + **Lovable AI Gateway** (no API keys needed from the user).
-
-## Files touched
-- `src/pages/CoursesPage.tsx` — allow `ar` target
-- `src/data/courseData.ts` — seed minimal Arabic content (or new `src/data/arabicCourse.ts`)
-- `src/data/learningUnits.ts` — target‑lang aware + merge persisted progress
-- `src/context/AppContext.tsx` — add `pathProgress` slice + setter
-- `src/components/LearningPath.tsx` — Brilliant‑style card layout
-- `src/pages/PracticePage.tsx` — accept `lessonId` in scope, mark complete on finish
-- `src/components/settings/constants.ts`, `src/pages/SettingsPage.tsx`, delete `AboutSection.tsx`
-- `src/components/AICallButton.tsx` *(new)* + `src/components/AICallOverlay.tsx` *(new)*
-- `src/components/Layout.tsx` — mount the floating Call button
-- `supabase/functions/ai-tutor/index.ts` *(new edge function)* — streams to Lovable AI Gateway
-
-## Out of scope (per your message)
-No XP, streaks, leaderboards, subscriptions, hearts, or gem economy.
+**Phase 1 only**: skill-tree data model + visual tree + mastery scoring + cloud-persisted progress. This alone already differentiates from all three competitors. We then iterate phase by phase based on what feels best in your hands.
