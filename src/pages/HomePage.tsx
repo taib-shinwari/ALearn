@@ -6,7 +6,7 @@ import { Play, Map, X, Type } from "lucide-react";
 import { categories, getWordsForCategory, localizedName } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useEffect, useState } from "react";
-import { LearningPath } from "@/components/LearningPath";
+import { SkillTree } from "@/components/SkillTree";
 import { AICallButton } from "@/components/AICallButton";
 
 export default function HomePage() {
@@ -47,7 +47,7 @@ export default function HomePage() {
       </div>
 
       {pathOpen ? (
-        <LearningPath />
+        <SkillTree />
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {categories.map(cat => {

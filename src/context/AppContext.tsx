@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
+import { useCloudProgress } from "@/hooks/useCloudProgress";
 
 export interface Course {
   fromLang: string;
@@ -14,6 +15,9 @@ export type LessonProgressEntry = {
   stars: 0 | 1 | 2 | 3;
   completedAt?: number;
   attempts: number;
+  /** Decayed mastery 0–5, recomputed lazily by lib/mastery. */
+  masteryLevel?: number;
+  lastPracticedAt?: number;
 };
 
 interface AppState {
@@ -117,6 +121,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
 
+  // Cloud sync: hydrate from Lovable Cloud on session start, debounce writes
+  // back. Falls through to pure localStorage when no auth session exists.
+  useCloudProgress(
+    { pathProgress: state.pathProgress, reviews: state.reviews },
+    ({ pathProgress, reviews }) => setState(s => ({ ...s, pathProgress, reviews })),
+  );
+
   const ensureCourse = (s: AppState, fromLang: string): AppState => {
     const toLang = s.learningLanguage && s.learningLanguage !== fromLang
       ? s.learningLanguage
@@ -214,9 +225,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const markLessonComplete = (lessonId: string, stars: 0 | 1 | 2 | 3 = 3) => {
     setState(s => {
       const prev = s.pathProgress[lessonId];
+      const now = Date.now();
       const next: LessonProgressEntry = {
         stars: Math.max(prev?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
-        completedAt: Date.now(),
+        completedAt: now,
+        lastPracticedAt: now,
         attempts: (prev?.attempts ?? 0) + 1,
       };
       return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
