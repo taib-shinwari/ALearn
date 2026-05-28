@@ -239,6 +239,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
     });
   };
+  const recordExerciseResult = (type: ExerciseType, correct: boolean) => {
+    setState(s => {
+      const prev = s.exerciseStats[type] ?? { attempts: 0, correct: 0 };
+      const next = { attempts: prev.attempts + 1, correct: prev.correct + (correct ? 1 : 0) };
+      return { ...s, exerciseStats: { ...s.exerciseStats, [type]: next } };
+    });
+  };
   const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
   const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
   const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
@@ -247,9 +254,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
-      getReview, recordReview, setPracticeScope, markLessonComplete,
+      getReview, recordReview, setPracticeScope, markLessonComplete, recordExerciseResult,
       setTheme, setTextSize, setHighContrast,
     }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
       {children}
     </AppContext.Provider>
   );
