@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
-import { useCloudProgress } from "@/hooks/useCloudProgress";
-import type { TypeStats } from "@/lib/adaptiveEngine";
-import type { ExerciseType } from "@/components/practice/exerciseGenerator";
+import type { RecallItem } from "@/lib/recall";
 
 export interface Course {
   fromLang: string;
@@ -13,15 +11,6 @@ export interface Course {
 export type ThemeChoice = "light" | "dark" | "system";
 export type TextSize = "sm" | "md" | "lg";
 
-export type LessonProgressEntry = {
-  stars: 0 | 1 | 2 | 3;
-  completedAt?: number;
-  attempts: number;
-  /** Decayed mastery 0–5, recomputed lazily by lib/mastery. */
-  masteryLevel?: number;
-  lastPracticedAt?: number;
-};
-
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
@@ -31,12 +20,10 @@ interface AppState {
   introductionCompleted: boolean;
   courses: Course[];
   reviews: ReviewState[];
-  practiceScope: { type: "global" | "category" | "subcategory" | "word" | "lesson"; id?: string; lessonId?: string } | null;
   theme: ThemeChoice;
   textSize: TextSize;
   highContrast: boolean;
-  pathProgress: Record<string, LessonProgressEntry>;
-  exerciseStats: TypeStats;
+  recallQueue: RecallItem[];
 }
 
 interface AppContextType extends AppState {
@@ -51,12 +38,11 @@ interface AppContextType extends AppState {
   setActiveCourse: (course: Course) => void;
   getReview: (wordId: string) => ReviewState;
   recordReview: (wordId: string, correct: boolean) => void;
-  setPracticeScope: (scope: AppState["practiceScope"]) => void;
-  markLessonComplete: (lessonId: string, stars?: 0 | 1 | 2 | 3) => void;
-  recordExerciseResult: (type: ExerciseType, correct: boolean) => void;
   setTheme: (t: ThemeChoice) => void;
   setTextSize: (t: TextSize) => void;
   setHighContrast: (v: boolean) => void;
+  addRecallItem: (item: RecallItem) => void;
+  removeRecallItem: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -76,13 +62,12 @@ const defaultState: AppState = {
   introductionCompleted: false,
   courses: [],
   reviews: [],
-  practiceScope: null,
   theme: "system",
   textSize: "md",
   highContrast: false,
-  pathProgress: {},
-  exerciseStats: {},
+  recallQueue: [],
 };
+
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
   const root = document.documentElement;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -98,10 +83,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      const { streak, xp, lastPracticeDate, ...clean } = parsed;
-      const merged = { ...defaultState, ...clean, selectedConcept: "language" };
-      // Drop any non-language courses (chess removed)
+      // Strip removed legacy fields (practiceScope, pathProgress, exerciseStats, streak, xp...)
+      const {
+        streak, xp, lastPracticeDate,
+        practiceScope, pathProgress, exerciseStats,
+        ...clean
+      } = parsed;
+      const merged: AppState = { ...defaultState, ...clean, selectedConcept: "language" };
       merged.courses = (merged.courses ?? []).filter((c: Course) => c.concept === "language");
+      merged.recallQueue = Array.isArray(merged.recallQueue) ? merged.recallQueue : [];
       return merged;
     }
     return defaultState;
@@ -111,12 +101,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("appState", JSON.stringify(state));
   }, [state]);
 
-  // Apply theme/HC/text-size whenever they change
   useEffect(() => {
     applyAppearance(state.theme, state.textSize, state.highContrast);
   }, [state.theme, state.textSize, state.highContrast]);
 
-  // React to system theme changes when in "system" mode
   useEffect(() => {
     if (state.theme !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -124,13 +112,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [state.theme, state.textSize, state.highContrast]);
-
-  // Cloud sync: hydrate from Lovable Cloud on session start, debounce writes
-  // back. Falls through to pure localStorage when no auth session exists.
-  useCloudProgress(
-    { pathProgress: state.pathProgress, reviews: state.reviews },
-    ({ pathProgress, reviews }) => setState(s => ({ ...s, pathProgress, reviews })),
-  );
 
   const ensureCourse = (s: AppState, fromLang: string): AppState => {
     const toLang = s.learningLanguage && s.learningLanguage !== fromLang
@@ -163,8 +144,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const setInterfaceLanguage = (lang: string) => setState(s => {
-    // If the user just made their interface language the same as what they
-    // were learning, swap the learning target to something else.
     let learningLanguage = s.learningLanguage;
     if (learningLanguage === lang) {
       const fallback = ["en", "nl", "ar"].find(l => l !== lang) ?? null;
@@ -225,37 +204,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const setPracticeScope = (scope: AppState["practiceScope"]) => setState(s => ({ ...s, practiceScope: scope }));
-  const markLessonComplete = (lessonId: string, stars: 0 | 1 | 2 | 3 = 3) => {
-    setState(s => {
-      const prev = s.pathProgress[lessonId];
-      const now = Date.now();
-      const next: LessonProgressEntry = {
-        stars: Math.max(prev?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
-        completedAt: now,
-        lastPracticedAt: now,
-        attempts: (prev?.attempts ?? 0) + 1,
-      };
-      return { ...s, pathProgress: { ...s.pathProgress, [lessonId]: next } };
-    });
-  };
-  const recordExerciseResult = (type: ExerciseType, correct: boolean) => {
-    setState(s => {
-      const prev = s.exerciseStats[type] ?? { attempts: 0, correct: 0 };
-      const next = { attempts: prev.attempts + 1, correct: prev.correct + (correct ? 1 : 0) };
-      return { ...s, exerciseStats: { ...s.exerciseStats, [type]: next } };
-    });
-  };
   const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
   const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
   const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
+
+  const addRecallItem = (item: RecallItem) => setState(s => {
+    const others = s.recallQueue.filter(r => r.id !== item.id);
+    return { ...s, recallQueue: [...others, item] };
+  });
+  const removeRecallItem = (id: string) => setState(s => ({
+    ...s, recallQueue: s.recallQueue.filter(r => r.id !== id),
+  }));
 
   return (
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
-      getReview, recordReview, setPracticeScope, markLessonComplete, recordExerciseResult,
+      getReview, recordReview,
       setTheme, setTextSize, setHighContrast,
+      addRecallItem, removeRecallItem,
     }}>
       {children}
     </AppContext.Provider>
