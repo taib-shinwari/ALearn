@@ -14,7 +14,7 @@ import IntroductionPage from "./pages/IntroductionPage";
 import CategoryPage from "./pages/CategoryPage";
 import SubcategoryPage from "./pages/SubcategoryPage";
 import WordDetailPage from "./pages/WordDetailPage";
-import PracticePage from "./pages/PracticePage";
+import FlashcardsPage from "./pages/FlashcardsPage";
 import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
@@ -45,7 +45,6 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/practice" element={<PracticePage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
 
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
@@ -60,6 +59,10 @@ function AppRoutes() {
       <Route path="/language/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
       <Route path="/language/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
 
+      <Route path="/recall/:category/:subcategory" element={withLayout(<FlashcardsPage />)} />
+      <Route path="/recall/:category/:subcategory/:word" element={withLayout(<FlashcardsPage />)} />
+
+      <Route path="/practice" element={<Navigate to="/language" replace />} />
       <Route path="/" element={<Navigate to="/language" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

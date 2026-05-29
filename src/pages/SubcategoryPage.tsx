@@ -3,6 +3,7 @@ import { CardButton } from "@/components/ui/card-button";
 import { categories, getWordText } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
+import { RecallButton } from "@/components/RecallButton";
 
 export default function SubcategoryPage() {
   const { concept, category: categoryId, subcategory: subId } =
@@ -20,16 +21,24 @@ export default function SubcategoryPage() {
   }
 
   return (
-    <div className="px-6 grid grid-cols-2 gap-3">
-      {subcategory.words.map(word => (
-        <CardButton
-          key={word.id}
-          onClick={() => navigate(`${conceptPrefix}/${category.id}/${subcategory.id}/${word.id}`)}
-          className="min-h-[80px] flex flex-col justify-between"
-        >
-          <span className="font-semibold text-sm">{getWordText(word, courseLang)}</span>
-        </CardButton>
-      ))}
+    <div className="px-6 space-y-4">
+      <RecallButton
+        scope="subcategory"
+        categoryId={category.id}
+        subcategoryId={subcategory.id}
+        fullWidth
+      />
+      <div className="grid grid-cols-2 gap-3">
+        {subcategory.words.map(word => (
+          <CardButton
+            key={word.id}
+            onClick={() => navigate(`${conceptPrefix}/${category.id}/${subcategory.id}/${word.id}`)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{getWordText(word, courseLang)}</span>
+          </CardButton>
+        ))}
+      </div>
     </div>
   );
 }
