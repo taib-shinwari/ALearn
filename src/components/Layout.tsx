@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { ArrowLeft, Settings, Search, Play, ChevronDown } from "lucide-react";
+import { ArrowLeft, Settings, Search, ChevronDown } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -10,6 +10,7 @@ import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
+import { RecallQueueButton } from "@/components/RecallQueueButton";
 
 import {
   DropdownMenu,
@@ -72,7 +73,6 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { setPracticeScope } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
   const isSettings = location.pathname.startsWith("/settings");
@@ -136,15 +136,7 @@ export default function Layout({ children }: LayoutProps) {
     else navigate(conceptPrefix + "/" + contentSegs.slice(0, -1).join("/"));
   };
 
-  const handlePractice = () => {
-    if (contentSegs.length === 0) setPracticeScope({ type: "global" });
-    else if (contentSegs.length === 1) setPracticeScope({ type: "category", id: contentSegs[0] });
-    else if (contentSegs.length === 2) setPracticeScope({ type: "subcategory", id: contentSegs[1] });
-    else setPracticeScope({ type: "word", id: contentSegs[2] });
-    navigate("/practice");
-  };
-
-  const showPracticeAndCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
+  const showCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
 
   if (useSettingsBar) {
     return (
@@ -187,6 +179,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
+            <RecallQueueButton />
             <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5" />
             </Button>
@@ -194,34 +187,26 @@ export default function Layout({ children }: LayoutProps) {
         )}
       </div>
 
-      {showPracticeAndCrumbs && (
-        <>
-          <div className="px-6 flex items-center gap-2">
-            <Button onClick={handlePractice} fullWidth className="gap-2">
-              <Play className="h-4 w-4" /> {t("practice")}
-            </Button>
-          </div>
-
-          <nav aria-label="breadcrumb" className="px-6 mt-3 mb-4">
-            <TitleBar>
-              <ol className="flex flex-wrap items-center gap-1">
-                {crumbs.map((c, i) => {
-                  const isLast = i === crumbs.length - 1;
-                  return (
-                    <li key={c.to + i} className="flex items-center gap-1">
-                      {isLast ? (
-                        <span className="font-medium">{c.label}</span>
-                      ) : (
-                        <Link to={c.to} className="hover:underline">{c.label}</Link>
-                      )}
-                      {!isLast && <span className="px-1">/</span>}
-                    </li>
-                  );
-                })}
-              </ol>
-            </TitleBar>
-          </nav>
-        </>
+      {showCrumbs && (
+        <nav aria-label="breadcrumb" className="px-6 mt-1 mb-4">
+          <TitleBar>
+            <ol className="flex flex-wrap items-center gap-1">
+              {crumbs.map((c, i) => {
+                const isLast = i === crumbs.length - 1;
+                return (
+                  <li key={c.to + i} className="flex items-center gap-1">
+                    {isLast ? (
+                      <span className="font-medium">{c.label}</span>
+                    ) : (
+                      <Link to={c.to} className="hover:underline">{c.label}</Link>
+                    )}
+                    {!isLast && <span className="px-1">/</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          </TitleBar>
+        </nav>
       )}
 
       <div>{children}</div>

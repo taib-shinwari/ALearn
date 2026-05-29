@@ -9,6 +9,7 @@ import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
 import { fetchWordImage } from "@/lib/wordImage";
 import { cn } from "@/lib/utils";
+import { RecallButton } from "@/components/RecallButton";
 
 type FlipState = 0 | 1 | 2;
 
@@ -79,6 +80,13 @@ export default function WordDetailPage() {
 
   return (
     <div className="px-6 max-w-md mx-auto space-y-3">
+      <RecallButton
+        scope="word"
+        categoryId={categoryId!}
+        subcategoryId={subId!}
+        wordId={word.id}
+        fullWidth
+      />
       <CardButton
         onClick={handleFlip}
         className={cn(
