@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
@@ -16,15 +16,14 @@ const LANG_LABELS: Record<string, string> = {
 /** Lists marked words grouped by language. */
 export function DictionarySection() {
   const { map } = useMarkedWords();
-  const { selectedConcept } = useApp();
+  const { setBrowsePath } = useApp();
   const { t } = useCourseLanguage();
+  const navigate = useNavigate();
   const langs = useMemo(
     () => Object.keys(map).filter(l => (map[l] || []).length > 0),
     [map],
   );
   const [activeLang, setActiveLang] = useState<string | null>(langs[0] || null);
-
-  const conceptPrefix = selectedConcept ? `/${selectedConcept}` : "/home";
 
   if (langs.length === 0) {
     return (
@@ -36,6 +35,11 @@ export function DictionarySection() {
 
   const lang = activeLang && map[activeLang] ? activeLang : langs[0];
   const ids = map[lang] || [];
+
+  const openWord = (categoryId: string, subId: string, wordId: string) => {
+    setBrowsePath(["language", lang, categoryId, subId, wordId]);
+    navigate("/");
+  };
 
   return (
     <div className="space-y-3">
@@ -52,17 +56,21 @@ export function DictionarySection() {
           const w = getWordById(id);
           if (!w) return null;
           const text = w[lang as WordLang]?.word || w.en.word;
-          let to = "#";
+          let target: { catId: string; subId: string } | null = null;
           for (const cat of categories) {
             const sub = cat.subcategories.find(s => s.words.some(x => x.id === id));
-            if (sub) { to = `${conceptPrefix}/${cat.id}/${sub.id}/${id}`; break; }
+            if (sub) { target = { catId: cat.id, subId: sub.id }; break; }
           }
           return (
-            <Link key={id} to={to}>
+            <button
+              key={id}
+              onClick={() => target && openWord(target.catId, target.subId, id)}
+              className="w-full text-left"
+            >
               <Container className="hover:bg-foreground hover:text-background transition-colors">
                 <span className="text-sm font-medium">{text}</span>
               </Container>
-            </Link>
+            </button>
           );
         })}
       </div>

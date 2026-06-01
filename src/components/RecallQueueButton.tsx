@@ -16,12 +16,11 @@ import { useCourseLanguage } from "@/hooks/useCourseLanguage";
  * Active = items still cooling down. Recall = items ready to redo.
  */
 export function RecallQueueButton() {
-  const { recallQueue, removeRecallItem } = useApp();
+  const { recallQueue, removeRecallItem, setActiveRecall } = useApp();
   const { t } = useCourseLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  // Force a re-render once a minute so countdowns + ready state stay fresh.
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!open) return;
@@ -36,11 +35,13 @@ export function RecallQueueButton() {
 
   const openItem = (item: RecallItem) => {
     setOpen(false);
-    if (item.scope === "word" && item.wordId) {
-      navigate(`/recall/${item.categoryId}/${item.subcategoryId}/${item.wordId}`);
-    } else {
-      navigate(`/recall/${item.categoryId}/${item.subcategoryId}`);
-    }
+    setActiveRecall({
+      scope: item.scope,
+      categoryId: item.categoryId,
+      subcategoryId: item.subcategoryId,
+      wordId: item.wordId,
+    });
+    navigate("/recall");
   };
 
   return (
