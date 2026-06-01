@@ -11,18 +11,16 @@ interface Props {
   subcategoryId: string;
   wordId?: string;
   className?: string;
-  /** When true the button is rendered full-width inside a header row. */
   fullWidth?: boolean;
 }
 
 /**
  * Inline "Recall" entry point shown on word- and subcategory-detail pages.
- * Disabled while the deck is in the Active cool-down — the queue panel is
- * then the only way to delete and redo it.
+ * Disabled while the deck is cooling down.
  */
 export function RecallButton({ scope, categoryId, subcategoryId, wordId, className, fullWidth }: Props) {
   const navigate = useNavigate();
-  const { recallQueue } = useApp();
+  const { recallQueue, setActiveRecall } = useApp();
   const { t } = useCourseLanguage();
 
   const id = recallId(scope, categoryId, subcategoryId, wordId);
@@ -31,8 +29,8 @@ export function RecallButton({ scope, categoryId, subcategoryId, wordId, classNa
 
   const go = () => {
     if (cooling) return;
-    const base = `/recall/${categoryId}/${subcategoryId}`;
-    navigate(wordId ? `${base}/${wordId}` : base);
+    setActiveRecall({ scope, categoryId, subcategoryId, wordId });
+    navigate("/recall");
   };
 
   if (cooling) {
