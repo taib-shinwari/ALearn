@@ -57,7 +57,7 @@ export default function AuthPage() {
         setSiStep(siStep + 1);
       } else {
         const ok = login(siEmail, siPassword);
-        if (ok) navigate("/concept-select");
+        if (ok) navigate("/");
         else setSiError("Invalid credentials. Use a@mail.com / A");
       }
     };
@@ -99,7 +99,7 @@ export default function AuthPage() {
       setSuStep(suStep + 1);
     } else {
       signup(suFirstName, suEmail, suPassword);
-      navigate("/concept-select");
+      navigate("/");
     }
   };
 

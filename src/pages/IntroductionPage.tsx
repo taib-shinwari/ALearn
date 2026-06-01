@@ -81,7 +81,7 @@ export default function IntroductionPage() {
   const handleContinue = () => {
     if (isLast) {
       completeIntroduction();
-      navigate("/home");
+      navigate("/");
     } else {
       setStep(step + 1);
       setSelected(null);
@@ -94,7 +94,7 @@ export default function IntroductionPage() {
   const handleSkip = () => {
     if (isLast) {
       completeIntroduction();
-      navigate("/home");
+      navigate("/");
     } else {
       setStep(step + 1);
       setSelected(null);
@@ -112,7 +112,7 @@ export default function IntroductionPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex items-center gap-3 p-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/home")}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
           <X className="h-5 w-5" />
         </Button>
         <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">

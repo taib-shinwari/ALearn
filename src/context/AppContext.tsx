@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/lib/spacedRepetition";
-import type { RecallItem } from "@/lib/recall";
+import type { RecallItem, RecallScope } from "@/lib/recall";
 
 export interface Course {
   fromLang: string;
@@ -10,6 +10,13 @@ export interface Course {
 
 export type ThemeChoice = "light" | "dark" | "system";
 export type TextSize = "sm" | "md" | "lg";
+
+export interface ActiveRecall {
+  scope: RecallScope;
+  categoryId: string;
+  subcategoryId: string;
+  wordId?: string;
+}
 
 interface AppState {
   isAuthenticated: boolean;
@@ -24,6 +31,8 @@ interface AppState {
   textSize: TextSize;
   highContrast: boolean;
   recallQueue: RecallItem[];
+  browsePath: string[];
+  activeRecall: ActiveRecall | null;
 }
 
 interface AppContextType extends AppState {
@@ -43,6 +52,11 @@ interface AppContextType extends AppState {
   setHighContrast: (v: boolean) => void;
   addRecallItem: (item: RecallItem) => void;
   removeRecallItem: (id: string) => void;
+  setBrowsePath: (path: string[]) => void;
+  pushBrowse: (segment: string) => void;
+  popBrowse: () => void;
+  resetBrowse: () => void;
+  setActiveRecall: (r: ActiveRecall | null) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -66,6 +80,8 @@ const defaultState: AppState = {
   textSize: "md",
   highContrast: false,
   recallQueue: [],
+  browsePath: [],
+  activeRecall: null,
 };
 
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
@@ -83,7 +99,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Strip removed legacy fields (practiceScope, pathProgress, exerciseStats, streak, xp...)
       const {
         streak, xp, lastPracticeDate,
         practiceScope, pathProgress, exerciseStats,
@@ -92,6 +107,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const merged: AppState = { ...defaultState, ...clean, selectedConcept: "language" };
       merged.courses = (merged.courses ?? []).filter((c: Course) => c.concept === "language");
       merged.recallQueue = Array.isArray(merged.recallQueue) ? merged.recallQueue : [];
+      merged.browsePath = Array.isArray(merged.browsePath) ? merged.browsePath : [];
+      merged.activeRecall = merged.activeRecall ?? null;
       return merged;
     }
     return defaultState;
@@ -216,6 +233,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...s, recallQueue: s.recallQueue.filter(r => r.id !== id),
   }));
 
+  const setBrowsePath = (browsePath: string[]) => setState(s => ({ ...s, browsePath }));
+  const pushBrowse = (segment: string) => setState(s => ({ ...s, browsePath: [...s.browsePath, segment] }));
+  const popBrowse = () => setState(s => ({ ...s, browsePath: s.browsePath.slice(0, -1) }));
+  const resetBrowse = () => setState(s => ({ ...s, browsePath: [] }));
+  const setActiveRecall = (activeRecall: ActiveRecall | null) => setState(s => ({ ...s, activeRecall }));
+
   return (
     <AppContext.Provider value={{
       ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
@@ -223,6 +246,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getReview, recordReview,
       setTheme, setTextSize, setHighContrast,
       addRecallItem, removeRecallItem,
+      setBrowsePath, pushBrowse, popBrowse, resetBrowse, setActiveRecall,
     }}>
       {children}
     </AppContext.Provider>

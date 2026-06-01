@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CATEGORIES, searchByCategory, getResultTypeLabel } from "./utility";
 import type { SearchCategory, SearchResult } from "./types";
+import { pathToBrowse } from "@/lib/navigation";
 
 interface Props {
   open: boolean;
@@ -19,14 +20,13 @@ interface Props {
 }
 
 /**
- * Inline header search: replaces the right side of the topbar with a search input
- * + category dropdown. Results render in a dropdown panel below the bar.
+ * Inline header search. Picks a result → sets browsePath and navigates to "/".
  */
 export function HeaderSearch({ open, onClose }: Props) {
   const navigate = useNavigate();
-  const { selectedConcept } = useApp();
+  const { setBrowsePath, learningLanguage } = useApp();
   const { uiLang, courseLang } = useCourseLanguage();
-  const conceptSlug = selectedConcept || "home";
+  const conceptSlug = "language";
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<SearchCategory>("all");
@@ -37,26 +37,22 @@ export function HeaderSearch({ open, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus when opened
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
     else { setQuery(""); setCategory("all"); }
   }, [open]);
 
-  // Compute results
   useEffect(() => {
     if (!query) { setResults([]); setSelectedIndex(0); return; }
     setResults(searchByCategory(query, category, { uiLang, courseLang, conceptSlug }));
     setSelectedIndex(0);
-  }, [query, category, uiLang, courseLang, conceptSlug]);
+  }, [query, category, uiLang, courseLang]);
 
-  // Click outside to close
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       const t = e.target as Node;
       if (containerRef.current?.contains(t)) return;
-      // Ignore clicks on dropdown menu portal
       const inPortal = (t as HTMLElement)?.closest?.("[data-radix-popper-content-wrapper]");
       if (inPortal) return;
       onClose();
@@ -65,13 +61,12 @@ export function HeaderSearch({ open, onClose }: Props) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open, onClose]);
 
-  const goToSearchPage = useCallback(() => {
-    if (!query.trim()) return;
-    navigate(`/search?q=${encodeURIComponent(query.trim())}&category=${category}`);
+  const onResult = useCallback((path: string) => {
+    const targetLang = learningLanguage || "nl";
+    setBrowsePath(pathToBrowse(path, targetLang));
+    navigate("/");
     onClose();
-  }, [query, category, navigate, onClose]);
-
-  const onResult = (path: string) => { navigate(path); onClose(); };
+  }, [learningLanguage, navigate, onClose, setBrowsePath]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
@@ -82,7 +77,6 @@ export function HeaderSearch({ open, onClose }: Props) {
       setSelectedIndex(p => Math.max(p - 1, 0));
     } else if (e.key === "Enter") {
       if (results.length > 0) onResult(results[selectedIndex].path);
-      else goToSearchPage();
     } else if (e.key === "Escape") {
       onClose();
     }
@@ -147,7 +141,6 @@ export function HeaderSearch({ open, onClose }: Props) {
         )}
       </div>
 
-      {/* Results dropdown */}
       {query && (
         <div className="absolute left-0 right-0 mt-2 bg-background border-2 border-border rounded-[20px] shadow-xl overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
           {results.length > 0 ? (
@@ -156,9 +149,6 @@ export function HeaderSearch({ open, onClose }: Props) {
                 <span className="text-xs font-semibold uppercase tracking-wider text-foreground/60">
                   {getResultTypeLabel(category)}
                 </span>
-                <button onClick={goToSearchPage} className="text-xs font-medium hover:underline">
-                  See all →
-                </button>
               </div>
               {results.map((r, i) => {
                 const active = selectedIndex === i;

@@ -8,14 +8,9 @@ import Layout from "@/components/Layout";
 import AuthPage from "./pages/AuthPage";
 
 import HomePage from "./pages/HomePage";
-import AlphabetPage from "./pages/AlphabetPage";
 import SettingsPage from "./pages/SettingsPage";
 import IntroductionPage from "./pages/IntroductionPage";
-import CategoryPage from "./pages/CategoryPage";
-import SubcategoryPage from "./pages/SubcategoryPage";
-import WordDetailPage from "./pages/WordDetailPage";
 import FlashcardsPage from "./pages/FlashcardsPage";
-import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
 
@@ -29,7 +24,8 @@ function AppRoutes() {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="*" element={<AuthPage />} />
+        <Route path="/sign" element={<AuthPage />} />
+        <Route path="*" element={<Navigate to="/sign" replace />} />
       </Routes>
     );
   }
@@ -38,7 +34,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/introduction" element={<IntroductionPage />} />
-        <Route path="*" element={<Navigate to="/introduction" />} />
+        <Route path="*" element={<Navigate to="/introduction" replace />} />
       </Routes>
     );
   }
@@ -46,24 +42,10 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/introduction" element={<IntroductionPage />} />
-
+      <Route path="/sign" element={<Navigate to="/" replace />} />
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
-      <Route path="/alphabet" element={withLayout(<AlphabetPage />)} />
-      <Route path="/languages" element={<Navigate to="/settings" replace />} />
-      <Route path="/courses" element={<Navigate to="/settings" replace />} />
-      <Route path="/search" element={withLayout(<SearchPage />)} />
-      <Route path="/home" element={withLayout(<HomePage />)} />
-
-      <Route path="/language" element={withLayout(<HomePage />)} />
-      <Route path="/language/:category" element={withLayout(<CategoryPage />)} />
-      <Route path="/language/:category/:subcategory" element={withLayout(<SubcategoryPage />)} />
-      <Route path="/language/:category/:subcategory/:word" element={withLayout(<WordDetailPage />)} />
-
-      <Route path="/recall/:category/:subcategory" element={withLayout(<FlashcardsPage />)} />
-      <Route path="/recall/:category/:subcategory/:word" element={withLayout(<FlashcardsPage />)} />
-
-      <Route path="/practice" element={<Navigate to="/language" replace />} />
-      <Route path="/" element={<Navigate to="/language" replace />} />
+      <Route path="/recall" element={withLayout(<FlashcardsPage />)} />
+      <Route path="/" element={withLayout(<HomePage />)} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
