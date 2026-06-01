@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { ArrowLeft, Settings, Search, ChevronDown } from "lucide-react";
+import { ArrowLeft, Settings, Search } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -11,62 +11,16 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
 import { RecallQueueButton } from "@/components/RecallQueueButton";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ALPHABET_SEGMENT } from "@/lib/navigation";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
   en: "English",
-  ar: "العربية",
+  ar: "العربية القرآنية",
 };
 
 interface LayoutProps {
   children: ReactNode;
-}
-
-function LanguagesDropdown() {
-  const navigate = useNavigate();
-  const { courses, learningLanguage, setActiveCourse } = useApp();
-  const { t } = useCourseLanguage();
-  const label =
-    (learningLanguage && langLabels[learningLanguage]) || t("language");
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button className="truncate gap-1">
-          {label}
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[200px]">
-        {courses.length === 0 ? (
-          <DropdownMenuItem disabled>{t("noCourses")}</DropdownMenuItem>
-        ) : (
-          courses.map((c, i) => {
-            const active = c.toLang === learningLanguage;
-            return (
-              <DropdownMenuItem
-                key={i}
-                onSelect={() => {
-                  setActiveCourse(c);
-                  navigate("/language");
-                }}
-                className={active ? "font-semibold" : ""}
-              >
-                {(langLabels[c.toLang] || c.toLang)}
-                {active && " ✓"}
-              </DropdownMenuItem>
-            );
-          })
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -74,10 +28,11 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { uiLang, t } = useCourseLanguage();
+  const { browsePath, popBrowse, resetBrowse, setBrowsePath } = useApp();
 
   const isSettings = location.pathname.startsWith("/settings");
-  const isCourses = location.pathname.startsWith("/languages") || location.pathname.startsWith("/courses");
-  const isSearch = location.pathname.startsWith("/search");
+  const isRecall = location.pathname.startsWith("/recall");
+  const isHomeRoute = location.pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -99,50 +54,51 @@ export default function Layout({ children }: LayoutProps) {
 
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
 
-  const rawSegments = location.pathname.split("/").filter(Boolean);
-  const isHome =
-    rawSegments.length === 0 ||
-    rawSegments[0] === "home" ||
-    (rawSegments.length === 1 && rawSegments[0] === "language");
-  const contentSegs = !isHome && rawSegments[0] === "language"
-    ? rawSegments.slice(1)
-    : (isHome ? [] : rawSegments);
-
-  const conceptPrefix = "/language";
-
-  const crumbs: { label: string; to: string }[] = [{ label: t("root"), to: conceptPrefix }];
-  if (contentSegs.length >= 1) {
-    const cat = categories.find(c => c.id === contentSegs[0]);
-    if (cat) crumbs.push({ label: localizedName(cat.name, uiLang), to: `${conceptPrefix}/${cat.id}` });
+  // Breadcrumbs (only meaningful on `/` deep in the browse tree)
+  const crumbs: { label: string; idx: number }[] = [];
+  if (isHomeRoute && browsePath.length > 0) {
+    // browsePath = ["language", "<lang>", "<cat>", "<sub>", "<word>"?]
+    crumbs.push({ label: t("language") || "Language", idx: 0 });
+    if (browsePath.length >= 2) {
+      const lang = browsePath[1];
+      crumbs.push({ label: langLabels[lang] || lang, idx: 1 });
+    }
+    if (browsePath.length >= 3) {
+      const seg = browsePath[2];
+      if (seg === ALPHABET_SEGMENT) {
+        crumbs.push({ label: uiLang === "nl" ? "Alfabet" : uiLang === "ar" ? "الحروف" : "Alphabet", idx: 2 });
+      } else {
+        const cat = categories.find(c => c.id === seg);
+        if (cat) crumbs.push({ label: localizedName(cat.name, uiLang), idx: 2 });
+      }
+    }
+    if (browsePath.length >= 4) {
+      const cat = categories.find(c => c.id === browsePath[2]);
+      const sub = cat?.subcategories.find(s => s.id === browsePath[3]);
+      if (cat && sub) crumbs.push({ label: localizedName(sub.name, uiLang), idx: 3 });
+    }
+    if (browsePath.length >= 5) {
+      const cat = categories.find(c => c.id === browsePath[2]);
+      const sub = cat?.subcategories.find(s => s.id === browsePath[3]);
+      const word = sub?.words.find(w => w.id === browsePath[4]);
+      if (word) crumbs.push({ label: word[uiLang === "ar" ? "en" : uiLang].word, idx: 4 });
+    }
   }
-  if (contentSegs.length >= 2) {
-    const cat = categories.find(c => c.id === contentSegs[0]);
-    const sub = cat?.subcategories.find(s => s.id === contentSegs[1]);
-    if (cat && sub) crumbs.push({ label: localizedName(sub.name, uiLang), to: `${conceptPrefix}/${cat.id}/${sub.id}` });
-  }
-  if (contentSegs.length >= 3) {
-    const cat = categories.find(c => c.id === contentSegs[0]);
-    const sub = cat?.subcategories.find(s => s.id === contentSegs[1]);
-    const word = sub?.words.find(w => w.id === contentSegs[2]);
-    if (word) crumbs.push({ label: word[uiLang === "ar" ? "en" : uiLang].word, to: location.pathname });
-  }
 
-  const showBack = !isHome;
+  const showBack = !isHomeRoute || browsePath.length > 0;
 
   const handleBack = () => {
-    if (isSettings || isCourses) { navigate(conceptPrefix); return; }
-    if (isHome) return;
-    if (contentSegs.length <= 1) navigate(conceptPrefix);
-    else navigate(conceptPrefix + "/" + contentSegs.slice(0, -1).join("/"));
+    if (isSettings || isRecall) { navigate("/"); return; }
+    if (browsePath.length > 0) popBrowse();
   };
 
-  const showCrumbs = !isSettings && !isCourses && !isSearch && !isHome;
+  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen;
 
   if (useSettingsBar) {
     return (
       <SettingsMobileBar
         settingsBar={settingsBar}
-        conceptPrefix={conceptPrefix}
+        conceptPrefix="/"
         navigate={navigate}
         t={t}
         uiLang={uiLang}
@@ -161,14 +117,11 @@ export default function Layout({ children }: LayoutProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          {!searchOpen && isSearch && (
-            <TitleBar className="font-semibold">{t("search")}</TitleBar>
+          {!searchOpen && isSettings && (
+            <TitleBar className="font-semibold">{t("settings") || "Settings"}</TitleBar>
           )}
-          {!searchOpen && isCourses && (
-            <TitleBar className="font-semibold">{t("yourCourses")}</TitleBar>
-          )}
-          {!searchOpen && !isSearch && !isCourses && (
-            <LanguagesDropdown />
+          {!searchOpen && isRecall && (
+            <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
         </div>
 
@@ -188,17 +141,28 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {showCrumbs && (
-        <nav aria-label="breadcrumb" className="px-6 mt-1 mb-4">
+        <nav aria-label="breadcrumb" className="px-4 mt-1 mb-4">
           <TitleBar>
             <ol className="flex flex-wrap items-center gap-1">
+              <li>
+                <button onClick={() => resetBrowse()} className="hover:underline">
+                  {t("root") || "Home"}
+                </button>
+                <span className="px-1">/</span>
+              </li>
               {crumbs.map((c, i) => {
                 const isLast = i === crumbs.length - 1;
                 return (
-                  <li key={c.to + i} className="flex items-center gap-1">
+                  <li key={c.idx} className="flex items-center gap-1">
                     {isLast ? (
                       <span className="font-medium">{c.label}</span>
                     ) : (
-                      <Link to={c.to} className="hover:underline">{c.label}</Link>
+                      <button
+                        onClick={() => setBrowsePath(browsePath.slice(0, c.idx + 1))}
+                        className="hover:underline"
+                      >
+                        {c.label}
+                      </button>
                     )}
                     {!isLast && <span className="px-1">/</span>}
                   </li>
