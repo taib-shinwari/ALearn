@@ -16,6 +16,7 @@ export interface ActiveRecall {
   categoryId: string;
   subcategoryId: string;
   wordId?: string;
+  wordIds?: string[];
 }
 
 interface AppState {
@@ -33,6 +34,7 @@ interface AppState {
   recallQueue: RecallItem[];
   browsePath: string[];
   activeRecall: ActiveRecall | null;
+  recallReturnPath: string[] | null;
 }
 
 interface AppContextType extends AppState {
@@ -57,6 +59,7 @@ interface AppContextType extends AppState {
   popBrowse: () => void;
   resetBrowse: () => void;
   setActiveRecall: (r: ActiveRecall | null) => void;
+  setRecallReturnPath: (p: string[] | null) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -82,6 +85,7 @@ const defaultState: AppState = {
   recallQueue: [],
   browsePath: [],
   activeRecall: null,
+  recallReturnPath: null,
 };
 
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
@@ -109,6 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       merged.recallQueue = Array.isArray(merged.recallQueue) ? merged.recallQueue : [];
       merged.browsePath = Array.isArray(merged.browsePath) ? merged.browsePath : [];
       merged.activeRecall = merged.activeRecall ?? null;
+      merged.recallReturnPath = merged.recallReturnPath ?? null;
       return merged;
     }
     return defaultState;
@@ -238,6 +243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const popBrowse = () => setState(s => ({ ...s, browsePath: s.browsePath.slice(0, -1) }));
   const resetBrowse = () => setState(s => ({ ...s, browsePath: [] }));
   const setActiveRecall = (activeRecall: ActiveRecall | null) => setState(s => ({ ...s, activeRecall }));
+  const setRecallReturnPath = (recallReturnPath: string[] | null) => setState(s => ({ ...s, recallReturnPath }));
 
   return (
     <AppContext.Provider value={{
@@ -246,7 +252,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getReview, recordReview,
       setTheme, setTextSize, setHighContrast,
       addRecallItem, removeRecallItem,
-      setBrowsePath, pushBrowse, popBrowse, resetBrowse, setActiveRecall,
+      setBrowsePath, pushBrowse, popBrowse, resetBrowse, setActiveRecall, setRecallReturnPath,
     }}>
       {children}
     </AppContext.Provider>
