@@ -20,7 +20,7 @@ interface Props {
  */
 export function RecallButton({ scope, categoryId, subcategoryId, wordId, className, fullWidth }: Props) {
   const navigate = useNavigate();
-  const { recallQueue, setActiveRecall } = useApp();
+  const { recallQueue, setActiveRecall, browsePath, setRecallReturnPath } = useApp();
   const { t } = useCourseLanguage();
 
   const id = recallId(scope, categoryId, subcategoryId, wordId);
@@ -29,6 +29,7 @@ export function RecallButton({ scope, categoryId, subcategoryId, wordId, classNa
 
   const go = () => {
     if (cooling) return;
+    setRecallReturnPath(browsePath);
     setActiveRecall({ scope, categoryId, subcategoryId, wordId });
     navigate("/recall");
   };
