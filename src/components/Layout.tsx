@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { ArrowLeft, Settings, Search } from "lucide-react";
+import { ArrowLeft, Settings, Search, LogOut, LogIn } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -11,12 +11,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { settingsStore } from "@/components/settings/store";
 import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
 import { RecallQueueButton } from "@/components/RecallQueueButton";
+import { AICallButton } from "@/components/AICallButton";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
   en: "English",
-  ar: "العربية القرآنية",
+  ar: "العربية",
 };
 
 interface LayoutProps {
@@ -28,7 +29,11 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { uiLang, t } = useCourseLanguage();
-  const { browsePath, popBrowse, resetBrowse, setBrowsePath } = useApp();
+  const {
+    browsePath, popBrowse, resetBrowse, setBrowsePath,
+    isAuthenticated, logout,
+    recallReturnPath, setRecallReturnPath,
+  } = useApp();
 
   const isSettings = location.pathname.startsWith("/settings");
   const isRecall = location.pathname.startsWith("/recall");
@@ -54,10 +59,8 @@ export default function Layout({ children }: LayoutProps) {
 
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
 
-  // Breadcrumbs (only meaningful on `/` deep in the browse tree)
   const crumbs: { label: string; idx: number }[] = [];
   if (isHomeRoute && browsePath.length > 0) {
-    // browsePath = ["language", "<lang>", "<cat>", "<sub>", "<word>"?]
     crumbs.push({ label: t("language") || "Language", idx: 0 });
     if (browsePath.length >= 2) {
       const lang = browsePath[1];
@@ -87,8 +90,19 @@ export default function Layout({ children }: LayoutProps) {
 
   const showBack = !isHomeRoute || browsePath.length > 0;
 
+  // When in a language folder, show Call in the header.
+  const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
+
+  const restoreFromRecall = () => {
+    if (recallReturnPath) {
+      setBrowsePath(recallReturnPath);
+      setRecallReturnPath(null);
+    }
+  };
+
   const handleBack = () => {
-    if (isSettings || isRecall) { navigate("/"); return; }
+    if (isRecall) { restoreFromRecall(); navigate("/"); return; }
+    if (isSettings) { navigate("/"); return; }
     if (browsePath.length > 0) popBrowse();
   };
 
@@ -129,10 +143,21 @@ export default function Layout({ children }: LayoutProps) {
           <HeaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
         ) : (
           <div className="flex items-center gap-2">
+            {showCall && <AICallButton />}
+            <RecallQueueButton />
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
-            <RecallQueueButton />
+            <Button
+              size="icon"
+              aria-label={isAuthenticated ? t("signOut") : "Sign in"}
+              onClick={() => {
+                if (isAuthenticated) logout();
+                else navigate("/sign");
+              }}
+            >
+              {isAuthenticated ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
+            </Button>
             <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5" />
             </Button>
@@ -148,7 +173,7 @@ export default function Layout({ children }: LayoutProps) {
                 <button onClick={() => resetBrowse()} className="hover:underline">
                   {t("root") || "Home"}
                 </button>
-                <span className="px-1">/</span>
+                <span className="px-1">&gt;</span>
               </li>
               {crumbs.map((c, i) => {
                 const isLast = i === crumbs.length - 1;
@@ -164,7 +189,7 @@ export default function Layout({ children }: LayoutProps) {
                         {c.label}
                       </button>
                     )}
-                    {!isLast && <span className="px-1">/</span>}
+                    {!isLast && <span className="px-1">&gt;</span>}
                   </li>
                 );
               })}

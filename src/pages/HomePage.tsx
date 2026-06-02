@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Type, Volume2, Bookmark, BookmarkCheck } from "lucide-react";
+import { Type, Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -12,18 +12,16 @@ import {
   categories, getWordsForCategory, localizedName, getWordText,
   type Lang, type WordLang,
 } from "@/data/courseData";
-import { AICallButton } from "@/components/AICallButton";
 import { RecallButton } from "@/components/RecallButton";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { fetchWordImage } from "@/lib/wordImage";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
   { code: "en", label: "English" },
-  { code: "ar", label: "العربية القرآنية" },
+  { code: "ar", label: "العربية" },
 ];
 
 const ALPHABET_LABEL: Record<Lang, string> = {
@@ -34,14 +32,11 @@ const LANGUAGE_LABEL: Record<Lang, string> = {
   nl: "Taal", en: "Language", ar: "اللغة",
 };
 
-/**
- * Slug-less browser. Drills down via `browsePath` stored in app state.
- * URL stays "/" the whole time — refreshes restore via localStorage.
- */
 export default function HomePage() {
   const {
     introductionCompleted, browsePath, pushBrowse, setBrowsePath,
-    setLearningLanguage, interfaceLanguage, learningLanguage,
+    setLearningLanguage, interfaceLanguage,
+    setActiveRecall, setRecallReturnPath,
   } = useApp();
   const { uiLang, t } = useCourseLanguage();
   const navigate = useNavigate();
@@ -51,7 +46,7 @@ export default function HomePage() {
   }, [introductionCompleted, navigate]);
   if (!introductionCompleted) return null;
 
-  // ── ROOT: single "Language" folder ─────────────────────────────────
+  // ── ROOT ────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
     return (
       <div className="grid grid-cols-2 gap-3 w-full px-4">
@@ -68,7 +63,7 @@ export default function HomePage() {
     );
   }
 
-  // ── ["language"]: pick a target language ───────────────────────────
+  // ── pick a target language ─────────────────────────────────────────
   if (browsePath[0] === "language" && browsePath.length === 1) {
     const available = TARGET_LANGS.filter(l => l.code !== interfaceLanguage);
     return (
@@ -80,10 +75,7 @@ export default function HomePage() {
               setLearningLanguage(l.code);
               setBrowsePath(["language", l.code]);
             }}
-            className={cn(
-              "min-h-[120px] flex items-end",
-              learningLanguage === l.code && "bg-foreground text-background border-foreground"
-            )}
+            className="min-h-[120px] flex items-end"
           >
             <span className="font-semibold">{l.label}</span>
           </CardButton>
@@ -92,23 +84,23 @@ export default function HomePage() {
     );
   }
 
-  // From here we're inside a target language folder.
   const targetLang = browsePath[1] as Lang;
 
-  // ── language home: Alphabet + Call + categories ────────────────────
+  // ── language home: Alphabet folder + categories ────────────────────
   if (browsePath.length === 2) {
     return (
-      <div className="space-y-4 w-full">
-        <div className="flex items-center gap-2 flex-wrap px-4">
-          <Button onClick={() => pushBrowse(ALPHABET_SEGMENT)} className="gap-2">
-            <Type className="h-4 w-4" />
-            {ALPHABET_LABEL[uiLang]}
-          </Button>
-          <div className="ml-auto">
-            <AICallButton />
-          </div>
-        </div>
+      <div className="px-4 w-full">
         <div className="grid grid-cols-2 gap-3">
+          <CardButton
+            onClick={() => pushBrowse(ALPHABET_SEGMENT)}
+            className="min-h-[88px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm inline-flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              {ALPHABET_LABEL[uiLang]}
+            </span>
+            <span className="text-xs mt-2 opacity-70">{t("letters") || "letters"}</span>
+          </CardButton>
           {categories.map(cat => {
             const total = getWordsForCategory(cat.id).length;
             return (
@@ -127,16 +119,15 @@ export default function HomePage() {
     );
   }
 
-  // ── alphabet view ───────────────────────────────────────────────────
+  // ── alphabet ────────────────────────────────────────────────────────
   if (browsePath[2] === ALPHABET_SEGMENT) {
     return <AlphabetView targetLang={targetLang} uiLang={uiLang} />;
   }
 
-  // ── category → subcategories ───────────────────────────────────────
+  // ── subcategories ──────────────────────────────────────────────────
   const category = categories.find(c => c.id === browsePath[2]);
-  if (!category) {
-    return <div className="px-4 text-sm">{t("notFound")}</div>;
-  }
+  if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
+
   if (browsePath.length === 3) {
     return (
       <div className="grid grid-cols-2 gap-3 px-4">
@@ -154,31 +145,28 @@ export default function HomePage() {
     );
   }
 
-  // ── subcategory → words ────────────────────────────────────────────
+  // ── words ──────────────────────────────────────────────────────────
   const subcategory = category.subcategories.find(s => s.id === browsePath[3]);
   if (!subcategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 4) {
     return (
-      <div className="space-y-4 px-4">
-        <RecallButton
-          scope="subcategory"
-          categoryId={category.id}
-          subcategoryId={subcategory.id}
-          fullWidth
-        />
-        <div className="grid grid-cols-2 gap-3">
-          {subcategory.words.map(word => (
-            <CardButton
-              key={word.id}
-              onClick={() => pushBrowse(word.id)}
-              className="min-h-[80px] flex flex-col justify-between"
-            >
-              <span className="font-semibold text-sm">{getWordText(word, targetLang as WordLang)}</span>
-            </CardButton>
-          ))}
-        </div>
-      </div>
+      <WordsView
+        categoryId={category.id}
+        subcategoryId={subcategory.id}
+        targetLang={targetLang}
+        onOpenWord={(id) => pushBrowse(id)}
+        onSelectedRecall={(wordIds) => {
+          setRecallReturnPath(browsePath);
+          setActiveRecall({
+            scope: "word",
+            categoryId: category.id,
+            subcategoryId: subcategory.id,
+            wordIds,
+          });
+          navigate("/recall");
+        }}
+      />
     );
   }
 
@@ -191,6 +179,92 @@ export default function HomePage() {
       subcategoryId={subcategory.id}
       word={word}
     />
+  );
+}
+
+/* ─────────────────────────── Words view ───────────────────────────── */
+
+function WordsView({
+  categoryId, subcategoryId, targetLang, onOpenWord, onSelectedRecall,
+}: {
+  categoryId: string;
+  subcategoryId: string;
+  targetLang: Lang;
+  onOpenWord: (wordId: string) => void;
+  onSelectedRecall: (wordIds: string[]) => void;
+}) {
+  const category = categories.find(c => c.id === categoryId)!;
+  const subcategory = category.subcategories.find(s => s.id === subcategoryId)!;
+  const { t } = useCourseLanguage();
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4 px-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <RecallButton
+          scope="subcategory"
+          categoryId={categoryId}
+          subcategoryId={subcategoryId}
+          className="flex-1 min-w-[160px]"
+        />
+        <Button
+          onClick={() => { setSelectMode(s => !s); setSelected(new Set()); }}
+          aria-label="Select words"
+          active={selectMode}
+        >
+          {selectMode ? <X className="h-4 w-4 mr-2" /> : <CheckSquare className="h-4 w-4 mr-2" />}
+          {selectMode ? (t("cancel") || "Cancel") : (t("select") || "Select")}
+        </Button>
+      </div>
+
+      {selectMode && selected.size > 0 && (
+        <Button
+          active
+          fullWidth
+          onClick={() => onSelectedRecall(Array.from(selected))}
+        >
+          <Brain className="h-4 w-4 mr-2" />
+          {(t("recallSelected") || "Recall selected")} ({selected.size})
+        </Button>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        {subcategory.words.map(word => {
+          const isSel = selected.has(word.id);
+          return (
+            <CardButton
+              key={word.id}
+              onClick={() => {
+                if (selectMode) toggle(word.id);
+                else onOpenWord(word.id);
+              }}
+              className={cn(
+                "min-h-[80px] flex flex-col justify-between relative",
+                selectMode && isSel && "bg-foreground text-background border-foreground"
+              )}
+            >
+              {selectMode && (
+                <span className="absolute top-2 right-2">
+                  {isSel ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4 opacity-60" />}
+                </span>
+              )}
+              <span className="font-semibold text-sm">
+                {getWordText(word, targetLang as WordLang)}
+              </span>
+            </CardButton>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

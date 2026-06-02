@@ -12,17 +12,12 @@ import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { intervalFor, recallId, type RecallItem } from "@/lib/recall";
 import { cn } from "@/lib/utils";
 
-/**
- * Flashcard runner. The deck (subcategory or single word) is read from
- * `activeRecall` in app state, set before navigation.
- *
- * Each card flow: front → flip to back → self-rate 1-5 → next card.
- * Per-card ratings persist a per-word recall item; finishing also persists
- * a subcategory-level recall item using the average rating.
- */
 export default function FlashcardsPage() {
   const navigate = useNavigate();
-  const { activeRecall, addRecallItem } = useApp();
+  const {
+    activeRecall, addRecallItem,
+    recallReturnPath, setRecallReturnPath, setBrowsePath,
+  } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
 
   const category = activeRecall && categories.find(c => c.id === activeRecall.categoryId);
@@ -34,6 +29,10 @@ export default function FlashcardsPage() {
       const w = subcategory.words.find(w => w.id === activeRecall.wordId);
       return w ? [w] : [];
     }
+    if (activeRecall.wordIds && activeRecall.wordIds.length) {
+      const ids = new Set(activeRecall.wordIds);
+      return subcategory.words.filter(w => ids.has(w.id));
+    }
     return subcategory.words;
   }, [subcategory, activeRecall]);
 
@@ -41,11 +40,19 @@ export default function FlashcardsPage() {
   const [flipped, setFlipped] = useState(false);
   const [ratings, setRatings] = useState<(1 | 2 | 3 | 4 | 5)[]>([]);
 
+  const exitToReturn = () => {
+    if (recallReturnPath) {
+      setBrowsePath(recallReturnPath);
+      setRecallReturnPath(null);
+    }
+    navigate("/");
+  };
+
   if (!activeRecall || !category || !subcategory || deck.length === 0) {
     return (
       <div className="px-4 max-w-md mx-auto space-y-4 text-center">
         <p className="text-sm opacity-70">{t("noActive") || "No deck selected."}</p>
-        <Button onClick={() => navigate("/")} fullWidth>{t("back") || "Back"}</Button>
+        <Button onClick={exitToReturn} fullWidth>{t("back") || "Back"}</Button>
       </div>
     );
   }
@@ -56,9 +63,26 @@ export default function FlashcardsPage() {
   const meaning = getWordText(word, interfaceLang);
   const isLast = idx + 1 >= deck.length;
 
+  // Rich back content (mirrors WordDetailView)
+  const en = word.en, nl = word.nl;
+  const definition = courseLang === "nl" ? nl.definitie
+    : courseLang === "ar" ? (word.ar?.definition ?? en.definition)
+    : en.definition;
+  const plural = courseLang === "nl" ? nl.meervoud : en.plural;
+  const diminutive = courseLang === "nl" ? nl.verkleinwoord : en.diminutive;
+  const conjugation = courseLang === "nl" ? nl.vervoeging : en.conjugation;
+  const example = courseLang === "nl" ? nl.voorbeeld
+    : courseLang === "ar" ? (word.ar?.example ?? en.example)
+    : en.example;
+  const pronunciation = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang]?.pronunciation) ?? undefined;
+  const gender = courseLang === "nl" ? nl.gender : courseLang === "en" ? en.gender : undefined;
+  const genderLabel = gender === "m" ? t("masculine")
+    : gender === "f" ? t("feminine")
+    : gender === "n" ? t("neuter")
+    : gender === "c" ? t("common") : null;
+
   const rateAndAdvance = (r: 1 | 2 | 3 | 4 | 5) => {
     const now = Date.now();
-    // Per-card recall item (always per-word, scoped by current word).
     const perWord: RecallItem = {
       id: recallId("word", activeRecall.categoryId, activeRecall.subcategoryId, word.id),
       scope: "word",
@@ -74,8 +98,9 @@ export default function FlashcardsPage() {
 
     const nextRatings = [...ratings, r];
     if (isLast) {
-      // Subcategory-level item if running the full deck.
-      if (!activeRecall.wordId) {
+      // Only persist a subcategory-level item when we just ran the full deck.
+      const fullDeck = !activeRecall.wordId && (!activeRecall.wordIds || activeRecall.wordIds.length === subcategory.words.length);
+      if (fullDeck) {
         const avg = Math.max(1, Math.min(5, Math.round(
           nextRatings.reduce((a, b) => a + b, 0) / nextRatings.length
         ))) as 1 | 2 | 3 | 4 | 5;
@@ -91,7 +116,7 @@ export default function FlashcardsPage() {
         };
         addRecallItem(subItem);
       }
-      navigate("/");
+      exitToReturn();
       return;
     }
 
@@ -111,29 +136,55 @@ export default function FlashcardsPage() {
 
       <CardButton
         onClick={() => setFlipped(f => !f)}
-        className={cn("min-h-[240px] relative")}
+        className={cn("relative", flipped ? "min-h-[320px]" : "min-h-[240px]")}
       >
         {isSpeechAvailable() && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); speak(target, courseLang); }}
-            className="absolute top-3 right-3 rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
+            className="absolute top-3 right-3 rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors z-10"
             aria-label={t("play")}
           >
             <Volume2 className="h-4 w-4" />
           </button>
         )}
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center">
-          {!flipped ? (
+        {!flipped ? (
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center gap-1">
             <h1 className="text-3xl font-bold">{target}</h1>
-          ) : (
-            <>
-              <p className="text-xs uppercase tracking-wider opacity-60 mb-2">{t("definition")}</p>
-              <h2 className="text-2xl font-semibold">{meaning}</h2>
-            </>
-          )}
-          <p className="text-xs opacity-50 mt-6">{t("tapToFlip")}</p>
-        </div>
+            {pronunciation && <p className="text-sm opacity-70 font-mono">{pronunciation}</p>}
+            <p className="text-xs opacity-50 mt-6">{t("tapToFlip")}</p>
+          </div>
+        ) : (
+          <div className="flex flex-col w-full text-left pr-10">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-2xl font-bold">{target}</h2>
+              {pronunciation && <span className="text-sm opacity-70 font-mono">{pronunciation}</span>}
+            </div>
+            <p className="text-base font-semibold mb-2">{meaning}</p>
+            {genderLabel && (
+              <span className="inline-block self-start text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background mb-2">
+                {t("gender")}: {genderLabel}
+              </span>
+            )}
+            {definition && <Section label={t("definition")}>{definition}</Section>}
+            {plural && <Section label={t("plural")}>{plural}</Section>}
+            {diminutive && <Section label={t("diminutive")}>{diminutive}</Section>}
+            {conjugation && (
+              <div className="mb-2">
+                <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("conjugation")}</h3>
+                <div className="space-y-0.5">
+                  {Object.entries(conjugation).map(([pronoun, form]) => (
+                    <div key={pronoun} className="flex justify-between text-sm">
+                      <span className="opacity-70">{pronoun}</span>
+                      <span className="font-medium">{form}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {example && <Section label={t("example")} italic>{example}</Section>}
+          </div>
+        )}
       </CardButton>
 
       {!flipped ? (
@@ -163,6 +214,15 @@ export default function FlashcardsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Section({ label, children, italic }: { label: string; children: React.ReactNode; italic?: boolean }) {
+  return (
+    <div className="mb-2">
+      <h3 className="text-xs font-medium opacity-70 mb-0.5">{label}</h3>
+      <p className={cn("text-sm", italic && "italic")}>{children}</p>
     </div>
   );
 }

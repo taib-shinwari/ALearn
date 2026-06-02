@@ -16,7 +16,7 @@ import { useCourseLanguage } from "@/hooks/useCourseLanguage";
  * Active = items still cooling down. Recall = items ready to redo.
  */
 export function RecallQueueButton() {
-  const { recallQueue, removeRecallItem, setActiveRecall } = useApp();
+  const { recallQueue, removeRecallItem, setActiveRecall, browsePath, setRecallReturnPath } = useApp();
   const { t } = useCourseLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -35,6 +35,7 @@ export function RecallQueueButton() {
 
   const openItem = (item: RecallItem) => {
     setOpen(false);
+    setRecallReturnPath(browsePath);
     setActiveRecall({
       scope: item.scope,
       categoryId: item.categoryId,
@@ -49,7 +50,6 @@ export function RecallQueueButton() {
       <DialogTrigger asChild>
         <Button
           size="icon"
-          active={hasReady}
           aria-label="Recall queue"
           className="relative"
         >
