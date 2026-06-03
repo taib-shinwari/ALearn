@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { ArrowLeft, Settings, Search, LogOut, LogIn } from "lucide-react";
+import { ArrowLeft, Settings, Search, LogIn } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
