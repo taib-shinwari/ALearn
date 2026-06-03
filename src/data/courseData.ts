@@ -405,7 +405,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "دورك", correctMove: "نقلة صحيحة!",
     wrongMove: "نقلة خاطئة، حاول مجددًا",
     resetBoard: "إعادة ضبط الرقعة", revisit: "مراجعة",
+    activeTab: "نشط", recallTab: "للمراجعة", recall: "مراجعة",
+    noActive: "لا شيء قيد الانتظار.", noReady: "لا شيء للمراجعة بعد.",
+    flip: "اقلب", rateRecall: "ما مدى تذكرك؟",
+    ratingLow: "بالكاد", ratingHigh: "ممتاز",
+    select: "اختر", recallSelected: "راجع المحدد",
+    notLoggedIn: "غير مسجل", signIn: "تسجيل الدخول",
+    signInToSync: "سجّل الدخول لحفظ تقدمك.",
+    languages: "لغات", letters: "حروف",
+    masteryProgress: "التقدم", dueNow: "مستحق الآن", coolingDown: "قيد الانتظار",
+    startRecall: "ابدأ المراجعة", deleteItem: "حذف",
   },
+
 };
 
 export const globalLearningOrder: string[] = [
