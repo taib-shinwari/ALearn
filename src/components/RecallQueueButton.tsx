@@ -165,13 +165,14 @@ function Row({
         </p>
       </div>
       {ready && onOpen && (
-        <Button size="icon" active onClick={onOpen} aria-label="Start recall">
+        <Button size="icon" active onClick={onOpen} aria-label={t("startRecall") || "Start recall"}>
           <Play className="h-4 w-4" />
         </Button>
       )}
-      <Button size="icon" onClick={onDelete} aria-label="Delete">
+      <Button size="icon" onClick={onDelete} aria-label={t("deleteItem") || "Delete"}>
         <Trash2 className="h-4 w-4" />
       </Button>
     </Container>
   );
 }
+
