@@ -287,7 +287,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "Your turn", correctMove: "Correct move!",
     wrongMove: "Wrong move, try again",
     resetBoard: "Reset board", revisit: "Revisit",
+    activeTab: "Active", recallTab: "Recall", recall: "Recall",
+    noActive: "Nothing cooling down.", noReady: "Nothing to recall yet.",
+    flip: "Flip", rateRecall: "How well did you recall?",
+    ratingLow: "Barely", ratingHigh: "Perfect",
+    select: "Select", recallSelected: "Recall Selected",
+    notLoggedIn: "Not Logged In", signIn: "Sign In",
+    signInToSync: "Sign in to save your progress.",
+    languages: "languages", letters: "letters",
+    masteryProgress: "Progress", dueNow: "Due Now", coolingDown: "Cooling Down",
+    startRecall: "Start Recall", deleteItem: "Delete",
   },
+
   ar: {
     practice: "تدريب",
     back: "رجوع",
