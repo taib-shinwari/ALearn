@@ -149,6 +149,9 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
+            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
+              <Settings className="h-5 w-5" />
+            </Button>
             {!isAuthenticated && (
               <Button
                 size="icon"
@@ -158,10 +161,6 @@ export default function Layout({ children }: LayoutProps) {
                 <LogIn className="h-5 w-5" />
               </Button>
             )}
-
-            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
-              <Settings className="h-5 w-5" />
-            </Button>
           </div>
         )}
       </div>

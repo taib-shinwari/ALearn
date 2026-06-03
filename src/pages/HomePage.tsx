@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Type, Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X } from "lucide-react";
+import { Type, Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -193,10 +193,24 @@ function WordsView({
   const category = categories.find(c => c.id === categoryId)!;
   const subcategory = category.subcategories.find(s => s.id === subcategoryId)!;
   const { t } = useCourseLanguage();
+  const { recallQueue } = useApp();
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const now = Date.now();
+  const wordCooling = (wid: string) => {
+    const item = recallQueue.find(
+      r => r.scope === "word" && r.categoryId === categoryId && r.subcategoryId === subcategoryId && r.wordId === wid
+    );
+    return !!item && item.readyAt > now;
+  };
+  const subItem = recallQueue.find(
+    r => r.scope === "subcategory" && r.categoryId === categoryId && r.subcategoryId === subcategoryId
+  );
+  const subCooling = !!subItem && subItem.readyAt > now;
+
   const toggle = (id: string) => {
+    if (wordCooling(id)) return;
     setSelected(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -217,6 +231,7 @@ function WordsView({
           onClick={() => { setSelectMode(s => !s); setSelected(new Set()); }}
           aria-label="Select words"
           active={selectMode}
+          disabled={subCooling}
         >
           {selectMode ? <X className="h-4 w-4 mr-2" /> : <CheckSquare className="h-4 w-4 mr-2" />}
           {selectMode ? (t("cancel") || "Cancel") : (t("select") || "Select")}
@@ -237,6 +252,7 @@ function WordsView({
       <div className="grid grid-cols-2 gap-3">
         {subcategory.words.map(word => {
           const isSel = selected.has(word.id);
+          const cooling = wordCooling(word.id);
           return (
             <CardButton
               key={word.id}
@@ -244,14 +260,22 @@ function WordsView({
                 if (selectMode) toggle(word.id);
                 else onOpenWord(word.id);
               }}
+              disabled={selectMode && cooling}
               className={cn(
                 "min-h-[80px] flex flex-col justify-between relative",
-                selectMode && isSel && "bg-foreground text-background border-foreground"
+                selectMode && isSel && "bg-foreground text-background border-foreground hover:bg-foreground hover:text-background hover:border-foreground",
+                selectMode && cooling && "opacity-50"
               )}
             >
               {selectMode && (
                 <span className="absolute top-2 right-2">
-                  {isSel ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4 opacity-60" />}
+                  {cooling ? (
+                    <Clock className="h-4 w-4 opacity-60" />
+                  ) : isSel ? (
+                    <CheckSquare className="h-4 w-4" />
+                  ) : (
+                    <Square className="h-4 w-4 opacity-60" />
+                  )}
                 </span>
               )}
               <span className="font-semibold text-sm">
