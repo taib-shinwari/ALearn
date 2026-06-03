@@ -176,7 +176,7 @@ export const uiLabels: Record<string, Record<string, string>> = {
     select: "Selecteer", recallSelected: "Herhaal geselecteerde",
     notLoggedIn: "Niet ingelogd", signIn: "Inloggen",
     signInToSync: "Log in om voortgang te bewaren.",
-    language: "Taal", languages: "talen", letters: "letters",
+    languages: "talen", letters: "letters",
     masteryProgress: "Voortgang", dueNow: "Nu te doen", coolingDown: "Aan het afkoelen",
     startRecall: "Start herhaling", deleteItem: "Verwijderen",
   },
