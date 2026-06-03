@@ -65,6 +65,11 @@ export function RecallQueueButton() {
         <DialogHeader>
           <DialogTitle>{t("recall") || "Recall"}</DialogTitle>
         </DialogHeader>
+
+        {recallQueue.length > 0 && (
+          <MasteryBar items={recallQueue} readyCount={ready.length} t={t} />
+        )}
+
         <Tabs defaultValue={hasReady ? "ready" : "active"} className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="active">
@@ -74,7 +79,7 @@ export function RecallQueueButton() {
               {t("recallTab") || "Recall"} ({ready.length})
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="active" className="space-y-2 max-h-[60vh] overflow-auto pr-1">
+          <TabsContent value="active" className="space-y-2 max-h-[60vh] overflow-auto pr-1 mt-3">
             {active.length === 0 && (
               <p className="text-sm opacity-60 text-center py-6">
                 {t("noActive") || "Nothing cooling down."}
@@ -86,10 +91,11 @@ export function RecallQueueButton() {
                 item={item}
                 onDelete={() => removeRecallItem(item.id)}
                 ready={false}
+                t={t}
               />
             ))}
           </TabsContent>
-          <TabsContent value="ready" className="space-y-2 max-h-[60vh] overflow-auto pr-1">
+          <TabsContent value="ready" className="space-y-2 max-h-[60vh] overflow-auto pr-1 mt-3">
             {ready.length === 0 && (
               <p className="text-sm opacity-60 text-center py-6">
                 {t("noReady") || "Nothing to recall yet."}
@@ -102,6 +108,7 @@ export function RecallQueueButton() {
                 onDelete={() => removeRecallItem(item.id)}
                 onOpen={() => openItem(item)}
                 ready
+                t={t}
               />
             ))}
           </TabsContent>
@@ -110,6 +117,32 @@ export function RecallQueueButton() {
     </Dialog>
   );
 }
+
+function MasteryBar({
+  items, readyCount, t,
+}: { items: RecallItem[]; readyCount: number; t: (k: string) => string }) {
+  const avg = items.reduce((sum, i) => sum + i.lastRating, 0) / items.length;
+  const pct = Math.round((avg / 5) * 100);
+  return (
+    <Container className="p-3 space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium">{t("masteryProgress") || "Progress"}</span>
+        <span className="opacity-70">{pct}%</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full bg-foreground rounded-full transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-[11px] opacity-70">
+        <span>{items.length - readyCount} {t("coolingDown") || "Cooling Down"}</span>
+        <span>{readyCount} {t("dueNow") || "Due Now"}</span>
+      </div>
+    </Container>
+  );
+}
+
 
 function Row({
   item, onDelete, onOpen, ready,
