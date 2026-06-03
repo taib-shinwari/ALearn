@@ -145,13 +145,15 @@ function MasteryBar({
 
 
 function Row({
-  item, onDelete, onOpen, ready,
+  item, onDelete, onOpen, ready, t,
 }: {
   item: RecallItem;
   onDelete: () => void;
   onOpen?: () => void;
   ready: boolean;
+  t: (k: string) => string;
 }) {
+
   return (
     <Container className="flex items-center gap-2 p-2">
       <div className="flex-1 min-w-0">
