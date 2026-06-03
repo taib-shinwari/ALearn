@@ -169,7 +169,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "Jouw zet", correctMove: "Correcte zet!",
     wrongMove: "Verkeerde zet, probeer opnieuw",
     resetBoard: "Reset bord", revisit: "Herhalen",
+    activeTab: "Actief", recallTab: "Te herhalen", recall: "Herhaling",
+    noActive: "Niets aan het afkoelen.", noReady: "Nog niets om te herhalen.",
+    flip: "Draaien", rateRecall: "Hoe goed wist je het?",
+    ratingLow: "Nauwelijks", ratingHigh: "Perfect",
+    select: "Selecteer", recallSelected: "Herhaal geselecteerde",
+    notLoggedIn: "Niet ingelogd", signIn: "Inloggen",
+    signInToSync: "Log in om voortgang te bewaren.",
+    language: "Taal", languages: "talen", letters: "letters",
+    masteryProgress: "Voortgang", dueNow: "Nu te doen", coolingDown: "Aan het afkoelen",
+    startRecall: "Start herhaling", deleteItem: "Verwijderen",
   },
+
   en: {
     practice: "Practice",
     back: "Back",
