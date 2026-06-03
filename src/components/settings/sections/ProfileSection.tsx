@@ -4,15 +4,14 @@ import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { LogOut, Trash2 } from "lucide-react";
+import { LogOut, LogIn, Trash2 } from "lucide-react";
 
 interface Props {
   activeSubcategory: string;
 }
 
-/** Profile section. Shows different content depending on the selected subcategory. */
 export function ProfileSection({ activeSubcategory }: Props) {
-  const { user, logout } = useApp();
+  const { user, logout, isAuthenticated } = useApp();
   const { t } = useCourseLanguage();
   const navigate = useNavigate();
 
@@ -28,6 +27,29 @@ export function ProfileSection({ activeSubcategory }: Props) {
       navigate("/");
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-4">
+        <Container>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-muted text-foreground flex items-center justify-center font-semibold">
+              ?
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold truncate">{t("notLoggedIn") || "Not Logged In"}</p>
+              <p className="text-sm opacity-70 truncate">
+                {t("signInToSync") || "Sign in to save your progress."}
+              </p>
+            </div>
+          </div>
+        </Container>
+        <Button fullWidth active onClick={() => navigate("/sign")}>
+          <LogIn className="h-4 w-4 mr-2" /> {t("signIn") || "Sign In"}
+        </Button>
+      </div>
+    );
+  }
 
   if (activeSubcategory === "signout") {
     return (
@@ -48,7 +70,6 @@ export function ProfileSection({ activeSubcategory }: Props) {
     );
   }
 
-  // Default: account / profile
   const initials = (user?.firstName || "?").slice(0, 2).toUpperCase();
   return (
     <div className="space-y-4">

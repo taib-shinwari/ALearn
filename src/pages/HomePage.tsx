@@ -34,7 +34,7 @@ const LANGUAGE_LABEL: Record<Lang, string> = {
 
 export default function HomePage() {
   const {
-    introductionCompleted, browsePath, pushBrowse, setBrowsePath,
+    isAuthenticated, introductionCompleted, browsePath, pushBrowse, setBrowsePath,
     setLearningLanguage, interfaceLanguage,
     setActiveRecall, setRecallReturnPath,
   } = useApp();
@@ -42,9 +42,8 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!introductionCompleted) navigate("/introduction");
-  }, [introductionCompleted, navigate]);
-  if (!introductionCompleted) return null;
+    if (isAuthenticated && !introductionCompleted) navigate("/introduction");
+  }, [isAuthenticated, introductionCompleted, navigate]);
 
   // ── ROOT ────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
@@ -52,12 +51,9 @@ export default function HomePage() {
       <div className="grid grid-cols-2 gap-3 w-full px-4">
         <CardButton
           onClick={() => pushBrowse("language")}
-          className="min-h-[120px] flex flex-col justify-between"
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
         >
           <span className="font-semibold">{LANGUAGE_LABEL[uiLang]}</span>
-          <span className="text-xs opacity-70">
-            {TARGET_LANGS.length} {t("languages") || "languages"}
-          </span>
         </CardButton>
       </div>
     );
@@ -75,7 +71,7 @@ export default function HomePage() {
               setLearningLanguage(l.code);
               setBrowsePath(["language", l.code]);
             }}
-            className="min-h-[120px] flex items-end"
+            className="min-h-[64px] py-3 flex items-center justify-center text-center"
           >
             <span className="font-semibold">{l.label}</span>
           </CardButton>
@@ -83,6 +79,7 @@ export default function HomePage() {
       </div>
     );
   }
+
 
   const targetLang = browsePath[1] as Lang;
 

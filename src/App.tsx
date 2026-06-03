@@ -21,16 +21,7 @@ const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
 function AppRoutes() {
   const { isAuthenticated, introductionCompleted } = useApp();
 
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/sign" element={<AuthPage />} />
-        <Route path="*" element={<Navigate to="/sign" replace />} />
-      </Routes>
-    );
-  }
-
-  if (!introductionCompleted) {
+  if (isAuthenticated && !introductionCompleted) {
     return (
       <Routes>
         <Route path="/introduction" element={<IntroductionPage />} />
@@ -41,8 +32,8 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/sign" element={<AuthPage />} />
       <Route path="/introduction" element={<IntroductionPage />} />
-      <Route path="/sign" element={<Navigate to="/" replace />} />
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
       <Route path="/recall" element={withLayout(<FlashcardsPage />)} />
       <Route path="/" element={withLayout(<HomePage />)} />
@@ -50,6 +41,7 @@ function AppRoutes() {
     </Routes>
   );
 }
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

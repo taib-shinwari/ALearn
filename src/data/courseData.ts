@@ -169,7 +169,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "Jouw zet", correctMove: "Correcte zet!",
     wrongMove: "Verkeerde zet, probeer opnieuw",
     resetBoard: "Reset bord", revisit: "Herhalen",
+    activeTab: "Actief", recallTab: "Te herhalen", recall: "Herhaling",
+    noActive: "Niets aan het afkoelen.", noReady: "Nog niets om te herhalen.",
+    flip: "Draaien", rateRecall: "Hoe goed wist je het?",
+    ratingLow: "Nauwelijks", ratingHigh: "Perfect",
+    select: "Selecteer", recallSelected: "Herhaal geselecteerde",
+    notLoggedIn: "Niet ingelogd", signIn: "Inloggen",
+    signInToSync: "Log in om voortgang te bewaren.",
+    languages: "talen", letters: "letters",
+    masteryProgress: "Voortgang", dueNow: "Nu te doen", coolingDown: "Aan het afkoelen",
+    startRecall: "Start herhaling", deleteItem: "Verwijderen",
   },
+
   en: {
     practice: "Practice",
     back: "Back",
@@ -276,7 +287,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "Your turn", correctMove: "Correct move!",
     wrongMove: "Wrong move, try again",
     resetBoard: "Reset board", revisit: "Revisit",
+    activeTab: "Active", recallTab: "Recall", recall: "Recall",
+    noActive: "Nothing cooling down.", noReady: "Nothing to recall yet.",
+    flip: "Flip", rateRecall: "How well did you recall?",
+    ratingLow: "Barely", ratingHigh: "Perfect",
+    select: "Select", recallSelected: "Recall Selected",
+    notLoggedIn: "Not Logged In", signIn: "Sign In",
+    signInToSync: "Sign in to save your progress.",
+    languages: "languages", letters: "letters",
+    masteryProgress: "Progress", dueNow: "Due Now", coolingDown: "Cooling Down",
+    startRecall: "Start Recall", deleteItem: "Delete",
   },
+
   ar: {
     practice: "تدريب",
     back: "رجوع",
@@ -383,7 +405,18 @@ export const uiLabels: Record<string, Record<string, string>> = {
     yourTurn: "دورك", correctMove: "نقلة صحيحة!",
     wrongMove: "نقلة خاطئة، حاول مجددًا",
     resetBoard: "إعادة ضبط الرقعة", revisit: "مراجعة",
+    activeTab: "نشط", recallTab: "للمراجعة", recall: "مراجعة",
+    noActive: "لا شيء قيد الانتظار.", noReady: "لا شيء للمراجعة بعد.",
+    flip: "اقلب", rateRecall: "ما مدى تذكرك؟",
+    ratingLow: "بالكاد", ratingHigh: "ممتاز",
+    select: "اختر", recallSelected: "راجع المحدد",
+    notLoggedIn: "غير مسجل", signIn: "تسجيل الدخول",
+    signInToSync: "سجّل الدخول لحفظ تقدمك.",
+    languages: "لغات", letters: "حروف",
+    masteryProgress: "التقدم", dueNow: "مستحق الآن", coolingDown: "قيد الانتظار",
+    startRecall: "ابدأ المراجعة", deleteItem: "حذف",
   },
+
 };
 
 export const globalLearningOrder: string[] = [

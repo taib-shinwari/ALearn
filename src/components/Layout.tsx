@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TitleBar } from "@/components/ui/title-bar";
-import { ArrowLeft, Settings, Search, LogOut, LogIn } from "lucide-react";
+import { ArrowLeft, Settings, Search, LogIn } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { categories, localizedName } from "@/data/courseData";
@@ -31,9 +31,10 @@ export default function Layout({ children }: LayoutProps) {
   const { uiLang, t } = useCourseLanguage();
   const {
     browsePath, popBrowse, resetBrowse, setBrowsePath,
-    isAuthenticated, logout,
+    isAuthenticated,
     recallReturnPath, setRecallReturnPath,
   } = useApp();
+
 
   const isSettings = location.pathname.startsWith("/settings");
   const isRecall = location.pathname.startsWith("/recall");
@@ -148,16 +149,16 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
-            <Button
-              size="icon"
-              aria-label={isAuthenticated ? t("signOut") : "Sign in"}
-              onClick={() => {
-                if (isAuthenticated) logout();
-                else navigate("/sign");
-              }}
-            >
-              {isAuthenticated ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
-            </Button>
+            {!isAuthenticated && (
+              <Button
+                size="icon"
+                aria-label="Sign in"
+                onClick={() => navigate("/sign")}
+              >
+                <LogIn className="h-5 w-5" />
+              </Button>
+            )}
+
             <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5" />
             </Button>
