@@ -41,6 +41,7 @@ export default function AuthPage() {
         <div className="w-full max-w-sm space-y-3">
           <Button onClick={() => setMode("signin")} fullWidth>Sign In</Button>
           <Button onClick={() => setMode("signup")} fullWidth>Sign Up</Button>
+          <Button onClick={() => navigate("/")} fullWidth>Back</Button>
         </div>
       </div>
     );
