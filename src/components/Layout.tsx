@@ -31,9 +31,10 @@ export default function Layout({ children }: LayoutProps) {
   const { uiLang, t } = useCourseLanguage();
   const {
     browsePath, popBrowse, resetBrowse, setBrowsePath,
-    isAuthenticated, logout,
+    isAuthenticated,
     recallReturnPath, setRecallReturnPath,
   } = useApp();
+
 
   const isSettings = location.pathname.startsWith("/settings");
   const isRecall = location.pathname.startsWith("/recall");
