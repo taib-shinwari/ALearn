@@ -9,13 +9,13 @@ import { categories, getWordText, type WordDetail, type WordLang } from "@/data/
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
-import { intervalFor, recallId, type RecallItem } from "@/lib/recall";
+import { scheduleNext, recallId, type RecallItem } from "@/lib/recall";
 import { cn } from "@/lib/utils";
 
 export default function FlashcardsPage() {
   const navigate = useNavigate();
   const {
-    activeRecall, addRecallItem,
+    activeRecall, addRecallItem, recallQueue,
     recallReturnPath, setRecallReturnPath, setBrowsePath,
   } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
@@ -83,36 +83,47 @@ export default function FlashcardsPage() {
 
   const rateAndAdvance = (r: 1 | 2 | 3 | 4 | 5) => {
     const now = Date.now();
+    const wId = recallId("word", activeRecall.categoryId, activeRecall.subcategoryId, word.id);
+    const prevWord = recallQueue.find(i => i.id === wId);
+    const wSched = scheduleNext(prevWord, r);
     const perWord: RecallItem = {
-      id: recallId("word", activeRecall.categoryId, activeRecall.subcategoryId, word.id),
+      id: wId,
       scope: "word",
       categoryId: activeRecall.categoryId,
       subcategoryId: activeRecall.subcategoryId,
       wordId: word.id,
       title: `${target} · ${subcategory.name[uiLang as WordLang] || subcategory.name.en}`,
       completedAt: now,
-      readyAt: now + intervalFor(r),
+      readyAt: now + wSched.intervalMs,
       lastRating: r,
+      ease: wSched.ease,
+      reps: wSched.reps,
+      intervalDays: wSched.intervalDays,
     };
     addRecallItem(perWord);
 
     const nextRatings = [...ratings, r];
     if (isLast) {
-      // Only persist a subcategory-level item when we just ran the full deck.
       const fullDeck = !activeRecall.wordId && (!activeRecall.wordIds || activeRecall.wordIds.length === subcategory.words.length);
       if (fullDeck) {
         const avg = Math.max(1, Math.min(5, Math.round(
           nextRatings.reduce((a, b) => a + b, 0) / nextRatings.length
         ))) as 1 | 2 | 3 | 4 | 5;
+        const sId = recallId("subcategory", activeRecall.categoryId, activeRecall.subcategoryId);
+        const prevSub = recallQueue.find(i => i.id === sId);
+        const sSched = scheduleNext(prevSub, avg);
         const subItem: RecallItem = {
-          id: recallId("subcategory", activeRecall.categoryId, activeRecall.subcategoryId),
+          id: sId,
           scope: "subcategory",
           categoryId: activeRecall.categoryId,
           subcategoryId: activeRecall.subcategoryId,
           title: subcategory.name[uiLang as WordLang] || subcategory.name.en,
           completedAt: now,
-          readyAt: now + intervalFor(avg),
+          readyAt: now + sSched.intervalMs,
           lastRating: avg,
+          ease: sSched.ease,
+          reps: sSched.reps,
+          intervalDays: sSched.intervalDays,
         };
         addRecallItem(subItem);
       }
