@@ -481,12 +481,18 @@ function WordDetailView({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-1 pr-24">
+              <div className="flex items-center justify-between mb-2 pr-24">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
-                <span className="text-xs uppercase tracking-wider opacity-70">{showLang}</span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                  {showLang}
+                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {pronunciation && <span className="text-sm opacity-70 font-mono">{pronunciation}</span>}
+                {pronunciation && (
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                    {pronunciation}
+                  </span>
+                )}
                 {genderLabel && (
                   <span className="text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background">
                     {t("gender")}: {genderLabel}
