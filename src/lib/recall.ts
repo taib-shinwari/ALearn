@@ -1,13 +1,13 @@
-// Recall (flashcard) queue model.
-// When a user finishes a flashcard deck and rates themselves, the deck is
-// scheduled for future recall after an interval that grows with rating.
-// While the timer is still running the item lives in the "Active" tab; once
-// the timer has elapsed it surfaces in the "Recall" tab, ready to redo.
+// Recall (flashcard) queue model — SM-2 spaced repetition scheduling.
+//
+// Each item tracks ease, consecutive successful reps and the current interval
+// (days). After every rating we update those via SM-2 and the item is hidden
+// in "Active" until its `readyAt` timestamp elapses, then surfaces in "Recall".
 
 export type RecallScope = "subcategory" | "word";
 
 export interface RecallItem {
-  id: string;                 // `${scope}:${categoryId}:${subcategoryId}:${wordId?}`
+  id: string;
   scope: RecallScope;
   categoryId: string;
   subcategoryId: string;
@@ -16,20 +16,60 @@ export interface RecallItem {
   completedAt: number;
   readyAt: number;
   lastRating: 1 | 2 | 3 | 4 | 5;
+  // SM-2 state
+  ease: number;          // ease factor, min 1.3
+  reps: number;          // consecutive successful reviews
+  intervalDays: number;  // current scheduling interval in days
 }
 
-/** Map a self-rating (1=barely, 5=perfect) to a wait interval. */
-export function intervalFor(rating: 1 | 2 | 3 | 4 | 5): number {
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  switch (rating) {
-    case 1: return 10 * minute;
-    case 2: return 30 * minute;
-    case 3: return 2 * hour;
-    case 4: return 1 * day;
-    case 5: return 3 * day;
+const DAY = 24 * 60 * 60 * 1000;
+const MIN_EASE = 1.3;
+const DEFAULT_EASE = 2.5;
+const LEARNING_STEP_MS = 10 * 60 * 1000; // 10 minutes for a lapse
+
+export interface SM2State {
+  ease: number;
+  reps: number;
+  intervalDays: number;
+  intervalMs: number;
+}
+
+/**
+ * SM-2 scheduler. Rating 1–5 maps directly to SM-2 quality.
+ * Quality < 3 = lapse (resets reps, short re-learning step).
+ */
+export function scheduleNext(
+  prev: { ease: number; reps: number; intervalDays: number } | undefined,
+  rating: 1 | 2 | 3 | 4 | 5,
+): SM2State {
+  const ease = prev?.ease ?? DEFAULT_EASE;
+  const reps = prev?.reps ?? 0;
+  const intervalDays = prev?.intervalDays ?? 0;
+  const q = rating;
+
+  if (q < 3) {
+    const nextEase = Math.max(MIN_EASE, ease - 0.2);
+    return { ease: nextEase, reps: 0, intervalDays: 0, intervalMs: LEARNING_STEP_MS };
   }
+
+  const nextReps = reps + 1;
+  let nextInterval: number;
+  if (nextReps === 1) nextInterval = 1;
+  else if (nextReps === 2) nextInterval = 3;
+  else nextInterval = Math.round(intervalDays * ease * 10) / 10;
+
+  // Classic SM-2 ease adjustment.
+  const nextEase = Math.max(
+    MIN_EASE,
+    ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)),
+  );
+
+  return {
+    ease: nextEase,
+    reps: nextReps,
+    intervalDays: nextInterval,
+    intervalMs: Math.round(nextInterval * DAY),
+  };
 }
 
 export function recallId(
@@ -45,7 +85,6 @@ export function isReady(item: RecallItem, now = Date.now()): boolean {
   return now >= item.readyAt;
 }
 
-/** Human-readable countdown like "in 2h 5m" or "ready". */
 export function formatCountdown(readyAt: number, now = Date.now()): string {
   const diff = readyAt - now;
   if (diff <= 0) return "ready";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Type, Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
+import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -17,6 +17,8 @@ import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
+import { chessLevels, cName } from "@/data/chessData";
+import { ChessLessonView } from "@/components/chess/ChessLessonView";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
@@ -30,6 +32,10 @@ const ALPHABET_LABEL: Record<Lang, string> = {
 
 const LANGUAGE_LABEL: Record<Lang, string> = {
   nl: "Taal", en: "Language", ar: "اللغة",
+};
+
+const CHESS_LABEL: Record<Lang, string> = {
+  nl: "Schaken", en: "Chess", ar: "الشطرنج",
 };
 
 export default function HomePage() {
@@ -55,9 +61,21 @@ export default function HomePage() {
         >
           <span className="font-semibold">{LANGUAGE_LABEL[uiLang]}</span>
         </CardButton>
+        <CardButton
+          onClick={() => pushBrowse("chess")}
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
+        >
+          <span className="font-semibold">{CHESS_LABEL[uiLang]}</span>
+        </CardButton>
       </div>
     );
   }
+
+  // ── CHESS BRANCH ────────────────────────────────────────────────────
+  if (browsePath[0] === "chess") {
+    return <ChessBranch />;
+  }
+
 
   // ── pick a target language ─────────────────────────────────────────
   if (browsePath[0] === "language" && browsePath.length === 1) {
@@ -92,8 +110,7 @@ export default function HomePage() {
             onClick={() => pushBrowse(ALPHABET_SEGMENT)}
             className="min-h-[88px] flex flex-col justify-between"
           >
-            <span className="font-semibold text-sm inline-flex items-center gap-2">
-              <Type className="h-4 w-4" />
+            <span className="font-semibold text-sm">
               {ALPHABET_LABEL[uiLang]}
             </span>
             <span className="text-xs mt-2 opacity-70">{t("letters") || "letters"}</span>
@@ -464,12 +481,18 @@ function WordDetailView({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-1 pr-24">
+              <div className="flex items-center justify-between mb-2 pr-24">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
-                <span className="text-xs uppercase tracking-wider opacity-70">{showLang}</span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                  {showLang}
+                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {pronunciation && <span className="text-sm opacity-70 font-mono">{pronunciation}</span>}
+                {pronunciation && (
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                    {pronunciation}
+                  </span>
+                )}
                 {genderLabel && (
                   <span className="text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background">
                     {t("gender")}: {genderLabel}
@@ -522,4 +545,115 @@ function Section({ label, children, italic }: { label: string; children: React.R
       <p className={cn("text-sm", italic && "italic")}>{children}</p>
     </div>
   );
+}
+
+/* ─────────────────────────── Chess branch ─────────────────────────── */
+
+function ChessBranch() {
+  const { browsePath, pushBrowse } = useApp();
+  const { uiLang, t } = useCourseLanguage();
+
+  // /chess
+  if (browsePath.length === 1) {
+    const items: { id: string; label: string; soon?: boolean }[] = [
+      { id: "lesson", label: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson" },
+      { id: "puzzle", label: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle", soon: true },
+      { id: "play", label: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play", soon: true },
+    ];
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {items.map(it => (
+          <CardButton
+            key={it.id}
+            onClick={() => !it.soon && pushBrowse(it.id)}
+            disabled={it.soon}
+            className="min-h-[88px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{it.label}</span>
+            {it.soon && (
+              <span className="text-[10px] mt-2 px-2 py-0.5 rounded-full border-2 border-border bg-background self-start uppercase tracking-wider">
+                {t("comingSoon") || "Coming Soon"}
+              </span>
+            )}
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson — levels
+  if (browsePath[1] === "lesson" && browsePath.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {chessLevels.map(lvl => (
+          <CardButton
+            key={lvl.id}
+            onClick={() => pushBrowse(lvl.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(lvl.name, uiLang)}</span>
+            <span className="text-xs mt-2 opacity-70">
+              {lvl.groups.length} {uiLang === "nl" ? "groepen" : uiLang === "ar" ? "مجموعات" : "groups"}
+            </span>
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level> — groups
+  if (browsePath[1] === "lesson" && browsePath.length === 3) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    if (!lvl) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {lvl.groups.map(g => (
+          <CardButton
+            key={g.id}
+            onClick={() => pushBrowse(g.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(g.name, uiLang)}</span>
+            <span className="text-xs mt-2 opacity-70">
+              {g.lessons.length} {uiLang === "nl" ? "lessen" : uiLang === "ar" ? "دروس" : "lessons"}
+            </span>
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level>/<group> — lessons
+  if (browsePath[1] === "lesson" && browsePath.length === 4) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    const grp = lvl?.groups.find(g => g.id === browsePath[3]);
+    if (!grp) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {grp.lessons.map(ls => (
+          <CardButton
+            key={ls.id}
+            onClick={() => pushBrowse(ls.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(ls.name, uiLang)}</span>
+            {ls.intro && (
+              <span className="text-xs mt-2 opacity-70 line-clamp-2">{cName(ls.intro, uiLang)}</span>
+            )}
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level>/<group>/<lesson> — board
+  if (browsePath[1] === "lesson" && browsePath.length === 5) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    const grp = lvl?.groups.find(g => g.id === browsePath[3]);
+    const lesson = grp?.lessons.find(ls => ls.id === browsePath[4]);
+    if (!lesson) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return <ChessLessonView lesson={lesson} />;
+  }
+
+  return <div className="px-4 text-sm">{t("notFound")}</div>;
 }
