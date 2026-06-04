@@ -20,6 +20,9 @@ const langLabels: Record<string, string> = {
   ar: "العربية",
 };
 
+import { chessLevels, cName } from "@/data/chessData";
+
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -61,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
 
   const crumbs: { label: string; idx: number }[] = [];
-  if (isHomeRoute && browsePath.length > 0) {
+  if (isHomeRoute && browsePath.length > 0 && browsePath[0] === "language") {
     crumbs.push({ label: t("language") || "Language", idx: 0 });
     if (browsePath.length >= 2) {
       const lang = browsePath[1];
@@ -86,6 +89,24 @@ export default function Layout({ children }: LayoutProps) {
       const sub = cat?.subcategories.find(s => s.id === browsePath[3]);
       const word = sub?.words.find(w => w.id === browsePath[4]);
       if (word) crumbs.push({ label: word[uiLang === "ar" ? "en" : uiLang].word, idx: 4 });
+    }
+  } else if (isHomeRoute && browsePath.length > 0 && browsePath[0] === "chess") {
+    crumbs.push({ label: uiLang === "nl" ? "Schaken" : uiLang === "ar" ? "الشطرنج" : "Chess", idx: 0 });
+    const chessSection: Record<string, string> = {
+      lesson: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson",
+      puzzle: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle",
+      play: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play",
+    };
+    if (browsePath.length >= 2) {
+      crumbs.push({ label: chessSection[browsePath[1]] || browsePath[1], idx: 1 });
+    }
+    if (browsePath[1] === "lesson") {
+      const lvl = browsePath[2] ? chessLevels.find(l => l.id === browsePath[2]) : undefined;
+      if (lvl) crumbs.push({ label: cName(lvl.name, uiLang), idx: 2 });
+      const grp = lvl && browsePath[3] ? lvl.groups.find(g => g.id === browsePath[3]) : undefined;
+      if (grp) crumbs.push({ label: cName(grp.name, uiLang), idx: 3 });
+      const ls = grp && browsePath[4] ? grp.lessons.find(x => x.id === browsePath[4]) : undefined;
+      if (ls) crumbs.push({ label: cName(ls.name, uiLang), idx: 4 });
     }
   }
 
