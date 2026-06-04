@@ -61,9 +61,21 @@ export default function HomePage() {
         >
           <span className="font-semibold">{LANGUAGE_LABEL[uiLang]}</span>
         </CardButton>
+        <CardButton
+          onClick={() => pushBrowse("chess")}
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
+        >
+          <span className="font-semibold">{CHESS_LABEL[uiLang]}</span>
+        </CardButton>
       </div>
     );
   }
+
+  // ── CHESS BRANCH ────────────────────────────────────────────────────
+  if (browsePath[0] === "chess") {
+    return <ChessBranch />;
+  }
+
 
   // ── pick a target language ─────────────────────────────────────────
   if (browsePath[0] === "language" && browsePath.length === 1) {
@@ -98,8 +110,7 @@ export default function HomePage() {
             onClick={() => pushBrowse(ALPHABET_SEGMENT)}
             className="min-h-[88px] flex flex-col justify-between"
           >
-            <span className="font-semibold text-sm inline-flex items-center gap-2">
-              <Type className="h-4 w-4" />
+            <span className="font-semibold text-sm">
               {ALPHABET_LABEL[uiLang]}
             </span>
             <span className="text-xs mt-2 opacity-70">{t("letters") || "letters"}</span>
