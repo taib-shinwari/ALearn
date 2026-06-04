@@ -546,3 +546,114 @@ function Section({ label, children, italic }: { label: string; children: React.R
     </div>
   );
 }
+
+/* ─────────────────────────── Chess branch ─────────────────────────── */
+
+function ChessBranch() {
+  const { browsePath, pushBrowse } = useApp();
+  const { uiLang, t } = useCourseLanguage();
+
+  // /chess
+  if (browsePath.length === 1) {
+    const items: { id: string; label: string; soon?: boolean }[] = [
+      { id: "lesson", label: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson" },
+      { id: "puzzle", label: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle", soon: true },
+      { id: "play", label: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play", soon: true },
+    ];
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {items.map(it => (
+          <CardButton
+            key={it.id}
+            onClick={() => !it.soon && pushBrowse(it.id)}
+            disabled={it.soon}
+            className="min-h-[88px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{it.label}</span>
+            {it.soon && (
+              <span className="text-[10px] mt-2 px-2 py-0.5 rounded-full border-2 border-border bg-background self-start uppercase tracking-wider">
+                {t("comingSoon") || "Coming Soon"}
+              </span>
+            )}
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson — levels
+  if (browsePath[1] === "lesson" && browsePath.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {chessLevels.map(lvl => (
+          <CardButton
+            key={lvl.id}
+            onClick={() => pushBrowse(lvl.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(lvl.name, uiLang)}</span>
+            <span className="text-xs mt-2 opacity-70">
+              {lvl.groups.length} {uiLang === "nl" ? "groepen" : uiLang === "ar" ? "مجموعات" : "groups"}
+            </span>
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level> — groups
+  if (browsePath[1] === "lesson" && browsePath.length === 3) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    if (!lvl) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {lvl.groups.map(g => (
+          <CardButton
+            key={g.id}
+            onClick={() => pushBrowse(g.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(g.name, uiLang)}</span>
+            <span className="text-xs mt-2 opacity-70">
+              {g.lessons.length} {uiLang === "nl" ? "lessen" : uiLang === "ar" ? "دروس" : "lessons"}
+            </span>
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level>/<group> — lessons
+  if (browsePath[1] === "lesson" && browsePath.length === 4) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    const grp = lvl?.groups.find(g => g.id === browsePath[3]);
+    if (!grp) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {grp.lessons.map(ls => (
+          <CardButton
+            key={ls.id}
+            onClick={() => pushBrowse(ls.id)}
+            className="min-h-[80px] flex flex-col justify-between"
+          >
+            <span className="font-semibold text-sm">{cName(ls.name, uiLang)}</span>
+            {ls.intro && (
+              <span className="text-xs mt-2 opacity-70 line-clamp-2">{cName(ls.intro, uiLang)}</span>
+            )}
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  // /chess/lesson/<level>/<group>/<lesson> — board
+  if (browsePath[1] === "lesson" && browsePath.length === 5) {
+    const lvl = chessLevels.find(l => l.id === browsePath[2]);
+    const grp = lvl?.groups.find(g => g.id === browsePath[3]);
+    const lesson = grp?.lessons.find(ls => ls.id === browsePath[4]);
+    if (!lesson) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return <ChessLessonView lesson={lesson} />;
+  }
+
+  return <div className="px-4 text-sm">{t("notFound")}</div>;
+}
