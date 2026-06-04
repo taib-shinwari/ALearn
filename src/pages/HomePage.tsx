@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Type, Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
+import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -17,6 +17,8 @@ import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
+import { chessLevels, cName } from "@/data/chessData";
+import { ChessLessonView } from "@/components/chess/ChessLessonView";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
@@ -30,6 +32,10 @@ const ALPHABET_LABEL: Record<Lang, string> = {
 
 const LANGUAGE_LABEL: Record<Lang, string> = {
   nl: "Taal", en: "Language", ar: "اللغة",
+};
+
+const CHESS_LABEL: Record<Lang, string> = {
+  nl: "Schaken", en: "Chess", ar: "الشطرنج",
 };
 
 export default function HomePage() {
