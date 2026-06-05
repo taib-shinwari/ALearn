@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
 import { chessLevels, cName } from "@/data/chessData";
 import { ChessLessonView } from "@/components/chess/ChessLessonView";
+import { findArabicForms } from "@/data/arabicForms";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
