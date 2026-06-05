@@ -41,6 +41,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const isSettings = location.pathname.startsWith("/settings");
   const isRecall = location.pathname.startsWith("/recall");
+  const isSign = location.pathname.startsWith("/sign");
   const isHomeRoute = location.pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -110,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
     }
   }
 
-  const showBack = !isHomeRoute || browsePath.length > 0;
+  const showBack = !isSign && (!isHomeRoute || browsePath.length > 0);
 
   // When in a language folder, show Call in the header.
   const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
@@ -159,6 +160,9 @@ export default function Layout({ children }: LayoutProps) {
           {!searchOpen && isRecall && (
             <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
+          {!searchOpen && isSign && (
+            <TitleBar className="font-semibold">Sign</TitleBar>
+          )}
         </div>
 
         {searchOpen ? (
@@ -173,7 +177,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5" />
             </Button>
-            {!isAuthenticated && (
+            {!isAuthenticated && !isSign && (
               <Button
                 size="icon"
                 aria-label="Sign in"

@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
 import { chessLevels, cName } from "@/data/chessData";
 import { ChessLessonView } from "@/components/chess/ChessLessonView";
+import { findArabicForms } from "@/data/arabicForms";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
@@ -367,16 +369,53 @@ function AlphabetView({ targetLang, uiLang }: { targetLang: Lang; uiLang: Lang }
 
 function LetterCard({ letter, name, lang }: { letter: string; name?: string; lang: Lang }) {
   const canSpeak = isSpeechAvailable();
+  const [open, setOpen] = useState(false);
+  const forms = lang === "ar" ? findArabicForms(letter) : undefined;
   return (
-    <Container className="p-3 flex flex-col items-center justify-center gap-1 aspect-square">
-      <span className="text-2xl font-bold leading-none">{letter}</span>
-      {name && <span className="text-[10px] opacity-60">{name}</span>}
-      {canSpeak && (
-        <Button size="icon" className="h-7 w-7" onClick={() => speak(letter, lang)} aria-label="Play">
-          <Volume2 className="h-3.5 w-3.5" />
-        </Button>
+    <>
+      <button
+        type="button"
+        onClick={() => forms && setOpen(true)}
+        className="block w-full text-left"
+      >
+        <Container className={cn(
+          "p-3 flex flex-col items-center justify-center gap-1 aspect-square",
+          forms && "hover:bg-foreground hover:text-background transition-colors cursor-pointer"
+        )}>
+          <span className="text-2xl font-bold leading-none">{letter}</span>
+          {name && <span className="text-[10px] opacity-60">{name}</span>}
+          {canSpeak && (
+            <Button size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); speak(letter, lang); }} aria-label="Play">
+              <Volume2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </Container>
+      </button>
+      {forms && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-center text-3xl">
+                {forms.letter} <span className="text-sm opacity-60 align-middle">— {forms.name}</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {([
+                ["Isolated", forms.isolated],
+                ["Initial", forms.initial],
+                ["Medial", forms.medial],
+                ["Final", forms.final],
+              ] as const).map(([label, ch]) => (
+                <Container key={label} className="p-4 flex flex-col items-center gap-1">
+                  <span className="text-3xl font-bold">{ch}</span>
+                  <span className="text-[10px] opacity-60 uppercase tracking-wider">{label}</span>
+                </Container>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
-    </Container>
+    </>
   );
 }
 
