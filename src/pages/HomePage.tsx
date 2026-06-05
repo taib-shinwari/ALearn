@@ -40,16 +40,12 @@ const CHESS_LABEL: Record<Lang, string> = {
 
 export default function HomePage() {
   const {
-    isAuthenticated, introductionCompleted, browsePath, pushBrowse, setBrowsePath,
+    browsePath, pushBrowse, setBrowsePath,
     setLearningLanguage, interfaceLanguage,
     setActiveRecall, setRecallReturnPath,
   } = useApp();
   const { uiLang, t } = useCourseLanguage();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isAuthenticated && !introductionCompleted) navigate("/introduction");
-  }, [isAuthenticated, introductionCompleted, navigate]);
 
   // ── ROOT ────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
@@ -270,6 +266,8 @@ function WordsView({
         {subcategory.words.map(word => {
           const isSel = selected.has(word.id);
           const cooling = wordCooling(word.id);
+          const wText = getWordText(word, targetLang as WordLang);
+          const wPron = (targetLang === "ar" ? word.ar?.pronunciation : word[targetLang as WordLang]?.pronunciation) ?? undefined;
           return (
             <CardButton
               key={word.id}
@@ -295,9 +293,10 @@ function WordsView({
                   )}
                 </span>
               )}
-              <span className="font-semibold text-sm">
-                {getWordText(word, targetLang as WordLang)}
-              </span>
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm">{wText}</span>
+                {wPron && <span className="text-[11px] opacity-60 font-mono mt-0.5">/{wPron}/</span>}
+              </div>
             </CardButton>
           );
         })}
