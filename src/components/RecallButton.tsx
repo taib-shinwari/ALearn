@@ -47,7 +47,7 @@ export function RecallButton({ scope, categoryId, subcategoryId, wordId, classNa
   return (
     <Button onClick={go} active={ready} className={className} fullWidth={fullWidth}>
       <Brain className="h-4 w-4 mr-2" />
-      {ready ? (t("recallNow") || "Recall now") : (t("recall") || "Recall")}
+      {t("recall") || "Recall"}
     </Button>
   );
 }

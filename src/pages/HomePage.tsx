@@ -40,16 +40,12 @@ const CHESS_LABEL: Record<Lang, string> = {
 
 export default function HomePage() {
   const {
-    isAuthenticated, introductionCompleted, browsePath, pushBrowse, setBrowsePath,
+    browsePath, pushBrowse, setBrowsePath,
     setLearningLanguage, interfaceLanguage,
     setActiveRecall, setRecallReturnPath,
   } = useApp();
   const { uiLang, t } = useCourseLanguage();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isAuthenticated && !introductionCompleted) navigate("/introduction");
-  }, [isAuthenticated, introductionCompleted, navigate]);
 
   // ── ROOT ────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {

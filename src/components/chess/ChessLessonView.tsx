@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
+import { Chessboard } from "@/components/chess/Chessboard";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
@@ -51,17 +51,7 @@ export function ChessLessonView({ lesson }: Props) {
       <TitleBar className="font-semibold">{cName(lesson.name, uiLang)}</TitleBar>
 
       <Container className="p-2 rounded-[20px] overflow-hidden">
-        <div className="aspect-square w-full">
-          <Chessboard
-            options={{
-              position: fen,
-              allowDragging: false,
-              boardOrientation: lesson.orientation ?? "white",
-              animationDurationInMs: 250,
-              showNotation: true,
-            }}
-          />
-        </div>
+        <Chessboard fen={fen} orientation={lesson.orientation ?? "white"} />
       </Container>
 
       {lastExplain && (
