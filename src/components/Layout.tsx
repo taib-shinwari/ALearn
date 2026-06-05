@@ -41,6 +41,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const isSettings = location.pathname.startsWith("/settings");
   const isRecall = location.pathname.startsWith("/recall");
+  const isSign = location.pathname.startsWith("/sign");
   const isHomeRoute = location.pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
 
