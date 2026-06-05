@@ -160,6 +160,9 @@ export default function Layout({ children }: LayoutProps) {
           {!searchOpen && isRecall && (
             <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
+          {!searchOpen && isSign && (
+            <TitleBar className="font-semibold">Sign</TitleBar>
+          )}
         </div>
 
         {searchOpen ? (
