@@ -177,7 +177,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5" />
             </Button>
-            {!isAuthenticated && (
+            {!isAuthenticated && !isSign && (
               <Button
                 size="icon"
                 aria-label="Sign in"
