@@ -111,7 +111,7 @@ export default function Layout({ children }: LayoutProps) {
     }
   }
 
-  const showBack = !isHomeRoute || browsePath.length > 0;
+  const showBack = !isSign && (!isHomeRoute || browsePath.length > 0);
 
   // When in a language folder, show Call in the header.
   const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
