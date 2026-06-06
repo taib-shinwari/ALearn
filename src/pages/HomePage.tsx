@@ -672,17 +672,15 @@ function ChessBranch() {
           <CardButton
             key={ls.id}
             onClick={() => pushBrowse(ls.id)}
-            className="min-h-[80px] flex flex-col justify-between"
+            className="min-h-[80px] flex items-center justify-center text-center"
           >
             <span className="font-semibold text-sm">{cName(ls.name, uiLang)}</span>
-            {ls.intro && (
-              <span className="text-xs mt-2 opacity-70 line-clamp-2">{cName(ls.intro, uiLang)}</span>
-            )}
           </CardButton>
         ))}
       </div>
     );
   }
+
 
   // /chess/lesson/<level>/<group>/<lesson> — board
   if (browsePath[1] === "lesson" && browsePath.length === 5) {
