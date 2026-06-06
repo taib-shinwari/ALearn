@@ -33,7 +33,9 @@ export default function SettingsPage() {
     switch (activeCategory) {
       case "profile":       return <ProfileSection activeSubcategory={activeSubcategory ?? "account"} />;
       case "language":      return <LanguageSection />;
+      case "chess":         return <ChessSection />;
       case "theme":         return <ThemeSection />;
+
       case "accessibility": return <AccessibilitySection />;
       default: return null;
     }
