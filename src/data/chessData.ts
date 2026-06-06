@@ -1,18 +1,37 @@
-// Minimal chess curriculum used by the Chess folder.
-// Each lesson plays a short sequence of SAN moves with explanations.
+// Chess curriculum. Lessons use a piece-on-board model with arrows and
+// optional "star" targets to capture. No SAN moves needed.
 
 export type Lang = "nl" | "en" | "ar";
 export interface CName { nl: string; en: string; ar?: string }
 
+export type PieceColor = "w" | "b";
+export type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
+
+export interface PlacedPiece {
+  square: string;        // e.g. "e1"
+  color: PieceColor;     // overridden by theme when `themed` is true
+  type: PieceType;
+  themed?: boolean;      // when true, color follows the active UI theme
+}
+
+export interface Arrow {
+  from: string;
+  to: string;
+  color?: string;        // CSS color
+}
+
+export type StepKind =
+  | { kind: "show"; arrows?: Arrow[]; narration: CName }
+  | { kind: "capture"; piece: string; target: string; arrows?: Arrow[]; narration: CName };
+
 export interface ChessLesson {
   id: string;
   name: CName;
-  intro?: CName;
-  /** Starting FEN — defaults to the standard initial position when omitted. */
-  startFen?: string;
-  /** Whose turn the student is supposed to think from. */
+  pieces: PlacedPiece[];
+  /** Star squares to capture across the lesson. */
+  stars?: string[];
+  steps: StepKind[];
   orientation?: "white" | "black";
-  steps: { san: string; explain: CName }[];
 }
 
 export interface ChessGroup {
@@ -27,86 +46,90 @@ export interface ChessLevel {
   groups: ChessGroup[];
 }
 
+// ── King lesson — the very first one ─────────────────────────────────
+const kingLesson: ChessLesson = {
+  id: "king",
+  name: { nl: "De koning", en: "The King", ar: "الملك" },
+  pieces: [{ square: "e1", color: "w", type: "K", themed: true }],
+  stars: ["e2", "d2", "f2"],
+  steps: [
+    {
+      kind: "show",
+      arrows: [
+        { from: "e1", to: "d1" }, { from: "e1", to: "f1" },
+        { from: "e1", to: "d2" }, { from: "e1", to: "e2" }, { from: "e1", to: "f2" },
+      ],
+      narration: {
+        nl: "Dit is de koning. Hij begint op e1. De koning beweegt één veld in elke richting.",
+        en: "This is the King. He starts on e1. The King moves one square in any direction.",
+        ar: "هذا هو الملك. يبدأ على e1. يتحرك الملك خانة واحدة في أي اتجاه.",
+      },
+    },
+    {
+      kind: "capture",
+      piece: "e1",
+      target: "e2",
+      arrows: [{ from: "e1", to: "e2" }],
+      narration: {
+        nl: "Verplaats de koning naar e2 om de ster te pakken.",
+        en: "Move the King to e2 to capture the star.",
+        ar: "حرّك الملك إلى e2 لالتقاط النجمة.",
+      },
+    },
+    {
+      kind: "capture",
+      piece: "e2",
+      target: "d2",
+      arrows: [{ from: "e2", to: "d2" }],
+      narration: {
+        nl: "Goed gedaan! Ga nu naar d2.",
+        en: "Well done. Now move to d2.",
+        ar: "أحسنت! الآن انتقل إلى d2.",
+      },
+    },
+    {
+      kind: "capture",
+      piece: "d2",
+      target: "f2",
+      arrows: [{ from: "d2", to: "f2" }],
+      narration: {
+        nl: "Laatste ster: ga naar f2. Tip: de koning kan niet twee velden in één keer.",
+        en: "Last star: move to f2. Tip — the King cannot leap two squares at once, take it step by step.",
+        ar: "النجمة الأخيرة: انتقل إلى f2.",
+      },
+    },
+    {
+      kind: "show",
+      narration: {
+        nl: "Geweldig! Je hebt geleerd hoe de koning beweegt.",
+        en: "Great! You have learned how the King moves.",
+        ar: "رائع! لقد تعلمت كيف يتحرك الملك.",
+      },
+    },
+  ],
+};
+
 export const chessLevels: ChessLevel[] = [
   {
     id: "beginner",
     name: { nl: "Beginner", en: "Beginner", ar: "مبتدئ" },
     groups: [
       {
-        id: "basic-movement",
-        name: { nl: "Basisbewegingen", en: "Basic Movement", ar: "الحركات الأساسية" },
-        lessons: [
-          {
-            id: "pawn",
-            name: { nl: "De pion", en: "The Pawn", ar: "البيدق" },
-            intro: {
-              nl: "Pionnen lopen vooruit en slaan diagonaal.",
-              en: "Pawns move forward and capture diagonally.",
-            },
-            steps: [
-              { san: "e4", explain: { nl: "Wit zet de pion twee velden vooruit.", en: "White moves the pawn two squares forward." } },
-              { san: "e5", explain: { nl: "Zwart spiegelt de zet.", en: "Black mirrors the move." } },
-              { san: "d4", explain: { nl: "Wit valt het centrum aan.", en: "White attacks the center." } },
-              { san: "exd4", explain: { nl: "Zwart slaat diagonaal.", en: "Black captures diagonally." } },
-            ],
-          },
-          {
-            id: "knight",
-            name: { nl: "Het paard", en: "The Knight", ar: "الحصان" },
-            intro: {
-              nl: "Het paard springt in een L-vorm.",
-              en: "The knight jumps in an L-shape.",
-            },
-            steps: [
-              { san: "Nf3", explain: { nl: "Het paard ontwikkelt naar f3.", en: "The knight develops to f3." } },
-              { san: "Nc6", explain: { nl: "Zwart ontwikkelt zijn paard.", en: "Black develops a knight too." } },
-              { san: "Nc3", explain: { nl: "Tweede paard naar c3.", en: "Second knight to c3." } },
-              { san: "Nf6", explain: { nl: "Symmetrische ontwikkeling.", en: "Symmetric development." } },
-            ],
-          },
-          {
-            id: "bishop",
-            name: { nl: "De loper", en: "The Bishop", ar: "الفيل" },
-            intro: {
-              nl: "Lopers bewegen diagonaal.",
-              en: "Bishops slide along diagonals.",
-            },
-            steps: [
-              { san: "e4", explain: { nl: "Open de diagonaal voor de loper.", en: "Open the diagonal for the bishop." } },
-              { san: "e5", explain: { nl: "Zwart doet hetzelfde.", en: "Black does the same." } },
-              { san: "Bc4", explain: { nl: "De loper richt zich op f7.", en: "The bishop eyes f7." } },
-              { san: "Bc5", explain: { nl: "Symmetrische loperzet.", en: "Symmetric bishop move." } },
-            ],
-          },
-        ],
+        id: "learn-to-play",
+        name: { nl: "Leer spelen", en: "Learn To Play", ar: "تعلم اللعب" },
+        lessons: [kingLesson],
       },
     ],
   },
   {
     id: "intermediate",
     name: { nl: "Gevorderd", en: "Intermediate", ar: "متوسط" },
-    groups: [
-      {
-        id: "tactics",
-        name: { nl: "Tactiek", en: "Basic Tactics", ar: "تكتيكات" },
-        lessons: [
-          {
-            id: "fork",
-            name: { nl: "De vork", en: "The Fork", ar: "الشوكة" },
-            intro: {
-              nl: "Eén stuk valt twee doelen aan.",
-              en: "One piece attacks two targets at once.",
-            },
-            startFen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1",
-            steps: [
-              { san: "Nxe5", explain: { nl: "Wit slaat de pion.", en: "White grabs the pawn." } },
-              { san: "Nxe5", explain: { nl: "Zwart slaat terug.", en: "Black recaptures." } },
-              { san: "d4", explain: { nl: "Centrumdoorbraak.", en: "Center break." } },
-            ],
-          },
-        ],
-      },
-    ],
+    groups: [],
+  },
+  {
+    id: "advanced",
+    name: { nl: "Expert", en: "Advanced", ar: "متقدم" },
+    groups: [],
   },
 ];
 

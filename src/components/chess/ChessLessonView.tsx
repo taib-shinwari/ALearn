@@ -1,163 +1,177 @@
-import { useMemo, useState, useEffect } from "react";
-import { Chess } from "chess.js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "@/components/chess/Chessboard";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { TitleBar } from "@/components/ui/title-bar";
-import { ChevronRight, RotateCcw, Lightbulb } from "lucide-react";
-import type { ChessLesson } from "@/data/chessData";
+import { ChevronRight, Lightbulb, Volume2 } from "lucide-react";
+import type { ChessLesson, PlacedPiece, Arrow } from "@/data/chessData";
 import { cName } from "@/data/chessData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { useChessSettings } from "@/lib/chessSettings";
+import { speak } from "@/components/practice/speech";
 
 interface Props { lesson: ChessLesson; }
 
-/** Look up the expected from/to for the next SAN move without mutating game. */
-function parseExpected(fen: string, san: string): { from: string; to: string } | null {
-  try {
-    const g = new Chess(fen);
-    const mv = g.move(san);
-    if (!mv) return null;
-    return { from: mv.from, to: mv.to };
-  } catch {
-    return null;
-  }
-}
-
 export function ChessLessonView({ lesson }: Props) {
-  const { uiLang, t } = useCourseLanguage();
+  const { uiLang, courseLang } = useCourseLanguage();
+  const [settings] = useChessSettings();
 
-  const initialFen = useMemo(
-    () => (lesson.startFen ? new Chess(lesson.startFen).fen() : new Chess().fen()),
-    [lesson.id, lesson.startFen],
-  );
-
-  const [fen, setFen] = useState(initialFen);
+  const [pieces, setPieces] = useState<PlacedPiece[]>(() => lesson.pieces.map(p => ({ ...p })));
+  const [stars, setStars] = useState<string[]>(lesson.stars ?? []);
   const [stepIdx, setStepIdx] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [legal, setLegal] = useState<string[]>([]);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [userArrows, setUserArrows] = useState<Arrow[]>([]);
   const [showHint, setShowHint] = useState(false);
+  const [canContinue, setCanContinue] = useState(false);
 
+  // Reset on lesson switch
   useEffect(() => {
-    setFen(initialFen);
+    setPieces(lesson.pieces.map(p => ({ ...p })));
+    setStars(lesson.stars ?? []);
     setStepIdx(0);
     setSelected(null);
-    setLegal([]);
-    setFeedback(null);
+    setUserArrows([]);
     setShowHint(false);
-  }, [initialFen]);
+    setCanContinue(false);
+  }, [lesson.id]);
 
-  const done = stepIdx >= lesson.steps.length;
-  const next = !done ? lesson.steps[stepIdx] : null;
-  const expected = next ? parseExpected(fen, next.san) : null;
-  const lastExplain = stepIdx > 0 ? lesson.steps[stepIdx - 1].explain : lesson.intro;
+  const step = lesson.steps[stepIdx];
+  const done = !step;
 
-  const applyExpected = () => {
-    if (!next) return;
-    const g = new Chess(fen);
-    try {
-      g.move(next.san);
-      setFen(g.fen());
-      setStepIdx(i => i + 1);
-      setSelected(null);
-      setLegal([]);
-      setFeedback(null);
-      setShowHint(false);
-    } catch {
-      setStepIdx(i => i + 1);
+  // Narration on each step entry. Reveal continue button after speech ends.
+  const narrationRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!step) return;
+    const txt = cName(step.narration, uiLang);
+    narrationRef.current = txt;
+    setCanContinue(false);
+    if (settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(txt);
+        utter.lang = uiLang === "nl" ? "nl-NL" : uiLang === "ar" ? "ar-SA" : "en-US";
+        utter.rate = 0.95;
+        utter.onend = () => setCanContinue(true);
+        utter.onerror = () => setCanContinue(true);
+        window.speechSynthesis.speak(utter);
+        // Fallback in case onend never fires
+        const tm = window.setTimeout(() => setCanContinue(true), Math.max(1500, txt.length * 70));
+        return () => window.clearTimeout(tm);
+      } catch {
+        setCanContinue(true);
+      }
+    } else {
+      // No TTS — reveal continue after a short reading delay
+      const tm = window.setTimeout(() => setCanContinue(true), 600);
+      return () => window.clearTimeout(tm);
     }
+  }, [stepIdx, lesson.id, uiLang, settings.speakNarration]);
+
+  const replay = () => {
+    if (!narrationRef.current) return;
+    speak(narrationRef.current, uiLang === "ar" ? "ar" : (uiLang as "nl" | "en"));
+  };
+
+  const lessonArrows: Arrow[] = useMemo(() => {
+    if (done) return [];
+    if (step.kind === "show") return step.arrows ?? [];
+    return showHint ? (step.arrows ?? []) : [];
+  }, [step, showHint, done]);
+
+  const advance = () => {
+    setStepIdx(i => i + 1);
+    setSelected(null);
+    setShowHint(false);
+    setUserArrows([]);
   };
 
   const handleSquare = (sq: string) => {
-    if (done || !expected) return;
-    setFeedback(null);
-
-    // Second click: try to complete the move
-    if (selected) {
-      if (selected === expected.from && sq === expected.to) {
-        applyExpected();
-        return;
-      }
-      // Reselect a new piece if clicked own piece, else clear.
-      const g = new Chess(fen);
-      const p = g.get(sq as any);
-      if (p && p.color === g.turn()) {
-        setSelected(sq);
-        setLegal(g.moves({ square: sq as any, verbose: true }).map((m: any) => m.to));
-      } else {
-        setSelected(null);
-        setLegal([]);
-        setFeedback(t("tryAgain") || "Try again");
-      }
+    if (done) return;
+    if (step.kind !== "capture") return;
+    if (!selected) {
+      if (pieces.some(p => p.square === sq)) setSelected(sq);
       return;
     }
-
-    // First click: must be a piece of the side to move
-    const g = new Chess(fen);
-    const p = g.get(sq as any);
-    if (!p || p.color !== g.turn()) return;
-    setSelected(sq);
-    setLegal(g.moves({ square: sq as any, verbose: true }).map((m: any) => m.to));
-  };
-
-  const restart = () => {
-    setFen(initialFen);
-    setStepIdx(0);
+    if (sq === selected) { setSelected(null); return; }
+    if (sq !== step.target || selected !== step.piece) {
+      setSelected(null);
+      return;
+    }
+    // Apply capture
+    setPieces(prev => prev.map(p => p.square === selected ? { ...p, square: sq } : p));
+    setStars(prev => prev.filter(s => s !== sq));
     setSelected(null);
-    setLegal([]);
-    setFeedback(null);
     setShowHint(false);
+    setStepIdx(i => i + 1);
   };
 
-  const highlight = showHint && expected ? [expected.from, expected.to] : [];
+  const addUserArrow = (a: Arrow) => {
+    setUserArrows(prev => {
+      // Toggle off if same arrow exists
+      const same = prev.find(x => x.from === a.from && x.to === a.to);
+      if (same) return prev.filter(x => x !== same);
+      return [...prev, { ...a, color: "hsl(var(--primary))" }];
+    });
+  };
 
+  const isCaptureStep = step?.kind === "capture";
+  const needsBoardAction = isCaptureStep && stars.includes(step.target);
+  const continueDisabled = done || needsBoardAction || !canContinue;
+
+  const stepCounter = `${Math.min(stepIdx + (done ? 0 : 1), lesson.steps.length)} / ${lesson.steps.length}`;
+  const narrationText = step ? cName(step.narration, uiLang) : "";
+
+  // ── Layout: mobile stacked, desktop split (board left, panel right) ──
   return (
-    <div className="px-4 max-w-md mx-auto space-y-3">
-      <TitleBar className="font-semibold">{cName(lesson.name, uiLang)}</TitleBar>
+    <div className="px-4 w-full">
+      <div className="grid gap-4 md:grid-cols-[1fr_320px] md:items-stretch max-w-5xl mx-auto">
+        {/* Board */}
+        <div className="w-full max-w-md mx-auto md:mx-0 md:max-w-none">
+          <Container className="p-2 rounded-[20px]">
+            <Chessboard
+              pieces={pieces}
+              stars={stars}
+              orientation={lesson.orientation ?? "white"}
+              selected={selected}
+              arrows={[...lessonArrows, ...userArrows]}
+              onSquareClick={handleSquare}
+              onArrowDrawn={addUserArrow}
+              animate={settings.animatePieces}
+              animationMs={settings.animationSpeed}
+            />
+          </Container>
+        </div>
 
-      <Container className="p-2 rounded-[20px]">
-        <Chessboard
-          fen={fen}
-          orientation={lesson.orientation ?? "white"}
-          highlight={highlight}
-          selected={selected}
-          legal={legal}
-          onSquareClick={handleSquare}
-        />
-      </Container>
+        {/* Side panel */}
+        <div className="flex flex-col gap-3 md:justify-between">
+          <Container className="p-3 text-sm leading-relaxed">
+            {narrationText || (uiLang === "nl" ? "Klaar!" : "Finished!")}
+          </Container>
 
-      {lastExplain && (
-        <Container className="p-3 text-sm">
-          {cName(lastExplain, uiLang)}
-        </Container>
-      )}
-
-      {feedback && (
-        <Container className="p-3 text-sm border-destructive">
-          {feedback}
-        </Container>
-      )}
-
-      <Container className="p-3 text-xs flex items-center justify-between">
-        <span className="opacity-70">
-          {Math.min(stepIdx, lesson.steps.length)} / {lesson.steps.length}
-        </span>
-        {done && <span className="font-semibold">{t("finished") || "Finished"}</span>}
-      </Container>
-
-      <div className="flex gap-2">
-        <Button onClick={restart} className="flex-1">
-          <RotateCcw className="h-4 w-4 mr-2" />
-          {t("restart") || "Restart"}
-        </Button>
-        <Button onClick={() => setShowHint(s => !s)} className="flex-1" disabled={done} active={showHint}>
-          <Lightbulb className="h-4 w-4 mr-2" />
-          {t("hint") || "Hint"}
-        </Button>
-        <Button onClick={applyExpected} className="flex-1" disabled={done}>
-          <ChevronRight className="h-4 w-4 mr-2" />
-          {t("skip") || "Skip"}
-        </Button>
+          <div className="flex items-center gap-2 justify-center">
+            <span className="text-xs px-3 py-2 rounded-full border-2 border-border bg-background font-mono whitespace-nowrap">
+              {stepCounter}
+            </span>
+            {settings.speakNarration && (
+              <Button onClick={replay} aria-label="Replay narration" size="icon">
+                <Volume2 className="h-4 w-4" />
+              </Button>
+            )}
+            {settings.showHints && isCaptureStep && (
+              <Button onClick={() => setShowHint(s => !s)} active={showHint} aria-label="Hint">
+                <Lightbulb className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              onClick={advance}
+              disabled={continueDisabled}
+              className="flex-1"
+              aria-label="Continue"
+            >
+              <ChevronRight className="h-4 w-4 mr-1" />
+              {uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue"}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
