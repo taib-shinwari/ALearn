@@ -119,13 +119,14 @@ export default function HomePage() {
               <CardButton
                 key={cat.id}
                 onClick={() => pushBrowse(cat.id)}
-                className="min-h-[88px] flex flex-col justify-between"
+                className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
               >
                 <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
-                <span className="text-xs mt-2 opacity-70">{total} {t("words")}</span>
+                <span className="text-xs opacity-70 whitespace-nowrap">{total} {t("words")}</span>
               </CardButton>
             );
           })}
+
         </div>
       </div>
     );
