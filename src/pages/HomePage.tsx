@@ -627,12 +627,9 @@ function ChessBranch() {
           <CardButton
             key={lvl.id}
             onClick={() => pushBrowse(lvl.id)}
-            className="min-h-[80px] flex flex-col justify-between"
+            className="min-h-[64px] py-3 flex items-center justify-center text-center"
           >
             <span className="font-semibold text-sm">{cName(lvl.name, uiLang)}</span>
-            <span className="text-xs mt-2 opacity-70">
-              {lvl.groups.length} {uiLang === "nl" ? "groepen" : uiLang === "ar" ? "مجموعات" : "groups"}
-            </span>
           </CardButton>
         ))}
       </div>
@@ -649,17 +646,15 @@ function ChessBranch() {
           <CardButton
             key={g.id}
             onClick={() => pushBrowse(g.id)}
-            className="min-h-[80px] flex flex-col justify-between"
+            className="min-h-[64px] py-3 flex items-center justify-center text-center"
           >
             <span className="font-semibold text-sm">{cName(g.name, uiLang)}</span>
-            <span className="text-xs mt-2 opacity-70">
-              {g.lessons.length} {uiLang === "nl" ? "lessen" : uiLang === "ar" ? "دروس" : "lessons"}
-            </span>
           </CardButton>
         ))}
       </div>
     );
   }
+
 
   // /chess/lesson/<level>/<group> — lessons
   if (browsePath[1] === "lesson" && browsePath.length === 4) {
