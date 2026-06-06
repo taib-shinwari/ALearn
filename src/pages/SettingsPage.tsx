@@ -5,6 +5,8 @@ import { ProfileSection } from "@/components/settings/sections/ProfileSection";
 import { LanguageSection } from "@/components/settings/sections/LanguageSection";
 import { DictionarySection } from "@/components/settings/sections/DictionarySection";
 import { ThemeSection } from "@/components/settings/sections/ThemeSection";
+import { ChessSection } from "@/components/settings/sections/ChessSection";
+
 import { AccessibilitySection } from "@/components/settings/sections/AccessibilitySection";
 import { getSubcategories } from "@/components/settings/constants";
 import type { SettingsCategoryId } from "@/components/settings/types";
