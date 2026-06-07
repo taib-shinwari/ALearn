@@ -120,13 +120,14 @@ export function ChessLessonView({ lesson }: Props) {
   const stepCounter = `${Math.min(stepIdx + (done ? 0 : 1), lesson.steps.length)} / ${lesson.steps.length}`;
   const narrationText = step ? cName(step.narration, uiLang) : "";
 
-  // ── Layout: mobile stacked, desktop split (board left, panel right) ──
+  // ── Layout: board + side panel fit within viewport on mobile ──
+  // Board is constrained so the whole lesson UI fits without scrolling.
   return (
     <div className="px-4 w-full">
-      <div className="grid gap-4 md:grid-cols-[1fr_320px] md:items-stretch max-w-5xl mx-auto">
-        {/* Board */}
-        <div className="w-full max-w-md mx-auto md:mx-0 md:max-w-none">
-          <Container className="p-2 rounded-[20px]">
+      <div className="grid gap-3 md:grid-cols-[1fr_320px] md:items-stretch max-w-5xl mx-auto">
+        {/* Board — sized to fit viewport: width-capped by side panel + height-capped */}
+        <div className="w-full mx-auto md:mx-0 flex justify-center">
+          <Container className="p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-22rem))] md:max-w-none">
             <Chessboard
               pieces={pieces}
               stars={stars}
@@ -147,7 +148,7 @@ export function ChessLessonView({ lesson }: Props) {
             {narrationText || (uiLang === "nl" ? "Klaar!" : "Finished!")}
           </Container>
 
-          <div className="flex items-center gap-2 justify-center">
+          <div className="flex items-center gap-2 justify-center flex-wrap">
             <span className="text-xs px-3 py-2 rounded-full border-2 border-border bg-background font-mono whitespace-nowrap">
               {stepCounter}
             </span>
