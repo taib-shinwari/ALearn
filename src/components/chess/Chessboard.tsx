@@ -230,7 +230,7 @@ export function Chessboard({
               top: `${(row / 8) * 100}%`,
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
-              padding: "6%",
+              padding: "2%",
               pointerEvents: "none",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}
