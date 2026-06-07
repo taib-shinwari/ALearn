@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock, Star, StarOff, Pencil, Plus, Filter } from "lucide-react";
+import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock, Star, Pencil, Plus, Filter } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
