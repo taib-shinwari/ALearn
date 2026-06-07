@@ -691,6 +691,62 @@ export const categories: Category[] = [
       },
     ],
   },
+  {
+    id: "basisgrammatica",
+    name: { nl: "Basisgrammatica", en: "Basic Grammar", ar: "أساسيات النحو" },
+    subcategories: [
+      {
+        id: "voornaamwoorden",
+        name: { nl: "Voornaamwoorden", en: "Pronouns", ar: "الضمائر" },
+        words: [
+          { id: "vnw-ik", nl: { word: "ik", definitie: "Persoonlijk voornaamwoord, 1e persoon enkelvoud.", voorbeeld: "Ik loop naar huis." }, en: { word: "I", definition: "1st person singular pronoun.", example: "I walk home." } },
+          { id: "vnw-jij", nl: { word: "jij / je", definitie: "Persoonlijk voornaamwoord, 2e persoon enkelvoud.", voorbeeld: "Jij bent slim." }, en: { word: "you", definition: "2nd person singular pronoun.", example: "You are smart." } },
+          { id: "vnw-hij", nl: { word: "hij", definitie: "Persoonlijk voornaamwoord, 3e persoon mannelijk.", voorbeeld: "Hij leest een boek." }, en: { word: "he", definition: "3rd person masculine pronoun.", example: "He reads a book." } },
+          { id: "vnw-zij", nl: { word: "zij / ze", definitie: "Persoonlijk voornaamwoord, 3e persoon vrouwelijk / meervoud.", voorbeeld: "Zij zingt mooi." }, en: { word: "she / they", definition: "3rd person feminine or plural pronoun.", example: "She sings beautifully." } },
+          { id: "vnw-wij", nl: { word: "wij / we", definitie: "Persoonlijk voornaamwoord, 1e persoon meervoud.", voorbeeld: "Wij gaan naar het strand." }, en: { word: "we", definition: "1st person plural pronoun.", example: "We are going to the beach." } },
+          { id: "vnw-jullie", nl: { word: "jullie", definitie: "Persoonlijk voornaamwoord, 2e persoon meervoud.", voorbeeld: "Jullie zijn welkom." }, en: { word: "you (plural)", definition: "2nd person plural pronoun.", example: "You all are welcome." } },
+          { id: "vnw-bezit-mijn", nl: { word: "mijn", definitie: "Bezittelijk voornaamwoord (1e persoon ev).", voorbeeld: "Dat is mijn boek." }, en: { word: "my", definition: "Possessive (1st person sing.).", example: "That is my book." } },
+          { id: "vnw-bezit-jouw", nl: { word: "jouw / je", definitie: "Bezittelijk voornaamwoord (2e persoon ev).", voorbeeld: "Waar is jouw jas?" }, en: { word: "your", definition: "Possessive (2nd person sing.).", example: "Where is your coat?" } },
+        ],
+      },
+      {
+        id: "lidwoorden",
+        name: { nl: "Lidwoorden", en: "Articles", ar: "أدوات التعريف" },
+        words: [
+          { id: "lw-de", nl: { word: "de", definitie: "Bepaald lidwoord voor mannelijke, vrouwelijke en meervoudige zelfstandige naamwoorden.", voorbeeld: "De hond blaft." }, en: { word: "the (de)", definition: "Definite article for common-gender and plural nouns.", example: "The dog barks." } },
+          { id: "lw-het", nl: { word: "het", definitie: "Bepaald lidwoord voor onzijdige zelfstandige naamwoorden.", voorbeeld: "Het huis is groot." }, en: { word: "the (het)", definition: "Definite article for neuter nouns.", example: "The house is large." } },
+          { id: "lw-een", nl: { word: "een", definitie: "Onbepaald lidwoord.", voorbeeld: "Ik zie een kat." }, en: { word: "a / an", definition: "Indefinite article.", example: "I see a cat." } },
+        ],
+      },
+      {
+        id: "zinsbouw",
+        name: { nl: "Formuleer zinnen", en: "Sentence Structure", ar: "بناء الجملة" },
+        words: [
+          { id: "zb-svo", nl: { word: "Onderwerp + Werkwoord + Rest", definitie: "Standaard hoofdzin: onderwerp, persoonsvorm, dan rest.", voorbeeld: "Ik (O) eet (W) een appel." }, en: { word: "Subject + Verb + Rest", definition: "Standard main clause order.", example: "I (S) eat (V) an apple." } },
+          { id: "zb-vraag", nl: { word: "Vraagzin (inversie)", definitie: "Bij ja/nee-vragen komt de persoonsvorm vóór het onderwerp.", voorbeeld: "Eet (W) jij (O) een appel?" }, en: { word: "Yes/no question (inversion)", definition: "Finite verb precedes the subject.", example: "Do you eat an apple?" } },
+          { id: "zb-bijzin", nl: { word: "Bijzin: werkwoord achteraan", definitie: "In een bijzin staat de persoonsvorm aan het einde.", voorbeeld: "…omdat ik moe ben." }, en: { word: "Subordinate clause: verb at end", definition: "Finite verb moves to the end.", example: "…because I am tired." } },
+        ],
+      },
+      {
+        id: "werkwoordstijden",
+        name: { nl: "Werkwoordstijden", en: "Verb Tenses", ar: "أزمنة الأفعال" },
+        words: [
+          { id: "tt-ott", nl: { word: "OTT (tegenwoordige tijd)", definitie: "Beschrijft nu of een gewoonte.", voorbeeld: "Ik werk vandaag." }, en: { word: "Present simple", definition: "Describes now or a habit.", example: "I work today." } },
+          { id: "tt-ovt", nl: { word: "OVT (verleden tijd)", definitie: "Beschrijft een afgesloten gebeurtenis.", voorbeeld: "Ik werkte gisteren." }, en: { word: "Past simple", definition: "Completed action in the past.", example: "I worked yesterday." } },
+          { id: "tt-vtt", nl: { word: "VTT (voltooid tegenwoordige tijd)", definitie: "Hulpwerkwoord hebben/zijn + voltooid deelwoord.", voorbeeld: "Ik heb gewerkt." }, en: { word: "Present perfect", definition: "Auxiliary + past participle.", example: "I have worked." } },
+        ],
+      },
+      {
+        id: "nwd",
+        name: { nl: "Naamwoordelijk gezegde (NWD)", en: "Predicate Nouns (NWD)", ar: "الخبر الاسمي" },
+        words: [
+          { id: "nwd-zijn", nl: { word: "zijn als koppelwerkwoord", definitie: "Verbindt onderwerp met een eigenschap of toestand.", voorbeeld: "De lucht is blauw." }, en: { word: "'to be' as linking verb", definition: "Links subject to a property or state.", example: "The sky is blue." } },
+          { id: "nwd-worden", nl: { word: "worden", definitie: "Koppelwerkwoord dat verandering aanduidt.", voorbeeld: "Hij wordt arts." }, en: { word: "to become", definition: "Linking verb expressing change.", example: "He becomes a doctor." } },
+          { id: "nwd-blijven", nl: { word: "blijven", definitie: "Koppelwerkwoord dat een blijvende toestand uitdrukt.", voorbeeld: "Zij blijft kalm." }, en: { word: "to stay/remain", definition: "Linking verb of persistence.", example: "She stays calm." } },
+        ],
+      },
+    ],
+  },
 ];
 
 export type Difficulty = "beginner" | "intermediate" | "advanced";
