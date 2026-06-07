@@ -494,16 +494,20 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
 type FlipState = 0 | 1 | 2;
 
 function WordDetailView({
-  categoryId, subcategoryId, word,
+  categoryId, subcategoryId, word, isCustom,
 }: {
   categoryId: string;
   subcategoryId: string;
   word: import("@/data/courseData").WordDetail;
+  isCustom?: boolean;
 }) {
   const { uiLang, courseLang, t } = useCourseLanguage();
   const [flip, setFlip] = useState<FlipState>(0);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const { isMarked, toggle } = useMarkedWords();
+  const { isFavorite, toggle: toggleFav } = useFavoriteWords();
+  const { updateCustomWord, removeCustomWord, setOverride } = useCustomWords(categoryId, subcategoryId);
+  const [editOpen, setEditOpen] = useState(false);
 
   const targetTextEarly = word[courseLang]?.word ?? word.en.word;
   const showImage = categoryId === "zelfstandig-naamwoord";
@@ -542,6 +546,7 @@ function WordDetailView({
   const targetText = (courseLang === "ar" ? word.ar?.word : word[courseLang]?.word) ?? word.en.word;
   const frontPron = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang]?.pronunciation) ?? undefined;
   const marked = isMarked(courseLang, word.id);
+  const favored = isFavorite(courseLang, word.id);
   const isFront = flip === 0;
 
   return (
@@ -557,7 +562,7 @@ function WordDetailView({
         onClick={handleFlip}
         className={cn("w-full relative", isFront ? "min-h-[140px]" : "min-h-[260px]")}
       >
-        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
           {isSpeechAvailable() && (
             <button
               type="button"
@@ -567,6 +572,11 @@ function WordDetailView({
             >
               <Volume2 className="h-4 w-4" />
             </button>
+          )}
+          {!isFront && (
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
+              {showLang}
+            </span>
           )}
           <button
             type="button"
@@ -579,6 +589,25 @@ function WordDetailView({
           >
             {marked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
           </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleFav(courseLang, word.id); }}
+            className={cn(
+              "rounded-full p-2 border-2 border-border transition-colors",
+              favored ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background"
+            )}
+            aria-label={favored ? (t("unfavorite") || "Unfavorite") : (t("favorite") || "Favorite")}
+          >
+            {favored ? <Star className="h-4 w-4 fill-current" /> : <Star className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
+            className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
+            aria-label={t("editWord") || "Edit word"}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="flex flex-col h-full">
@@ -589,11 +618,8 @@ function WordDetailView({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-2 pr-24">
+              <div className="flex items-center mb-2 pr-56">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
-                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border bg-background">
-                  {showLang}
-                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {pronunciation && (
