@@ -232,10 +232,30 @@ function WordsView({
 }) {
   const category = categories.find(c => c.id === categoryId)!;
   const subcategory = category.subcategories.find(s => s.id === subcategoryId)!;
-  const { t } = useCourseLanguage();
+  const { t, courseLang } = useCourseLanguage();
   const { recallQueue } = useApp();
+  const { customWords, addCustomWord, applyOverride } = useCustomWords(categoryId, subcategoryId);
+  const { isMarked } = useMarkedWords();
+  const { isFavorite } = useFavoriteWords();
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  type FilterMode = "all" | "marked" | "favorites" | "custom";
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const allWords: WordDetail[] = useMemo(
+    () => [...subcategory.words, ...customWords].map(applyOverride),
+    [subcategory.words, customWords, applyOverride],
+  );
+
+  const filtered = useMemo(() => {
+    switch (filter) {
+      case "marked": return allWords.filter(w => isMarked(courseLang, w.id));
+      case "favorites": return allWords.filter(w => isFavorite(courseLang, w.id));
+      case "custom": return allWords.filter(w => customWords.some(c => c.id === w.id));
+      default: return allWords;
+    }
+  }, [allWords, filter, courseLang, isMarked, isFavorite, customWords]);
 
   const now = Date.now();
   const wordCooling = (wid: string) => {
@@ -258,6 +278,16 @@ function WordsView({
     });
   };
 
+  const filterLabel = filter === "all" ? (t("all") || "All")
+    : filter === "marked" ? (t("marked") || "Marked")
+    : filter === "favorites" ? (t("favorites") || "Favorites")
+    : (t("custom") || "Custom");
+
+  const cycleFilter = () => {
+    const order: FilterMode[] = ["all", "marked", "favorites", "custom"];
+    setFilter(f => order[(order.indexOf(f) + 1) % order.length]);
+  };
+
   return (
     <div className="space-y-4 px-4">
       <div className="flex items-center gap-2 flex-wrap">
@@ -267,6 +297,14 @@ function WordsView({
           subcategoryId={subcategoryId}
           className="flex-1 min-w-[160px]"
         />
+        <Button onClick={cycleFilter} active={filter !== "all"} aria-label="Filter">
+          <Filter className="h-4 w-4 mr-2" />
+          {filterLabel}
+        </Button>
+        <Button onClick={() => setAddOpen(true)} aria-label="Add word">
+          <Plus className="h-4 w-4 mr-2" />
+          {t("addWord") || "Add"}
+        </Button>
         <Button
           onClick={() => { setSelectMode(s => !s); setSelected(new Set()); }}
           aria-label="Select words"
@@ -290,7 +328,7 @@ function WordsView({
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {subcategory.words.map(word => {
+        {filtered.map(word => {
           const isSel = selected.has(word.id);
           const cooling = wordCooling(word.id);
           const wText = getWordText(word, targetLang as WordLang);
@@ -328,6 +366,13 @@ function WordsView({
           );
         })}
       </div>
+
+      <WordEditDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSave={(w) => addCustomWord(w)}
+      />
+    </div>
     </div>
   );
 }
