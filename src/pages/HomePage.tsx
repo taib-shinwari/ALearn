@@ -668,6 +668,17 @@ function WordDetailView({
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
       </CardButton>
+
+      <WordEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        word={word}
+        onSave={(w) => {
+          if (isCustom) updateCustomWord(word.id, w);
+          else setOverride(word.id, w);
+        }}
+        onDelete={isCustom ? () => removeCustomWord(word.id) : undefined}
+      />
     </div>
   );
 }
