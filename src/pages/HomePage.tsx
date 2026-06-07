@@ -190,13 +190,31 @@ export default function HomePage() {
   }
 
   // ── word detail ────────────────────────────────────────────────────
-  const word = subcategory.words.find(w => w.id === browsePath[4]);
-  if (!word) return <div className="px-4 text-sm">{t("notFound")}</div>;
   return (
-    <WordDetailView
+    <WordDetailResolver
       categoryId={category.id}
       subcategoryId={subcategory.id}
+      wordId={browsePath[4]}
+      builtIn={subcategory.words}
+    />
+  );
+}
+
+function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
+  categoryId: string; subcategoryId: string; wordId: string; builtIn: WordDetail[];
+}) {
+  const { t } = useCourseLanguage();
+  const { customWords, applyOverride } = useCustomWords(categoryId, subcategoryId);
+  const raw = builtIn.find(w => w.id === wordId) || customWords.find(w => w.id === wordId);
+  if (!raw) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  const word = applyOverride(raw);
+  const isCustom = customWords.some(w => w.id === wordId);
+  return (
+    <WordDetailView
+      categoryId={categoryId}
+      subcategoryId={subcategoryId}
       word={word}
+      isCustom={isCustom}
     />
   );
 }
