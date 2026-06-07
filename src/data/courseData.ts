@@ -300,6 +300,9 @@ export const uiLabels: Record<string, Record<string, string>> = {
     languages: "languages", letters: "letters",
     masteryProgress: "Progress", dueNow: "Due Now", coolingDown: "Cooling Down",
     startRecall: "Start Recall", deleteItem: "Delete",
+    addWord: "Add", editWord: "Edit word", save: "Save", delete: "Delete",
+    favorite: "Favorite", unfavorite: "Unfavorite", favorites: "Favorites",
+    custom: "Custom", all: "All", filter: "Filter",
   },
 
   ar: {
