@@ -192,10 +192,20 @@ export function Chessboard({
                   </svg>
                 )}
                 {fIdx === 0 && (
-                  <span className="absolute top-0.5 left-0.5 text-[8px] opacity-60 font-mono text-black">{rank}</span>
+                  <span
+                    className="absolute top-0.5 left-1 opacity-60 font-mono text-black leading-none"
+                    style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}
+                  >
+                    {rank}
+                  </span>
                 )}
                 {rIdx === 7 && (
-                  <span className="absolute bottom-0.5 right-1 text-[8px] opacity-60 font-mono text-black">{file}</span>
+                  <span
+                    className="absolute bottom-0.5 right-1 opacity-60 font-mono text-black leading-none"
+                    style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}
+                  >
+                    {file}
+                  </span>
                 )}
               </button>
             );
@@ -220,7 +230,7 @@ export function Chessboard({
               top: `${(row / 8) * 100}%`,
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
-              padding: "6%",
+              padding: "2%",
               pointerEvents: "none",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}

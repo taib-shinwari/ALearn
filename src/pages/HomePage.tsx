@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
+import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock, Star, Pencil, Plus, Filter } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -8,9 +8,11 @@ import { TitleBar } from "@/components/ui/title-bar";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
+import { useFavoriteWords } from "@/hooks/useFavoriteWords";
+import { useCustomWords } from "@/hooks/useCustomWords";
 import {
   categories, getWordsForCategory, localizedName, getWordText,
-  type Lang, type WordLang,
+  type Lang, type WordLang, type WordDetail,
 } from "@/data/courseData";
 import { RecallButton } from "@/components/RecallButton";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
@@ -21,6 +23,7 @@ import { chessLevels, cName } from "@/data/chessData";
 import { ChessLessonView } from "@/components/chess/ChessLessonView";
 import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WordEditDialog } from "@/components/word/WordEditDialog";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
@@ -101,17 +104,19 @@ export default function HomePage() {
 
   // ── language home: Alphabet folder + categories ────────────────────
   if (browsePath.length === 2) {
+    const alphabetSub = categories
+      .find(c => c.id === "zelfstandig-naamwoord")
+      ?.subcategories.find(s => s.id === "alfabet");
+    const alphabetCount = alphabetSub?.words.length ?? 0;
     return (
       <div className="px-4 w-full">
         <div className="grid grid-cols-2 gap-3">
           <CardButton
             onClick={() => pushBrowse(ALPHABET_SEGMENT)}
-            className="min-h-[88px] flex flex-col justify-between"
+            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
           >
-            <span className="font-semibold text-sm">
-              {ALPHABET_LABEL[uiLang]}
-            </span>
-            <span className="text-xs mt-2 opacity-70">{t("letters") || "letters"}</span>
+            <span className="font-semibold text-sm">{ALPHABET_LABEL[uiLang]}</span>
+            <span className="text-xs opacity-70 whitespace-nowrap">{alphabetCount} {t("words")}</span>
           </CardButton>
           {categories.map(cat => {
             const total = getWordsForCategory(cat.id).length;
@@ -185,13 +190,31 @@ export default function HomePage() {
   }
 
   // ── word detail ────────────────────────────────────────────────────
-  const word = subcategory.words.find(w => w.id === browsePath[4]);
-  if (!word) return <div className="px-4 text-sm">{t("notFound")}</div>;
   return (
-    <WordDetailView
+    <WordDetailResolver
       categoryId={category.id}
       subcategoryId={subcategory.id}
+      wordId={browsePath[4]}
+      builtIn={subcategory.words}
+    />
+  );
+}
+
+function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
+  categoryId: string; subcategoryId: string; wordId: string; builtIn: WordDetail[];
+}) {
+  const { t } = useCourseLanguage();
+  const { customWords, applyOverride } = useCustomWords(categoryId, subcategoryId);
+  const raw = builtIn.find(w => w.id === wordId) || customWords.find(w => w.id === wordId);
+  if (!raw) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  const word = applyOverride(raw);
+  const isCustom = customWords.some(w => w.id === wordId);
+  return (
+    <WordDetailView
+      categoryId={categoryId}
+      subcategoryId={subcategoryId}
       word={word}
+      isCustom={isCustom}
     />
   );
 }
@@ -209,10 +232,30 @@ function WordsView({
 }) {
   const category = categories.find(c => c.id === categoryId)!;
   const subcategory = category.subcategories.find(s => s.id === subcategoryId)!;
-  const { t } = useCourseLanguage();
+  const { t, courseLang } = useCourseLanguage();
   const { recallQueue } = useApp();
+  const { customWords, addCustomWord, applyOverride } = useCustomWords(categoryId, subcategoryId);
+  const { isMarked } = useMarkedWords();
+  const { isFavorite } = useFavoriteWords();
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  type FilterMode = "all" | "marked" | "favorites" | "custom";
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const allWords: WordDetail[] = useMemo(
+    () => [...subcategory.words, ...customWords].map(applyOverride),
+    [subcategory.words, customWords, applyOverride],
+  );
+
+  const filtered = useMemo(() => {
+    switch (filter) {
+      case "marked": return allWords.filter(w => isMarked(courseLang, w.id));
+      case "favorites": return allWords.filter(w => isFavorite(courseLang, w.id));
+      case "custom": return allWords.filter(w => customWords.some(c => c.id === w.id));
+      default: return allWords;
+    }
+  }, [allWords, filter, courseLang, isMarked, isFavorite, customWords]);
 
   const now = Date.now();
   const wordCooling = (wid: string) => {
@@ -235,6 +278,16 @@ function WordsView({
     });
   };
 
+  const filterLabel = filter === "all" ? (t("all") || "All")
+    : filter === "marked" ? (t("marked") || "Marked")
+    : filter === "favorites" ? (t("favorites") || "Favorites")
+    : (t("custom") || "Custom");
+
+  const cycleFilter = () => {
+    const order: FilterMode[] = ["all", "marked", "favorites", "custom"];
+    setFilter(f => order[(order.indexOf(f) + 1) % order.length]);
+  };
+
   return (
     <div className="space-y-4 px-4">
       <div className="flex items-center gap-2 flex-wrap">
@@ -244,6 +297,14 @@ function WordsView({
           subcategoryId={subcategoryId}
           className="flex-1 min-w-[160px]"
         />
+        <Button onClick={cycleFilter} active={filter !== "all"} aria-label="Filter">
+          <Filter className="h-4 w-4 mr-2" />
+          {filterLabel}
+        </Button>
+        <Button onClick={() => setAddOpen(true)} aria-label="Add word">
+          <Plus className="h-4 w-4 mr-2" />
+          {t("addWord") || "Add"}
+        </Button>
         <Button
           onClick={() => { setSelectMode(s => !s); setSelected(new Set()); }}
           aria-label="Select words"
@@ -267,7 +328,7 @@ function WordsView({
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {subcategory.words.map(word => {
+        {filtered.map(word => {
           const isSel = selected.has(word.id);
           const cooling = wordCooling(word.id);
           const wText = getWordText(word, targetLang as WordLang);
@@ -305,6 +366,13 @@ function WordsView({
           );
         })}
       </div>
+
+      <WordEditDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSave={(w) => addCustomWord(w)}
+      />
+    </div>
     </div>
   );
 }
@@ -426,16 +494,20 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
 type FlipState = 0 | 1 | 2;
 
 function WordDetailView({
-  categoryId, subcategoryId, word,
+  categoryId, subcategoryId, word, isCustom,
 }: {
   categoryId: string;
   subcategoryId: string;
   word: import("@/data/courseData").WordDetail;
+  isCustom?: boolean;
 }) {
   const { uiLang, courseLang, t } = useCourseLanguage();
   const [flip, setFlip] = useState<FlipState>(0);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const { isMarked, toggle } = useMarkedWords();
+  const { isFavorite, toggle: toggleFav } = useFavoriteWords();
+  const { updateCustomWord, removeCustomWord, setOverride } = useCustomWords(categoryId, subcategoryId);
+  const [editOpen, setEditOpen] = useState(false);
 
   const targetTextEarly = word[courseLang]?.word ?? word.en.word;
   const showImage = categoryId === "zelfstandig-naamwoord";
@@ -474,6 +546,7 @@ function WordDetailView({
   const targetText = (courseLang === "ar" ? word.ar?.word : word[courseLang]?.word) ?? word.en.word;
   const frontPron = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang]?.pronunciation) ?? undefined;
   const marked = isMarked(courseLang, word.id);
+  const favored = isFavorite(courseLang, word.id);
   const isFront = flip === 0;
 
   return (
@@ -489,7 +562,7 @@ function WordDetailView({
         onClick={handleFlip}
         className={cn("w-full relative", isFront ? "min-h-[140px]" : "min-h-[260px]")}
       >
-        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
           {isSpeechAvailable() && (
             <button
               type="button"
@@ -499,6 +572,11 @@ function WordDetailView({
             >
               <Volume2 className="h-4 w-4" />
             </button>
+          )}
+          {!isFront && (
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
+              {showLang}
+            </span>
           )}
           <button
             type="button"
@@ -511,6 +589,25 @@ function WordDetailView({
           >
             {marked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
           </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleFav(courseLang, word.id); }}
+            className={cn(
+              "rounded-full p-2 border-2 border-border transition-colors",
+              favored ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background"
+            )}
+            aria-label={favored ? (t("unfavorite") || "Unfavorite") : (t("favorite") || "Favorite")}
+          >
+            {favored ? <Star className="h-4 w-4 fill-current" /> : <Star className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
+            className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
+            aria-label={t("editWord") || "Edit word"}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="flex flex-col h-full">
@@ -521,11 +618,8 @@ function WordDetailView({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-2 pr-24">
+              <div className="flex items-center mb-2 pr-56">
                 <h1 className="text-2xl font-bold">{data.word}</h1>
-                <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border bg-background">
-                  {showLang}
-                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {pronunciation && (
@@ -574,6 +668,17 @@ function WordDetailView({
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
       </CardButton>
+
+      <WordEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        word={word}
+        onSave={(w) => {
+          if (isCustom) updateCustomWord(word.id, w);
+          else setOverride(word.id, w);
+        }}
+        onDelete={isCustom ? () => removeCustomWord(word.id) : undefined}
+      />
     </div>
   );
 }
