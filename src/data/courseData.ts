@@ -421,6 +421,9 @@ export const uiLabels: Record<string, Record<string, string>> = {
     languages: "لغات", letters: "حروف",
     masteryProgress: "التقدم", dueNow: "مستحق الآن", coolingDown: "قيد الانتظار",
     startRecall: "ابدأ المراجعة", deleteItem: "حذف",
+    addWord: "إضافة", editWord: "تعديل الكلمة", save: "حفظ", delete: "حذف",
+    favorite: "مفضلة", unfavorite: "إزالة من المفضلة", favorites: "المفضلة",
+    custom: "خاص", all: "الكل", filter: "تصفية",
   },
 
 };
