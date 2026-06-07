@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock } from "lucide-react";
+import { Volume2, Bookmark, BookmarkCheck, CheckSquare, Square, Brain, X, Clock, Star, StarOff, Pencil, Plus, Filter } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -8,9 +8,11 @@ import { TitleBar } from "@/components/ui/title-bar";
 import { useApp } from "@/context/AppContext";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
+import { useFavoriteWords } from "@/hooks/useFavoriteWords";
+import { useCustomWords } from "@/hooks/useCustomWords";
 import {
   categories, getWordsForCategory, localizedName, getWordText,
-  type Lang, type WordLang,
+  type Lang, type WordLang, type WordDetail,
 } from "@/data/courseData";
 import { RecallButton } from "@/components/RecallButton";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
@@ -21,6 +23,7 @@ import { chessLevels, cName } from "@/data/chessData";
 import { ChessLessonView } from "@/components/chess/ChessLessonView";
 import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WordEditDialog } from "@/components/word/WordEditDialog";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
