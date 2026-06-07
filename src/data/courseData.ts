@@ -179,6 +179,9 @@ export const uiLabels: Record<string, Record<string, string>> = {
     languages: "talen", letters: "letters",
     masteryProgress: "Voortgang", dueNow: "Nu te doen", coolingDown: "Aan het afkoelen",
     startRecall: "Start herhaling", deleteItem: "Verwijderen",
+    addWord: "Toevoegen", editWord: "Bewerk woord", save: "Opslaan", delete: "Verwijderen",
+    favorite: "Favoriet", unfavorite: "Verwijder favoriet", favorites: "Favorieten",
+    custom: "Eigen", all: "Alles", filter: "Filter",
   },
 
   en: {
