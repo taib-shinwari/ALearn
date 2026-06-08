@@ -1,7 +1,9 @@
 // Custom chessboard renderer using Wikimedia Commons SVG pieces.
 // - Pieces are positioned absolutely so they can animate between squares.
-// - Right-click is disabled. Right-drag (or two-finger) draws an arrow.
-// - Arrows are rendered on an SVG overlay.
+// - Right-click is disabled. Right-drag (or right-click) draws an arrow,
+//   single right-click toggles a red square highlight (chess.com-style).
+// - Left-click clears all user arrows + right-click highlights, then forwards
+//   the click to onSquareClick.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { PlacedPiece, PieceColor, PieceType, Arrow } from "@/data/chessData";
@@ -26,17 +28,19 @@ interface Props {
   stars?: string[];
   orientation?: "white" | "black";
   selected?: string | null;
+  /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
+  /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
+  arrowLengthScale?: number;
   onSquareClick?: (square: string) => void;
-  onArrowDrawn?: (arrow: Arrow) => void;
   animate?: boolean;
   animationMs?: number;
   className?: string;
 }
 
 function squareToXY(sq: string, orientation: "white" | "black") {
-  const file = sq.charCodeAt(0) - "a".charCodeAt(0); // 0..7
-  const rank = parseInt(sq[1], 10) - 1;              // 0..7
+  const file = sq.charCodeAt(0) - "a".charCodeAt(0);
+  const rank = parseInt(sq[1], 10) - 1;
   const col = orientation === "white" ? file : 7 - file;
   const row = orientation === "white" ? 7 - rank : rank;
   return { col, row };
@@ -54,14 +58,18 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
 
 export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
-  arrows = [], onSquareClick, onArrowDrawn,
+  arrows = [], arrowLengthScale = 1,
+  onSquareClick,
   animate = true, animationMs = 220, className,
 }: Props) {
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
   const visualFiles = orientation === "white" ? files : [...files].reverse();
   const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
 
-  // Track theme for `themed` pieces
+  // User-drawn arrows + right-click highlights live inside the board.
+  const [userArrows, setUserArrows] = useState<Arrow[]>([]);
+  const [highlights, setHighlights] = useState<Set<string>>(new Set());
+
   const [dark, setDark] = useState(isDarkTheme);
   useEffect(() => {
     const obs = new MutationObserver(() => setDark(isDarkTheme()));
@@ -69,7 +77,6 @@ export function Chessboard({
     return () => obs.disconnect();
   }, []);
 
-  // Track board pixel size so arrows scale correctly
   const boardRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
   useEffect(() => {
@@ -82,7 +89,6 @@ export function Chessboard({
     return () => ro.disconnect();
   }, []);
 
-  // Right-drag arrow drawing
   const dragStart = useRef<string | null>(null);
   const onContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
@@ -99,16 +105,35 @@ export function Chessboard({
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 2) return;
-    dragStart.current = sqAt(e.clientX, e.clientY);
+    if (e.button === 0) {
+      // Left click — clear user arrows + highlights.
+      if (userArrows.length) setUserArrows([]);
+      if (highlights.size) setHighlights(new Set());
+    }
+    if (e.button === 2) {
+      dragStart.current = sqAt(e.clientX, e.clientY);
+    }
   };
   const onMouseUp = (e: React.MouseEvent) => {
     if (e.button !== 2) return;
     const from = dragStart.current;
     const to = sqAt(e.clientX, e.clientY);
     dragStart.current = null;
-    if (!from || !to || from === to) return;
-    onArrowDrawn?.({ from, to });
+    if (!from || !to) return;
+    if (from === to) {
+      // Toggle right-click highlight
+      setHighlights(prev => {
+        const next = new Set(prev);
+        if (next.has(from)) next.delete(from); else next.add(from);
+        return next;
+      });
+      return;
+    }
+    setUserArrows(prev => {
+      const same = prev.find(x => x.from === from && x.to === to);
+      if (same) return prev.filter(x => x !== same);
+      return [...prev, { from, to, color: "hsl(var(--primary))" }];
+    });
   };
 
   const sq = size / 8;
@@ -119,34 +144,39 @@ export function Chessboard({
 
   const renderedArrows = useMemo(() => {
     if (size === 0) return null;
-    return arrows.map((a, i) => {
+    const all: { a: Arrow; scale: number }[] = [
+      ...arrows.map(a => ({ a, scale: arrowLengthScale })),
+      ...userArrows.map(a => ({ a, scale: 1 })),
+    ];
+    return all.map(({ a, scale }, i) => {
       const f = center(a.from), t = center(a.to);
       const dx = t.x - f.x, dy = t.y - f.y;
       const len = Math.hypot(dx, dy);
       if (len === 0) return null;
       const ux = dx / len, uy = dy / len;
-      // Pull back from target so arrowhead sits inside the square
       const tipX = t.x - ux * sq * 0.25;
       const tipY = t.y - uy * sq * 0.25;
       const startX = f.x + ux * sq * 0.15;
       const startY = f.y + uy * sq * 0.15;
+      // Pulse: shorten toward the source. Width stays constant.
+      const eTipX = startX + (tipX - startX) * scale;
+      const eTipY = startY + (tipY - startY) * scale;
       const color = a.color ?? "rgba(255,170,0,0.85)";
       return (
         <g key={`${a.from}-${a.to}-${i}`}>
-          <line x1={startX} y1={startY} x2={tipX} y2={tipY} stroke={color} strokeWidth={sq * 0.14} strokeLinecap="round" />
-          {/* Arrowhead */}
+          <line x1={startX} y1={startY} x2={eTipX} y2={eTipY} stroke={color} strokeWidth={sq * 0.14} strokeLinecap="round" />
           <polygon
             points={[
-              [tipX + ux * sq * 0.22, tipY + uy * sq * 0.22],
-              [tipX - uy * sq * 0.18, tipY + ux * sq * 0.18],
-              [tipX + uy * sq * 0.18, tipY - ux * sq * 0.18],
+              [eTipX + ux * sq * 0.22, eTipY + uy * sq * 0.22],
+              [eTipX - uy * sq * 0.18, eTipY + ux * sq * 0.18],
+              [eTipX + uy * sq * 0.18, eTipY - ux * sq * 0.18],
             ].map(p => p.join(",")).join(" ")}
             fill={color}
           />
         </g>
       );
     });
-  }, [arrows, size, orientation]);
+  }, [arrows, userArrows, arrowLengthScale, size, orientation]);
 
   return (
     <div
@@ -161,7 +191,6 @@ export function Chessboard({
       role="img"
       aria-label="Chess position"
     >
-      {/* Squares */}
       <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "repeat(8, 1fr)", gridTemplateRows: "repeat(8, 1fr)" }}>
         {visualRanks.map((rank, rIdx) =>
           visualFiles.map((file, fIdx) => {
@@ -169,6 +198,7 @@ export function Chessboard({
             const isLight = (rIdx + fIdx) % 2 === 0;
             const isSel = selected === square;
             const hasStar = stars.includes(square);
+            const isHighlighted = highlights.has(square);
             return (
               <button
                 type="button"
@@ -180,8 +210,11 @@ export function Chessboard({
                   isSel && "ring-4 ring-inset ring-blue-500/70",
                 )}
               >
+                {isHighlighted && (
+                  <span className="absolute inset-0 bg-red-500/55 pointer-events-none" />
+                )}
                 {hasStar && (
-                  <svg viewBox="0 0 24 24" className="w-1/2 h-1/2 drop-shadow" aria-hidden>
+                  <svg viewBox="0 0 24 24" className="w-1/2 h-1/2 drop-shadow animate-scale-in" aria-hidden>
                     <polygon
                       points="12,2 14.9,9 22,9.3 16.5,13.9 18.4,21 12,16.9 5.6,21 7.5,13.9 2,9.3 9.1,9"
                       fill="#facc15"
@@ -213,7 +246,6 @@ export function Chessboard({
         )}
       </div>
 
-      {/* Pieces */}
       {size > 0 && pieces.map((p, i) => {
         const { col, row } = squareToXY(p.square, orientation);
         const color = pieceColor(p, dark);
@@ -238,7 +270,6 @@ export function Chessboard({
         );
       })}
 
-      {/* Arrows overlay */}
       {size > 0 && (
         <svg
           className="absolute inset-0 pointer-events-none"
