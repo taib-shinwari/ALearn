@@ -147,6 +147,9 @@ export default function HomePage() {
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
+    if (category.subcategories.length === 0) {
+      return <EmptyState uiLang={uiLang} kind="subcategories" />;
+    }
     return (
       <div className="grid grid-cols-2 gap-3 px-4">
         {category.subcategories.map(sub => (
@@ -167,6 +170,10 @@ export default function HomePage() {
   // ── words ──────────────────────────────────────────────────────────
   const subcategory = category.subcategories.find(s => s.id === browsePath[3]);
   if (!subcategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  if (browsePath.length === 4 && subcategory.words.length === 0) {
+    return <EmptyState uiLang={uiLang} kind="words" />;
+  }
+
 
   if (browsePath.length === 4) {
     return (
