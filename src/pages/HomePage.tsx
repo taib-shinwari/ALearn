@@ -147,6 +147,9 @@ export default function HomePage() {
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
+    if (category.subcategories.length === 0) {
+      return <EmptyState uiLang={uiLang} kind="subcategories" />;
+    }
     return (
       <div className="grid grid-cols-2 gap-3 px-4">
         {category.subcategories.map(sub => (
@@ -167,6 +170,10 @@ export default function HomePage() {
   // ── words ──────────────────────────────────────────────────────────
   const subcategory = category.subcategories.find(s => s.id === browsePath[3]);
   if (!subcategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  if (browsePath.length === 4 && subcategory.words.length === 0) {
+    return <EmptyState uiLang={uiLang} kind="words" />;
+  }
+
 
   if (browsePath.length === 4) {
     return (
@@ -693,11 +700,42 @@ function Section({ label, children, italic }: { label: string; children: React.R
 
 /* ─────────────────────────── Chess branch ─────────────────────────── */
 
+function EmptyState({ uiLang, kind }: { uiLang: Lang; kind: "subcategories" | "words" | "groups" | "lessons" }) {
+  const msg: Record<typeof kind, Record<Lang, string>> = {
+    subcategories: {
+      nl: "Deze categorie is leeg. Voeg subcategorieën of woorden toe.",
+      en: "This category is empty. Add subcategories or words.",
+      ar: "هذه الفئة فارغة. أضف فئات فرعية أو كلمات.",
+    },
+    words: {
+      nl: "Geen woorden hier. Tik op + om er een toe te voegen.",
+      en: "No words here. Tap + to add one.",
+      ar: "لا توجد كلمات هنا. اضغط + للإضافة.",
+    },
+    groups: {
+      nl: "Dit niveau is nog leeg. Binnenkort meer lessen.",
+      en: "This level is empty. More lessons coming soon.",
+      ar: "هذا المستوى فارغ. قريباً المزيد من الدروس.",
+    },
+    lessons: {
+      nl: "Deze groep is nog leeg. Binnenkort meer lessen.",
+      en: "This group is empty. More lessons coming soon.",
+      ar: "هذه المجموعة فارغة. قريباً المزيد من الدروس.",
+    },
+  };
+  return (
+    <div className="px-4">
+      <Container className="p-6 text-center text-sm opacity-70">
+        {msg[kind][uiLang] ?? msg[kind].en}
+      </Container>
+    </div>
+  );
+}
+
 function ChessBranch() {
-  const { browsePath, pushBrowse } = useApp();
+  const { browsePath, pushBrowse, setBrowsePath } = useApp();
   const { uiLang, t } = useCourseLanguage();
 
-  // /chess
   if (browsePath.length === 1) {
     const items: { id: string; label: string; soon?: boolean }[] = [
       { id: "lesson", label: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson" },
@@ -725,7 +763,6 @@ function ChessBranch() {
     );
   }
 
-  // /chess/lesson — levels
   if (browsePath[1] === "lesson" && browsePath.length === 2) {
     return (
       <div className="grid grid-cols-2 gap-3 w-full px-4">
@@ -742,10 +779,10 @@ function ChessBranch() {
     );
   }
 
-  // /chess/lesson/<level> — groups
   if (browsePath[1] === "lesson" && browsePath.length === 3) {
     const lvl = chessLevels.find(l => l.id === browsePath[2]);
     if (!lvl) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    if (lvl.groups.length === 0) return <EmptyState uiLang={uiLang} kind="groups" />;
     return (
       <div className="grid grid-cols-2 gap-3 w-full px-4">
         {lvl.groups.map(g => (
@@ -761,12 +798,11 @@ function ChessBranch() {
     );
   }
 
-
-  // /chess/lesson/<level>/<group> — lessons
   if (browsePath[1] === "lesson" && browsePath.length === 4) {
     const lvl = chessLevels.find(l => l.id === browsePath[2]);
     const grp = lvl?.groups.find(g => g.id === browsePath[3]);
     if (!grp) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    if (grp.lessons.length === 0) return <EmptyState uiLang={uiLang} kind="lessons" />;
     return (
       <div className="grid grid-cols-2 gap-3 w-full px-4">
         {grp.lessons.map(ls => (
@@ -782,15 +818,19 @@ function ChessBranch() {
     );
   }
 
-
-  // /chess/lesson/<level>/<group>/<lesson> — board
   if (browsePath[1] === "lesson" && browsePath.length === 5) {
     const lvl = chessLevels.find(l => l.id === browsePath[2]);
     const grp = lvl?.groups.find(g => g.id === browsePath[3]);
     const lesson = grp?.lessons.find(ls => ls.id === browsePath[4]);
     if (!lesson) return <div className="px-4 text-sm">{t("notFound")}</div>;
-    return <ChessLessonView lesson={lesson} />;
+    const idx = grp!.lessons.findIndex(l => l.id === lesson.id);
+    const next = grp!.lessons[idx + 1];
+    const onNext = next
+      ? () => setBrowsePath([...browsePath.slice(0, -1), next.id])
+      : undefined;
+    return <ChessLessonView lesson={lesson} onNext={onNext} />;
   }
 
   return <div className="px-4 text-sm">{t("notFound")}</div>;
 }
+
