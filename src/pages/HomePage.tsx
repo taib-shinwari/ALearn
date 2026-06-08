@@ -373,7 +373,6 @@ function WordsView({
         onSave={(w) => addCustomWord(w)}
       />
     </div>
-    </div>
   );
 }
 
