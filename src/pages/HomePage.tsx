@@ -524,7 +524,12 @@ function WordDetailView({
     setImgUrl(null);
     if (!targetTextEarly || !showImage) return;
     let cancelled = false;
-    fetchWordImage(targetTextEarly, courseLang).then(url => {
+    fetchWordImage({
+      word: targetTextEarly,
+      lang: courseLang,
+      enWord: word.en.word,
+      enDefinition: word.en.definition,
+    }).then(url => {
       if (!cancelled) setImgUrl(url);
     });
     return () => { cancelled = true; };
