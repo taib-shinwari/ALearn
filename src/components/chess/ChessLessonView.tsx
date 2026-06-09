@@ -4,15 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ChevronRight, Star, Trophy } from "lucide-react";
 import type { ChessLesson, PlacedPiece, Arrow } from "@/data/chessData";
-import { cName, isLegalMove } from "@/data/chessData";
+import { cName, isLegalMove, reachableSquares } from "@/data/chessData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useChessSettings } from "@/lib/chessSettings";
 
-interface Props {
-  lesson: ChessLesson;
-  onNext?: () => void;
-}
-
+interface Props { lesson: ChessLesson; onNext?: () => void }
 type Phase = "intro" | "play" | "done";
 
 export function ChessLessonView({ lesson, onNext }: Props) {
@@ -21,38 +17,54 @@ export function ChessLessonView({ lesson, onNext }: Props) {
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [piece, setPiece] = useState<PlacedPiece>(() => ({ ...lesson.piece }));
-  const [starIdx, setStarIdx] = useState(0);
+  const [extras, setExtras] = useState<PlacedPiece[]>(() => (lesson.extras ?? []).map(p => ({ ...p })));
+  const [stars, setStars] = useState<string[]>([]);
+  const [captured, setCaptured] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
   const [canAdvance, setCanAdvance] = useState(false);
-  // Arrow-length pulse multiplier (0.45..1.0)
   const [pulse, setPulse] = useState(1);
 
   // Reset on lesson switch
   useEffect(() => {
     setPhase("intro");
     setPiece({ ...lesson.piece });
-    setStarIdx(0);
+    setExtras((lesson.extras ?? []).map(p => ({ ...p })));
+    setCaptured(new Set());
     setSelected(null);
     setCanAdvance(false);
+
+    // Compute stars now so they are stable for the lesson session.
+    if (lesson.randomStars && lesson.randomStars > 0) {
+      const reach = reachableSquares(lesson.piece.type, lesson.piece.square)
+        .filter(s => s !== lesson.piece.square);
+      const picked: string[] = [];
+      const pool = [...reach];
+      const n = Math.min(lesson.randomStars, pool.length);
+      for (let i = 0; i < n; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        picked.push(pool.splice(idx, 1)[0]);
+      }
+      setStars(picked);
+    } else {
+      setStars([...(lesson.stars ?? [])]);
+    }
   }, [lesson.id]);
 
-  // Pulse animation for intro arrows (length only)
+  // Pulse intro arrows
   useEffect(() => {
     if (phase !== "intro") return;
     let raf = 0;
     const start = performance.now();
     const tick = (t: number) => {
-      // 1.2s full cycle, smooth in/out between 0.45 and 1.0
       const x = ((t - start) % 1200) / 1200;
-      const s = 0.45 + 0.55 * (0.5 - 0.5 * Math.cos(x * Math.PI * 2));
-      setPulse(s);
+      setPulse(0.45 + 0.55 * (0.5 - 0.5 * Math.cos(x * Math.PI * 2)));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [phase, lesson.id]);
 
-  // Intro narration — auto play once. Continue unlocks when narration ends.
+  // Narration
   useEffect(() => {
     if (phase !== "intro") return;
     setCanAdvance(false);
@@ -68,16 +80,13 @@ export function ChessLessonView({ lesson, onNext }: Props) {
         window.speechSynthesis.speak(u);
         const tm = window.setTimeout(() => setCanAdvance(true), Math.max(1500, txt.length * 70));
         return () => window.clearTimeout(tm);
-      } catch {
-        setCanAdvance(true);
-      }
+      } catch { setCanAdvance(true); }
     } else {
       const tm = window.setTimeout(() => setCanAdvance(true), 600);
       return () => window.clearTimeout(tm);
     }
   }, [phase, lesson.id, uiLang, settings.speakNarration]);
 
-  // Done narration
   useEffect(() => {
     if (phase !== "done") return;
     setCanAdvance(true);
@@ -93,70 +102,84 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     }
   }, [phase, lesson.id, uiLang, settings.speakNarration, lesson.done]);
 
-  // Stars currently on the board: only the active one during play.
+  // Active stars on the board
   const activeStars = useMemo(() => {
     if (phase !== "play") return [];
-    return starIdx < lesson.stars.length ? [lesson.stars[starIdx]] : [];
-  }, [phase, starIdx, lesson.stars]);
+    if (lesson.freeOrder) return stars.filter(s => !captured.has(s));
+    const nextIdx = stars.findIndex(s => !captured.has(s));
+    return nextIdx === -1 ? [] : [stars[nextIdx]];
+  }, [phase, stars, captured, lesson.freeOrder]);
 
-  // Pulsing intro arrows: shorten the line toward the source by `pulse`.
   const introArrows: Arrow[] = useMemo(() => {
     if (phase !== "intro") return [];
     return lesson.introArrows.map(a => ({ ...a, color: "hsl(var(--primary))" }));
   }, [phase, lesson.introArrows]);
 
   const handleContinue = () => {
-    if (phase === "intro") {
-      setPhase("play");
-      setCanAdvance(false);
-    } else if (phase === "done") {
-      onNext?.();
-    }
+    if (phase === "intro") { setPhase("play"); setCanAdvance(false); }
+    else if (phase === "done") onNext?.();
   };
 
   const handleSquare = (sq: string) => {
     if (phase !== "play") return;
-    if (!selected) {
-      if (piece.square === sq) setSelected(sq);
-      return;
-    }
+    if (!selected) { if (piece.square === sq) setSelected(sq); return; }
     if (sq === selected) { setSelected(null); return; }
-    // Only the active piece is on the board, so we just check piece-type legality.
-    if (!isLegalMove(piece.type, selected, sq)) {
-      setSelected(null);
-      return;
-    }
-    const captured = sq === lesson.stars[starIdx];
-    setPiece(p => ({ ...p, square: sq }));
-    setSelected(null);
-    if (captured) {
-      const next = starIdx + 1;
-      if (next >= lesson.stars.length) {
-        // Slight delay so the move animation completes before the overlay.
-        window.setTimeout(() => setPhase("done"), 350);
-      } else {
-        setStarIdx(next);
+
+    const targetExtra = extras.find(e => e.square === sq);
+    const wouldCapture = !!targetExtra || stars.includes(sq);
+
+    // Castling shortcut: King e1 -> g1 or c1 when rook present.
+    if (piece.type === "K" && selected === "e1" && (sq === "g1" || sq === "c1")) {
+      const rookFrom = sq === "g1" ? "h1" : "a1";
+      const rookTo = sq === "g1" ? "f1" : "d1";
+      const rook = extras.find(e => e.square === rookFrom && e.type === "R");
+      if (rook) {
+        setPiece(p => ({ ...p, square: sq }));
+        setExtras(es => es.map(e => e === rook ? { ...e, square: rookTo } : e));
+        setSelected(null);
+        if (stars.includes(sq)) {
+          const next = new Set(captured); next.add(sq); setCaptured(next);
+          if (stars.every(s => next.has(s))) window.setTimeout(() => setPhase("done"), 350);
+        }
+        return;
       }
+    }
+
+    if (!isLegalMove(piece.type, selected, sq, wouldCapture)) { setSelected(null); return; }
+
+    setPiece(p => ({ ...p, square: sq }));
+    if (targetExtra) setExtras(es => es.filter(e => e !== targetExtra));
+    setSelected(null);
+
+    if (stars.includes(sq)) {
+      const next = new Set(captured); next.add(sq);
+      setCaptured(next);
+      if (stars.every(s => next.has(s))) window.setTimeout(() => setPhase("done"), 350);
+    } else if (!lesson.freeOrder) {
+      // Sequential: optional partial-credit reset (not needed)
     }
   };
 
   const continueLabel = phase === "intro"
     ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
     : phase === "done"
-      ? (onNext
-          ? (uiLang === "nl" ? "Volgende les" : uiLang === "ar" ? "الدرس التالي" : "Next lesson")
-          : (uiLang === "nl" ? "Klaar" : uiLang === "ar" ? "تم" : "Done"))
+      ? (onNext ? (uiLang === "nl" ? "Volgende les" : uiLang === "ar" ? "الدرس التالي" : "Next lesson")
+                : (uiLang === "nl" ? "Klaar" : uiLang === "ar" ? "تم" : "Done"))
       : "";
+
+  const totalStars = stars.length;
+  const doneCount = captured.size;
+
+  const allPieces = useMemo(() => [piece, ...extras], [piece, extras]);
 
   return (
     <div className="px-4 w-full">
       <div className="grid gap-3 md:grid-cols-[1fr_320px] md:items-stretch max-w-5xl mx-auto">
-        {/* Board */}
         <div className="w-full mx-auto md:mx-0 flex justify-center">
           <Container className="p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-22rem))] md:max-w-none">
             <div className="relative">
               <Chessboard
-                pieces={[piece]}
+                pieces={allPieces}
                 stars={activeStars}
                 orientation={lesson.orientation ?? "white"}
                 selected={selected}
@@ -180,7 +203,6 @@ export function ChessLessonView({ lesson, onNext }: Props) {
           </Container>
         </div>
 
-        {/* Side panel */}
         <div className="flex flex-col gap-3 md:justify-between">
           <Container className="p-3 text-sm leading-relaxed min-h-[88px]">
             {phase === "done"
@@ -192,7 +214,7 @@ export function ChessLessonView({ lesson, onNext }: Props) {
             {phase === "play" && (
               <span className="text-xs px-3 py-2 rounded-full border-2 border-border bg-background font-mono flex items-center gap-1.5 whitespace-nowrap">
                 <Star className="h-3.5 w-3.5 fill-current" />
-                {starIdx}/{lesson.stars.length}
+                {doneCount}/{totalStars}
               </span>
             )}
             {phase !== "play" && (

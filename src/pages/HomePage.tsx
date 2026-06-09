@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
 import { chessLevels, cName } from "@/data/chessData";
 import { ChessLessonView } from "@/components/chess/ChessLessonView";
+import { ChessPlayView } from "@/components/chess/ChessPlayView";
+import { ChessPuzzleView } from "@/components/chess/ChessPuzzleView";
+import { PUZZLES } from "@/data/chessPuzzles";
 import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WordEditDialog } from "@/components/word/WordEditDialog";
@@ -521,7 +524,12 @@ function WordDetailView({
     setImgUrl(null);
     if (!targetTextEarly || !showImage) return;
     let cancelled = false;
-    fetchWordImage(targetTextEarly, courseLang).then(url => {
+    fetchWordImage({
+      word: targetTextEarly,
+      lang: courseLang,
+      enWord: word.en.word,
+      enDefinition: word.en.definition,
+    }).then(url => {
       if (!cancelled) setImgUrl(url);
     });
     return () => { cancelled = true; };
@@ -737,30 +745,53 @@ function ChessBranch() {
   const { uiLang, t } = useCourseLanguage();
 
   if (browsePath.length === 1) {
-    const items: { id: string; label: string; soon?: boolean }[] = [
+    const items = [
       { id: "lesson", label: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson" },
-      { id: "puzzle", label: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle", soon: true },
-      { id: "play", label: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play", soon: true },
+      { id: "puzzle", label: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle" },
+      { id: "play", label: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play" },
     ];
     return (
       <div className="grid grid-cols-2 gap-3 w-full px-4">
         {items.map(it => (
           <CardButton
             key={it.id}
-            onClick={() => !it.soon && pushBrowse(it.id)}
-            disabled={it.soon}
-            className="min-h-[88px] flex flex-col justify-between"
+            onClick={() => pushBrowse(it.id)}
+            className="min-h-[88px] flex items-center justify-center text-center"
           >
             <span className="font-semibold text-sm">{it.label}</span>
-            {it.soon && (
-              <span className="text-[10px] mt-2 px-2 py-0.5 rounded-full border-2 border-border bg-background self-start uppercase tracking-wider">
-                {t("comingSoon") || "Coming Soon"}
-              </span>
-            )}
           </CardButton>
         ))}
       </div>
     );
+  }
+
+  if (browsePath[1] === "play") {
+    return <ChessPlayView />;
+  }
+
+  if (browsePath[1] === "puzzle" && browsePath.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        {PUZZLES.map(p => (
+          <CardButton
+            key={p.id}
+            onClick={() => pushBrowse(p.id)}
+            className="min-h-[80px] flex flex-col items-center justify-center text-center gap-1"
+          >
+            <span className="font-semibold text-sm">{p.title[uiLang] ?? p.title.en}</span>
+            <span className="text-xs opacity-60">{p.theme[uiLang] ?? p.theme.en}</span>
+          </CardButton>
+        ))}
+      </div>
+    );
+  }
+
+  if (browsePath[1] === "puzzle" && browsePath.length === 3) {
+    const p = PUZZLES.find(x => x.id === browsePath[2]);
+    if (!p) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    const idx = PUZZLES.findIndex(x => x.id === p.id);
+    const next = PUZZLES[idx + 1];
+    return <ChessPuzzleView puzzle={p} onSolved={next ? () => setBrowsePath([...browsePath.slice(0, -1), next.id]) : undefined} />;
   }
 
   if (browsePath[1] === "lesson" && browsePath.length === 2) {
