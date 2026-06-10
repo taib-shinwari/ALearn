@@ -1,5 +1,4 @@
 // Helpers shared by Play + Puzzle views.
-// Converts chess.js board() output into our PlacedPiece[] format.
 import type { Chess } from "chess.js";
 import type { PlacedPiece, PieceType } from "@/data/chessData";
 
@@ -21,7 +20,63 @@ export function fenToPieces(game: Chess): PlacedPiece[] {
   return out;
 }
 
-/** Greedy "bot": captures the highest-value piece, else random legal move. */
+/**
+ * Stable piece tracker — maintains a unique id per piece across moves so the
+ * Chessboard can animate movement instead of remounting/re-sorting.
+ */
+export class PieceTracker {
+  private ids = new Map<string, string>(); // square -> id
+  private nextId = 1;
+
+  reset(game: Chess) {
+    this.ids.clear();
+    this.nextId = 1;
+    const pieces = fenToPieces(game);
+    for (const p of pieces) this.ids.set(p.square, `p${this.nextId++}`);
+  }
+
+  /** Apply a move (from chess.js verbose move) to keep ids aligned. */
+  applyMove(m: { from: string; to: string; flags?: string; san?: string; piece?: string; color?: string }) {
+    // Capture: id at `to` (or en-passant capture square) is removed.
+    if (m.flags?.includes("e")) {
+      // en passant: captured pawn is on `to` file, `from` rank
+      const capSq = m.to[0] + m.from[1];
+      this.ids.delete(capSq);
+    } else if (m.flags?.includes("c")) {
+      this.ids.delete(m.to);
+    }
+    const id = this.ids.get(m.from);
+    this.ids.delete(m.from);
+    if (id) this.ids.set(m.to, id);
+    // Castling: rook also moves.
+    if (m.flags?.includes("k")) {
+      // king-side rook
+      const rank = m.from[1];
+      const rookFrom = `h${rank}`, rookTo = `f${rank}`;
+      const rid = this.ids.get(rookFrom);
+      this.ids.delete(rookFrom);
+      if (rid) this.ids.set(rookTo, rid);
+    } else if (m.flags?.includes("q")) {
+      const rank = m.from[1];
+      const rookFrom = `a${rank}`, rookTo = `d${rank}`;
+      const rid = this.ids.get(rookFrom);
+      this.ids.delete(rookFrom);
+      if (rid) this.ids.set(rookTo, rid);
+    }
+  }
+
+  /** Build PlacedPiece[] with stable ids from current game state. */
+  withIds(game: Chess): PlacedPiece[] {
+    const pieces = fenToPieces(game);
+    // Any squares that lack an id (e.g. from a custom start) get fresh ones.
+    for (const p of pieces) {
+      if (!this.ids.has(p.square)) this.ids.set(p.square, `p${this.nextId++}`);
+    }
+    return pieces.map(p => ({ ...p, id: this.ids.get(p.square) }));
+  }
+}
+
+/** Legacy greedy bot — kept for puzzles. */
 export function pickBotMove(game: Chess): { from: string; to: string; promotion?: string } | null {
   const moves = game.moves({ verbose: true }) as Array<any>;
   if (moves.length === 0) return null;
