@@ -64,8 +64,9 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
 
 export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
+  legalSquares = [],
   arrows = [], arrowLengthScale = 1,
-  onSquareClick,
+  onSquareClick, onPieceDrop, interactive = true,
   animate = true, animationMs = 220, className,
 }: Props) {
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
