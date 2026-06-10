@@ -14,6 +14,8 @@ export interface PlacedPiece {
   color: PieceColor;
   type: PieceType;
   themed?: boolean;
+  /** Stable identifier for animation continuity across moves. */
+  id?: string;
 }
 
 export interface Arrow { from: string; to: string; color?: string }

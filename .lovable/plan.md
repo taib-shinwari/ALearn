@@ -1,125 +1,79 @@
+# Plan
 
-# Better-than-Duolingo: phased roadmap
+Big batch — grouping into 4 shippable areas. Confirm scope before I build.
 
-Two focus bets, executed in phases:
-1. **Smarter learning engine** — adaptive, weakness-targeted, mastery-based.
-2. **Deeper AI voice tutor** — natural call you can pick up anytime, with gentle live correction.
+## 1. Chess Play — pre-game setup + board UX
 
-Path structure shifts from a linear list to a **non-linear skill tree** where Speaking / Listening / Vocab / Grammar branches advance independently.
+**Right panel becomes a setup form (game not started until "Play" pressed):**
+- Engine Strength slider — only 100 and 200 ELO selectable (step=100, min=100, max=200)
+- Color: White / Random / Black (segmented buttons)
+- Timer (grouped blocks):
+  - No Timer
+  - Bullet: 1m, 1|1, 2|1
+  - Blitz: 3|2, 5m, 5|5
+  - Rapid: 10m, 15|10, 30m, 10|5, 20m, 60m
+- Variant: Standard / Chess960 (Fischer Random)
+- Toggles: Evaluation Bar, Threat Arrows, Suggestion Arrows, Move Feedback, Engine
+- Play button at bottom
 
----
+**Board behavior:**
+- Don't re-sort pieces array on each move — keep stable identity per piece so only position transitions animate (currently `fenToPieces` rebuilds from FEN every move causing visual resort). Track pieces by stable id mapped through moves.
+- Click piece: tint square light-blue (not border), show move dots on legal destinations
+- Drag pieces (HTML5 drag or pointer events) — same highlight/dots while dragging
+- After Play: right panel switches to **Moves list** in PGN-pair format:
+  ```
+  1. d4   | d5
+  2. c4   | dxc4
+  ```
+- Timers: white below board, black above (flips with orientation)
 
-## Phase 1 — Skill-tree foundation + mastery model
+**Engine:** simple JS engine. 100 ELO = random legal move. 200 ELO = random with light material awareness (avoid hanging queen, take free pieces). No Stockfish.
 
-Goal: replace the linear unit list with a real tree, and track *mastery per skill node* (not just "lesson done").
+**960:** chess.js supports Chess960 via custom starting FEN — generate valid back-rank, init game with it.
 
-**Skill tree**
-- New data model in `src/data/skillTree.ts`:
-  - `SkillNode { id, title, branch: 'speaking'|'listening'|'vocab'|'grammar', tier: number, prereqs: string[], lessons: PathLesson[] }`
-  - Migrate current `PATH_SECTIONS` content into nodes, tagging each by branch.
-- New `SkillTree.tsx` component replacing `LearningPath.tsx`:
-  - Visual tree (CSS grid by tier, SVG connector lines between prereqs).
-  - A node unlocks when *all prereqs* hit mastery ≥ 2 stars (not just "completed").
-  - Branches render side by side on desktop, stacked on mobile.
-- Keep `Container` + `Button` aesthetic — no custom palette.
+**Toggles initially wired but non-functional placeholders** (Evaluation Bar / Threat Arrows / Suggestion Arrows / Move Feedback / Engine analysis) — UI present, real logic deferred. ✅ confirm this is OK, otherwise I'd need a real engine.
 
-**Mastery model**
-- Extend `LessonProgressEntry` with `masteryLevel: 0–5` and `lastPracticedAt`.
-- Mastery decays over time (half-life ~10 days) so nodes can become "rusty" and resurface — Brilliant doesn't do this; Duolingo does it poorly.
-- Helper `lib/mastery.ts` exposes `getNodeMastery(node, progress, reviews)` used by the tree to color nodes (locked / available / learning / mastered / rusty).
+## 2. Full-page dialogs (no separate route)
 
-**Persistence**
-- Store `pathProgress` and `reviews` in Lovable Cloud (table `user_progress`) keyed by `user_id`, mirrored to localStorage for offline. New migration + RLS so each user only reads/writes their own row.
+Convert these dialogs to full-screen overlays rendered in place, no URL slug, no X close button — the app's back button / hardware back closes them:
+- Active Recall
+- Add (word/collection)
+- Word Edit
+- (others using `Dialog` in the same flow)
 
----
+Intercept browser back via `history.pushState` + `popstate` so back closes the overlay first, then navigates.
 
-## Phase 2 — Adaptive practice engine
+## 3. Collections — Add button
 
-Goal: every session targets *your* weaknesses, not the next item in a list.
+- On collection/folder pages (Verb, Adjective, Nederlands root, etc.) add an **Add icon button** on the right side of the breadcrumb row (or below-right if narrow). Icon only.
+- Click → small menu: **Word** or **Collection**
+- Word → opens (full-page) word editor
+- Collection → name + (optional) parent
 
-- Rewrite `lib/spacedRepetition.ts` into `lib/adaptiveEngine.ts`:
-  - SM-2-style intervals **plus** weakness weighting: items with low accuracy or slow response get boosted priority.
-  - Mixed sessions: 60% due reviews, 30% new from current node, 10% interleaved from sibling nodes (interleaving beats blocking — research-backed, neither competitor does it well).
-- Per-exercise calibration: track which exercise *types* the user fails (e.g. listening vs typing) and bias future sessions toward those.
-- Add new exercise types in `components/practice/exerciseGenerator.ts`:
-  - `tap-tiles` (build sentence from word tiles)
-  - `dictation` (full sentence, not just word)
-  - `match-pairs`
-- Session length adapts to recent accuracy (5–15 items).
-- End-of-session screen shows mastery delta per skill node touched.
+## 4. Word detail polish
 
----
-
-## Phase 3 — AI voice call tutor (the headline feature)
-
-Goal: tap the Call button → instant, natural voice conversation in the target language with gentle correction.
-
-**Conversation flow**
-- Refactor `AICallOverlay.tsx` into a continuous loop instead of push-to-talk:
-  - Browser STT → send transcript → stream LLM reply → TTS plays → auto-restart STT on silence.
-  - Visual: animated orb that pulses while listening / speaking, transcript ticker below.
-- "Hang up" + "mute" buttons. Long-press orb to interrupt the AI.
-
-**Backend (`supabase/functions/ai-tutor`)**
-- Switch to **streaming** via AI SDK (`streamText`, `toUIMessageStreamResponse`) so first audio plays in <1s.
-- System prompt upgrades:
-  - Knows the user's current skill node, recent mistakes, target vocab → naturally weaves them in.
-  - Replies in 1–2 sentences, always asks a follow-up.
-  - Tracks corrections in a structured side-channel tool call `recordCorrection({ original, corrected, rule })` so we can show a post-call debrief.
-- After hang-up: **call summary screen** — list of corrections, new words encountered, mastery bumps applied automatically.
-
-**Voice quality**
-- Keep browser SpeechSynthesis as fallback.
-- Add optional higher-quality TTS via Lovable AI Gateway later (Phase 5).
+- Top toolbar order: **Language · Speak · Bookmark · Favorite · Edit** (currently Speak · Language · …)
+- Container text in word/collection cards: center-aligned
+- Card action buttons (Add, Select, etc.): icon-only
 
 ---
 
-## Phase 4 — Stories & immersion (lightweight)
+## Technical notes
 
-Short bonus we can ship cheaply once the engine + tutor exist:
-- AI-generated mini-stories (4–6 sentences) at the user's level, using their known vocab.
-- Tap any word → translation + add-to-review.
-- One new story per day per language. Stored in `cached_stories` table, regenerated on demand.
+- New file: `src/components/chess/ChessSetupPanel.tsx` — form state lifted, emits `GameConfig` on Play
+- New file: `src/lib/chessEngine.ts` — `pickMove(game, elo)`
+- New file: `src/lib/chess960.ts` — random Fischer back-rank → FEN
+- New file: `src/components/chess/ChessClock.tsx` — increments + low-time styling
+- New file: `src/components/chess/MovesList.tsx`
+- Edit `ChessPlayView.tsx` — orchestrate setup → play; remove status/new-game buttons during setup
+- Edit `Chessboard.tsx` — stable piece ids (don't re-derive from FEN every render), click selection tint + legal-move dots, HTML5 drag handlers
+- New file: `src/components/ui/full-page-dialog.tsx` — fullscreen overlay + back-button interception
+- Migrate Add/Edit/Recall dialog usages to it
 
----
+## Out of scope / confirm
 
-## Phase 5 — Polish
+- Real Stockfish/eval (deferred — placeholder toggles only)
+- Move sounds, premoves, draw/resign buttons
+- Persisting unfinished games
 
-- Premium TTS voice via gateway.
-- Pronunciation scoring (compare STT transcript to expected phonemes, basic char-distance heuristic — no extra API).
-- Keyboard shortcuts on practice screen (1–4 to pick MC option, Enter to check).
-- Tree zoom/pan on mobile.
-- Empty-state and onboarding polish for new languages.
-
----
-
-## Technical details
-
-**Data**
-- `skillTree.ts`: branches `speaking | listening | vocab | grammar`. Each existing subcategory becomes 1–3 nodes (lesson + review + checkpoint).
-- New table `user_progress` (`user_id uuid pk`, `path_progress jsonb`, `reviews jsonb`, `updated_at`). RLS: user can rw own row only. GRANTs for `authenticated` + `service_role`.
-- Local cache in `AppContext` syncs on login, debounced writes on change.
-
-**Adaptive engine selection formula (sketch)**
-```text
-score(item) = w_due * overdueness
-            + w_weak * (1 - accuracy)
-            + w_type * typeWeakness(item.type)
-            - w_recent * recencyPenalty
-pick top-N by score, then shuffle within score bands
-```
-
-**AI tutor streaming**
-- Edge function uses `streamText` + `toUIMessageStreamResponse` from `npm:ai` per the AI SDK pattern. Client uses `fetch` + `ReadableStream` (no `useChat` needed since we render to TTS, not chat bubbles).
-- Tool: `recordCorrection` with Zod schema; results accumulate in client state and feed the debrief screen.
-
-**Files touched**
-- New: `src/data/skillTree.ts`, `src/components/SkillTree.tsx`, `src/lib/mastery.ts`, `src/lib/adaptiveEngine.ts`, `src/components/practice/exercises/{TapTiles,Dictation,MatchPairs}.tsx`, `src/components/ai-tutor/{CallOrb,Debrief}.tsx`, `src/pages/StoryPage.tsx`.
-- Edited: `LearningPath.tsx` → replaced, `AppContext.tsx`, `AICallOverlay.tsx`, `exerciseGenerator.ts`, `PracticePage.tsx`, `HomePage.tsx`, `supabase/functions/ai-tutor/index.ts`.
-- Migrations: `user_progress` table + RLS + GRANTs.
-
----
-
-## Suggested first slice (start here after you approve)
-
-**Phase 1 only**: skill-tree data model + visual tree + mastery scoring + cloud-persisted progress. This alone already differentiates from all three competitors. We then iterate phase by phase based on what feels best in your hands.
+OK to proceed with the above? Anything you want trimmed (e.g. drop 960, drop timers for now) so I can land a smaller first pass?

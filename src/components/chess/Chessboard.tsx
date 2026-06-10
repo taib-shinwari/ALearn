@@ -28,11 +28,17 @@ interface Props {
   stars?: string[];
   orientation?: "white" | "black";
   selected?: string | null;
+  /** Squares to render as move-dots (legal destinations for selected piece). */
+  legalSquares?: string[];
   /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
   /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
   arrowLengthScale?: number;
   onSquareClick?: (square: string) => void;
+  /** Drag-and-drop a piece. Called with from/to after a successful drag. */
+  onPieceDrop?: (from: string, to: string) => void;
+  /** When false, disables click + drag entirely. */
+  interactive?: boolean;
   animate?: boolean;
   animationMs?: number;
   className?: string;
@@ -58,8 +64,9 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
 
 export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
+  legalSquares = [],
   arrows = [], arrowLengthScale = 1,
-  onSquareClick,
+  onSquareClick, onPieceDrop, interactive = true,
   animate = true, animationMs = 220, className,
 }: Props) {
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -199,19 +206,38 @@ export function Chessboard({
             const isSel = selected === square;
             const hasStar = stars.includes(square);
             const isHighlighted = highlights.has(square);
+            const isLegal = legalSquares.includes(square);
+            const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
             return (
               <button
                 type="button"
                 key={square}
-                onClick={() => onSquareClick?.(square)}
+                onClick={() => interactive && onSquareClick?.(square)}
+                onDragOver={(e) => { if (interactive && onPieceDrop) e.preventDefault(); }}
+                onDrop={(e) => {
+                  if (!interactive || !onPieceDrop) return;
+                  e.preventDefault();
+                  const from = e.dataTransfer.getData("text/plain");
+                  if (from && from !== square) onPieceDrop(from, square);
+                }}
                 className={cn(
                   "relative flex items-center justify-center p-0 m-0 outline-none transition-colors",
                   isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]",
-                  isSel && "ring-4 ring-inset ring-blue-500/70",
                 )}
               >
+                {isSel && (
+                  <span className="absolute inset-0 bg-sky-400/55 pointer-events-none" />
+                )}
                 {isHighlighted && (
                   <span className="absolute inset-0 bg-red-500/55 pointer-events-none" />
+                )}
+                {isLegal && !hasPieceOnLegal && (
+                  <span className="absolute rounded-full bg-black/30 pointer-events-none"
+                    style={{ width: "30%", height: "30%" }} />
+                )}
+                {isLegal && hasPieceOnLegal && (
+                  <span className="absolute inset-[6%] rounded-full pointer-events-none"
+                    style={{ boxShadow: "inset 0 0 0 4px rgba(0,0,0,0.35)" }} />
                 )}
                 {hasStar && (
                   <svg viewBox="0 0 24 24" className="w-1/2 h-1/2 drop-shadow animate-scale-in" aria-hidden>
@@ -250,12 +276,19 @@ export function Chessboard({
         const { col, row } = squareToXY(p.square, orientation);
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
+        const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
         return (
           <img
-            key={`${p.type}-${i}`}
+            key={key}
             src={url}
             alt=""
-            draggable={false}
+            draggable={interactive && !!onPieceDrop}
+            onDragStart={(e) => {
+              if (!interactive || !onPieceDrop) return;
+              e.dataTransfer.setData("text/plain", p.square);
+              e.dataTransfer.effectAllowed = "move";
+              onSquareClick?.(p.square);
+            }}
             style={{
               position: "absolute",
               left: `${(col / 8) * 100}%`,
@@ -263,7 +296,8 @@ export function Chessboard({
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
               padding: "2%",
-              pointerEvents: "none",
+              pointerEvents: interactive && onPieceDrop ? "auto" : "none",
+              cursor: interactive && onPieceDrop ? "grab" : "default",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}
           />

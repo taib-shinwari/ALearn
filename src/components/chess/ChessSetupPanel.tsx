@@ -1,0 +1,140 @@
+import { useState } from "react";
+import { Container } from "@/components/ui/container";
+import { TitleBar } from "@/components/ui/title-bar";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { Play } from "lucide-react";
+
+export type ColorChoice = "white" | "black" | "random";
+export interface TimerPreset {
+  id: string;
+  label: string;
+  baseMs: number; // per side
+  incMs: number;
+}
+
+const TIMER_GROUPS: Array<{ label: string; presets: TimerPreset[] }> = [
+  { label: "—", presets: [{ id: "none", label: "No Timer", baseMs: 0, incMs: 0 }] },
+  { label: "Bullet", presets: [
+    { id: "1m", label: "1m", baseMs: 60_000, incMs: 0 },
+    { id: "1|1", label: "1 | 1", baseMs: 60_000, incMs: 1_000 },
+    { id: "2|1", label: "2 | 1", baseMs: 120_000, incMs: 1_000 },
+  ]},
+  { label: "Blitz", presets: [
+    { id: "3|2", label: "3 | 2", baseMs: 180_000, incMs: 2_000 },
+    { id: "5m", label: "5m", baseMs: 300_000, incMs: 0 },
+    { id: "5|5", label: "5 | 5", baseMs: 300_000, incMs: 5_000 },
+  ]},
+  { label: "Rapid", presets: [
+    { id: "10m", label: "10 Min", baseMs: 600_000, incMs: 0 },
+    { id: "15|10", label: "15 | 10", baseMs: 900_000, incMs: 10_000 },
+    { id: "30m", label: "30 Min", baseMs: 1_800_000, incMs: 0 },
+    { id: "10|5", label: "10 | 5", baseMs: 600_000, incMs: 5_000 },
+    { id: "20m", label: "20 Min", baseMs: 1_200_000, incMs: 0 },
+    { id: "60m", label: "60 Min", baseMs: 3_600_000, incMs: 0 },
+  ]},
+];
+
+export interface GameConfig {
+  elo: number;
+  color: ColorChoice;
+  timer: TimerPreset;
+  variant: "standard" | "960";
+  evalBar: boolean;
+  threatArrows: boolean;
+  suggestionArrows: boolean;
+  moveFeedback: boolean;
+  engine: boolean;
+}
+
+interface Props { onPlay: (cfg: GameConfig) => void }
+
+export function ChessSetupPanel({ onPlay }: Props) {
+  const [elo, setElo] = useState(100);
+  const [color, setColor] = useState<ColorChoice>("white");
+  const [timer, setTimer] = useState<TimerPreset>(TIMER_GROUPS[0].presets[0]);
+  const [variant, setVariant] = useState<"standard" | "960">("standard");
+  const [evalBar, setEvalBar] = useState(false);
+  const [threatArrows, setThreatArrows] = useState(false);
+  const [suggestionArrows, setSuggestionArrows] = useState(false);
+  const [moveFeedback, setMoveFeedback] = useState(false);
+  const [engine, setEngine] = useState(true);
+
+  const seg = (active: boolean) =>
+    cn("px-3 py-2 rounded-[10px] border-2 border-border text-xs font-medium transition-colors",
+      active ? "bg-foreground text-background" : "bg-background hover:bg-muted");
+
+  return (
+    <div className="space-y-3">
+      <Container className="p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">Engine Strength</span>
+          <span className="font-mono text-xs opacity-70">{elo} ELO</span>
+        </div>
+        <Slider min={100} max={200} step={100} value={[elo]} onValueChange={v => setElo(v[0])} />
+      </Container>
+
+      <Container className="p-3 space-y-2">
+        <span className="text-sm font-semibold block">Play as</span>
+        <div className="grid grid-cols-3 gap-2">
+          {(["white", "random", "black"] as const).map(c => (
+            <button key={c} onClick={() => setColor(c)} className={seg(color === c)}>
+              {c[0].toUpperCase() + c.slice(1)}
+            </button>
+          ))}
+        </div>
+      </Container>
+
+      <Container className="p-3 space-y-3">
+        <span className="text-sm font-semibold block">Timer</span>
+        {TIMER_GROUPS.map(g => (
+          <div key={g.label} className="space-y-1">
+            {g.label !== "—" && <p className="text-[10px] uppercase tracking-wider opacity-60">{g.label}</p>}
+            <div className="flex flex-wrap gap-2">
+              {g.presets.map(p => (
+                <button key={p.id} onClick={() => setTimer(p)} className={seg(timer.id === p.id)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </Container>
+
+      <Container className="p-3 space-y-2">
+        <span className="text-sm font-semibold block">Variant</span>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setVariant("standard")} className={seg(variant === "standard")}>Standard</button>
+          <button onClick={() => setVariant("960")} className={seg(variant === "960")}>960</button>
+        </div>
+      </Container>
+
+      <Container className="p-3 space-y-3">
+        {([
+          ["Evaluation Bar", evalBar, setEvalBar],
+          ["Threat Arrows", threatArrows, setThreatArrows],
+          ["Suggestion Arrows", suggestionArrows, setSuggestionArrows],
+          ["Move Feedback", moveFeedback, setMoveFeedback],
+          ["Engine", engine, setEngine],
+        ] as Array<[string, boolean, (v: boolean) => void]>).map(([label, val, setter]) => (
+          <div key={label} className="flex items-center justify-between">
+            <span className="text-sm">{label}</span>
+            <Switch checked={val} onCheckedChange={setter} />
+          </div>
+        ))}
+      </Container>
+
+      <Button
+        className="w-full gap-2"
+        size="lg"
+        onClick={() => onPlay({ elo, color, timer, variant, evalBar, threatArrows, suggestionArrows, moveFeedback, engine })}
+      >
+        <Play className="h-4 w-4" /> Play
+      </Button>
+    </div>
+  );
+}
+
+export { TIMER_GROUPS };

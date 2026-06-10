@@ -577,6 +577,11 @@ function WordDetailView({
         className={cn("w-full relative", isFront ? "min-h-[140px]" : "min-h-[260px]")}
       >
         <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          {!isFront && (
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
+              {showLang}
+            </span>
+          )}
           {isSpeechAvailable() && (
             <button
               type="button"
@@ -586,11 +591,6 @@ function WordDetailView({
             >
               <Volume2 className="h-4 w-4" />
             </button>
-          )}
-          {!isFront && (
-            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
-              {showLang}
-            </span>
           )}
           <button
             type="button"
