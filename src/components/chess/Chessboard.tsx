@@ -28,11 +28,17 @@ interface Props {
   stars?: string[];
   orientation?: "white" | "black";
   selected?: string | null;
+  /** Squares to render as move-dots (legal destinations for selected piece). */
+  legalSquares?: string[];
   /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
   /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
   arrowLengthScale?: number;
   onSquareClick?: (square: string) => void;
+  /** Drag-and-drop a piece. Called with from/to after a successful drag. */
+  onPieceDrop?: (from: string, to: string) => void;
+  /** When false, disables click + drag entirely. */
+  interactive?: boolean;
   animate?: boolean;
   animationMs?: number;
   className?: string;
