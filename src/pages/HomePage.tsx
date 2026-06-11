@@ -10,6 +10,7 @@ import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useMarkedWords } from "@/hooks/useMarkedWords";
 import { useFavoriteWords } from "@/hooks/useFavoriteWords";
 import { useCustomWords } from "@/hooks/useCustomWords";
+import { useCustomCollections } from "@/hooks/useCustomCollections";
 import {
   categories, getWordsForCategory, localizedName, getWordText,
   type Lang, type WordLang, type WordDetail,
@@ -150,29 +151,14 @@ export default function HomePage() {
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
-    if (category.subcategories.length === 0) {
-      return <EmptyState uiLang={uiLang} kind="subcategories" />;
-    }
-    return (
-      <div className="grid grid-cols-2 gap-3 px-4">
-        {category.subcategories.map(sub => (
-          <CardButton
-            key={sub.id}
-            onClick={() => pushBrowse(sub.id)}
-            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-          >
-            <span className="font-semibold text-sm">{localizedName(sub.name, uiLang)}</span>
-            <span className="text-xs opacity-70 whitespace-nowrap">{sub.words.length} {t("words")}</span>
-          </CardButton>
-        ))}
-      </div>
-
-    );
+    return <SubcategoriesView category={category} onOpen={(id) => pushBrowse(id)} />;
   }
 
   // ── words ──────────────────────────────────────────────────────────
   const subcategory = category.subcategories.find(s => s.id === browsePath[3]);
-  if (!subcategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  // Allow opening a user-created (custom) collection that's not in built-ins.
+  const isCustomSub = !subcategory;
+  if (!subcategory && !isCustomSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
   if (browsePath.length === 4 && subcategory.words.length === 0) {
     return <EmptyState uiLang={uiLang} kind="words" />;
   }
