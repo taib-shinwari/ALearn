@@ -39,6 +39,10 @@ interface Props {
   onPieceDrop?: (from: string, to: string) => void;
   /** When false, disables click + drag entirely. */
   interactive?: boolean;
+  /** Restrict input. "click"=clicks only, "drag"=drag only, "both"=either. */
+  inputMode?: "click" | "drag" | "both";
+  /** Optional eval-bar score in centipawns from white's POV. */
+  evalScore?: number | null;
   animate?: boolean;
   animationMs?: number;
   className?: string;
@@ -67,8 +71,11 @@ export function Chessboard({
   legalSquares = [],
   arrows = [], arrowLengthScale = 1,
   onSquareClick, onPieceDrop, interactive = true,
+  inputMode = "both", evalScore = null,
   animate = true, animationMs = 220, className,
 }: Props) {
+  const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
+  const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
   const visualFiles = orientation === "white" ? files : [...files].reverse();
   const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
@@ -212,13 +219,13 @@ export function Chessboard({
               <button
                 type="button"
                 key={square}
-                onClick={() => interactive && onSquareClick?.(square)}
-                onDragOver={(e) => { if (interactive && onPieceDrop) e.preventDefault(); }}
+                onClick={() => clickEnabled && onSquareClick?.(square)}
+                onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}
                 onDrop={(e) => {
-                  if (!interactive || !onPieceDrop) return;
+                  if (!dragEnabled) return;
                   e.preventDefault();
                   const from = e.dataTransfer.getData("text/plain");
-                  if (from && from !== square) onPieceDrop(from, square);
+                  if (from && from !== square) onPieceDrop?.(from, square);
                 }}
                 className={cn(
                   "relative flex items-center justify-center p-0 m-0 outline-none transition-colors",
@@ -282,12 +289,12 @@ export function Chessboard({
             key={key}
             src={url}
             alt=""
-            draggable={interactive && !!onPieceDrop}
+            draggable={dragEnabled}
             onDragStart={(e) => {
-              if (!interactive || !onPieceDrop) return;
+              if (!dragEnabled) return;
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
-              onSquareClick?.(p.square);
+              if (clickEnabled) onSquareClick?.(p.square);
             }}
             style={{
               position: "absolute",
@@ -296,13 +303,31 @@ export function Chessboard({
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
               padding: "2%",
-              pointerEvents: interactive && onPieceDrop ? "auto" : "none",
-              cursor: interactive && onPieceDrop ? "grab" : "default",
+              pointerEvents: dragEnabled ? "auto" : "none",
+              cursor: dragEnabled ? "grab" : "default",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}
           />
         );
       })}
+
+      {evalScore !== null && evalScore !== undefined && size > 0 && (
+        <div
+          className="absolute top-0 bottom-0 left-0 w-1.5 bg-black/30 pointer-events-none"
+          aria-hidden
+        >
+          {(() => {
+            const clamped = Math.max(-1000, Math.min(1000, evalScore));
+            const whitePct = 50 + (clamped / 1000) * 50;
+            return (
+              <div
+                className="absolute left-0 right-0 bottom-0 bg-white transition-[height] duration-200"
+                style={{ height: `${whitePct}%` }}
+              />
+            );
+          })()}
+        </div>
+      )}
 
       {size > 0 && (
         <svg

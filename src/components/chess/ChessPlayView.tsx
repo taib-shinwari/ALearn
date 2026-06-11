@@ -6,7 +6,7 @@ import { ChessSetupPanel, type GameConfig } from "./ChessSetupPanel";
 import { ChessClock } from "./ChessClock";
 import { MovesList } from "./MovesList";
 import { PieceTracker } from "./chessHelpers";
-import { pickEngineMove } from "@/lib/chessEngine";
+import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
 import { random960Fen } from "@/lib/chess960";
 import { useChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
@@ -163,6 +163,15 @@ export function ChessPlayView() {
   const showClocks = cfg.timer.baseMs > 0;
   const turn = s.game.turn();
 
+  // Optional analysis arrows + eval bar (computed only when toggled on).
+  const evalScore = cfg.evalBar ? evaluate(s.game) : null;
+  const suggestion = cfg.suggestionArrows ? findBestMove(s.game, 2).move : null;
+  const threat = cfg.threatArrows ? findThreat(s.game) : null;
+  const analysisArrows = [
+    ...(suggestion ? [{ from: suggestion.from, to: suggestion.to, color: "hsl(142 70% 45% / 0.85)" }] : []),
+    ...(threat ? [{ from: threat.from, to: threat.to, color: "hsl(0 75% 55% / 0.85)" }] : []),
+  ];
+
   return (
     <div className="px-4 w-full">
       <div className="grid gap-3 md:grid-cols-[1fr_340px] max-w-5xl mx-auto">
@@ -178,6 +187,9 @@ export function ChessPlayView() {
               legalSquares={legal}
               onSquareClick={handleSquare}
               onPieceDrop={onMove}
+              inputMode={settings.inputMode}
+              arrows={analysisArrows}
+              evalScore={evalScore}
               animate={settings.animatePieces}
               animationMs={settings.animationSpeed}
             />

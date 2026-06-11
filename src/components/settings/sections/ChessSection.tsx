@@ -1,9 +1,10 @@
-import { useChessSettings } from "@/lib/chessSettings";
+import { useChessSettings, type InputMode } from "@/lib/chessSettings";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { cn } from "@/lib/utils";
 
 export function ChessSection() {
   const [s, set] = useChessSettings();
@@ -15,6 +16,26 @@ export function ChessSection() {
   return (
     <div className="space-y-4">
       <TitleBar>{tr("Schaken", "Chess", "الشطرنج")}</TitleBar>
+
+      <Container className="space-y-2">
+        <p className="text-sm font-medium">{tr("Invoer", "Input", "الإدخال")}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(["click", "drag", "both"] as InputMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => set({ inputMode: m })}
+              className={cn(
+                "px-3 py-2 rounded-[10px] border-2 border-border text-xs font-medium transition-colors",
+                s.inputMode === m ? "bg-foreground text-background" : "bg-background hover:bg-muted"
+              )}
+            >
+              {m === "click" ? tr("Klik", "Click", "نقر")
+                : m === "drag" ? tr("Slepen", "Drag", "سحب")
+                : tr("Beide", "Both", "كلاهما")}
+            </button>
+          ))}
+        </div>
+      </Container>
 
       <Container className="flex items-center justify-between gap-4">
         <div>
