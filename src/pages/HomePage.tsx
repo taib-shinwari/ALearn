@@ -155,20 +155,20 @@ export default function HomePage() {
   }
 
   // ── words ──────────────────────────────────────────────────────────
-  const subcategory = category.subcategories.find(s => s.id === browsePath[3]);
-  // Allow opening a user-created (custom) collection that's not in built-ins.
-  const isCustomSub = !subcategory;
-  if (!subcategory && !isCustomSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
-  if (browsePath.length === 4 && subcategory.words.length === 0) {
+  const builtInSub = category.subcategories.find(s => s.id === browsePath[3]);
+  // Build a virtual subcategory if it's a user-created collection (id only known via storage).
+  const subId = browsePath[3];
+  const resolvedSub = builtInSub ?? { id: subId, name: { nl: subId, en: subId }, words: [] };
+
+  if (browsePath.length === 4 && resolvedSub.words.length === 0 && builtInSub) {
     return <EmptyState uiLang={uiLang} kind="words" />;
   }
-
 
   if (browsePath.length === 4) {
     return (
       <WordsView
         categoryId={category.id}
-        subcategoryId={subcategory.id}
+        subcategoryId={resolvedSub.id}
         targetLang={targetLang}
         onOpenWord={(id) => pushBrowse(id)}
         onSelectedRecall={(wordIds) => {
@@ -176,7 +176,7 @@ export default function HomePage() {
           setActiveRecall({
             scope: "word",
             categoryId: category.id,
-            subcategoryId: subcategory.id,
+            subcategoryId: resolvedSub.id,
             wordIds,
           });
           navigate("/recall");
@@ -189,9 +189,9 @@ export default function HomePage() {
   return (
     <WordDetailResolver
       categoryId={category.id}
-      subcategoryId={subcategory.id}
+      subcategoryId={resolvedSub.id}
       wordId={browsePath[4]}
-      builtIn={subcategory.words}
+      builtIn={resolvedSub.words}
     />
   );
 }
