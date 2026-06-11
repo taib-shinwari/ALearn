@@ -227,7 +227,8 @@ function WordsView({
   onSelectedRecall: (wordIds: string[]) => void;
 }) {
   const category = categories.find(c => c.id === categoryId)!;
-  const subcategory = category.subcategories.find(s => s.id === subcategoryId)!;
+  const builtIn = category.subcategories.find(s => s.id === subcategoryId);
+  const subcategory = builtIn ?? { id: subcategoryId, name: { nl: subcategoryId, en: subcategoryId }, words: [] };
   const { t, courseLang } = useCourseLanguage();
   const { recallQueue } = useApp();
   const { customWords, addCustomWord, applyOverride } = useCustomWords(categoryId, subcategoryId);
