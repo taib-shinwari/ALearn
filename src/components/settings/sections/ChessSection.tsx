@@ -17,6 +17,26 @@ export function ChessSection() {
     <div className="space-y-4">
       <TitleBar>{tr("Schaken", "Chess", "الشطرنج")}</TitleBar>
 
+      <Container className="space-y-2">
+        <p className="text-sm font-medium">{tr("Invoer", "Input", "الإدخال")}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(["click", "drag", "both"] as InputMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => set({ inputMode: m })}
+              className={cn(
+                "px-3 py-2 rounded-[10px] border-2 border-border text-xs font-medium transition-colors",
+                s.inputMode === m ? "bg-foreground text-background" : "bg-background hover:bg-muted"
+              )}
+            >
+              {m === "click" ? tr("Klik", "Click", "نقر")
+                : m === "drag" ? tr("Slepen", "Drag", "سحب")
+                : tr("Beide", "Both", "كلاهما")}
+            </button>
+          ))}
+        </div>
+      </Container>
+
       <Container className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium">{tr("Pre-zetten toestaan", "Allow premoves", "السماح بالحركات المسبقة")}</p>
