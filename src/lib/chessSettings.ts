@@ -1,12 +1,15 @@
 // Persisted user preferences for the Chess module.
 import { useEffect, useState } from "react";
 
+export type InputMode = "click" | "drag" | "both";
+
 export interface ChessSettings {
   allowPremove: boolean;
   animatePieces: boolean;
   animationSpeed: number; // ms
   showHints: boolean;
   speakNarration: boolean;
+  inputMode: InputMode;
 }
 
 const DEFAULTS: ChessSettings = {
@@ -15,6 +18,7 @@ const DEFAULTS: ChessSettings = {
   animationSpeed: 220,
   showHints: true,
   speakNarration: true,
+  inputMode: "both",
 };
 
 const KEY = "chess-settings-v1";
