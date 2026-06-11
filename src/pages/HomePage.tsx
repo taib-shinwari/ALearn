@@ -229,7 +229,7 @@ function SubcategoriesView({
   const [addColOpen, setAddColOpen] = useState(false);
   const [name, setName] = useState("");
 
-  const all = [...category!.subcategories, ...collections];
+  const all = [...category.subcategories, ...collections];
   const isCustom = (sid: string) => collections.some(c => c.id === sid);
 
   return (
@@ -265,7 +265,7 @@ function SubcategoriesView({
               {isCustom(sub.id) && (
                 <span
                   role="button"
-                  onClick={(e) => { e.stopPropagation(); if (confirm("Remove collection?")) removeCollection(category!.id, sub.id); }}
+                  onClick={(e) => { e.stopPropagation(); if (confirm("Remove collection?")) removeCollection(category.id, sub.id); }}
                   className="absolute top-1 right-1 p-1 opacity-60 hover:opacity-100"
                   aria-label="Remove collection"
                 >
@@ -292,7 +292,7 @@ function SubcategoriesView({
               <Button onClick={() => { setAddColOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
               <Button
                 active
-                onClick={() => { addCollection(category!.id, name); setAddColOpen(false); setName(""); }}
+                onClick={() => { addCollection(category.id, name); setAddColOpen(false); setName(""); }}
               >
                 {t("save") || "Save"}
               </Button>
