@@ -220,11 +220,11 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
 function SubcategoriesView({
   category, onOpen,
 }: {
-  category: ReturnType<typeof categories.find> & { id: string };
+  category: { id: string; name: { nl: string; en: string; ar?: string }; subcategories: { id: string; name: { nl: string; en: string; ar?: string }; words: WordDetail[] }[] };
   onOpen: (id: string) => void;
 }) {
   const { uiLang, t } = useCourseLanguage();
-  const { collections, addCollection, removeCollection } = useCustomCollections(category!.id);
+  const { collections, addCollection, removeCollection } = useCustomCollections(category.id);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addColOpen, setAddColOpen] = useState(false);
   const [name, setName] = useState("");
