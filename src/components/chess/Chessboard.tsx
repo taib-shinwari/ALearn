@@ -39,6 +39,10 @@ interface Props {
   onPieceDrop?: (from: string, to: string) => void;
   /** When false, disables click + drag entirely. */
   interactive?: boolean;
+  /** Restrict input. "click"=clicks only, "drag"=drag only, "both"=either. */
+  inputMode?: "click" | "drag" | "both";
+  /** Optional eval-bar score in centipawns from white's POV. */
+  evalScore?: number | null;
   animate?: boolean;
   animationMs?: number;
   className?: string;
@@ -67,8 +71,11 @@ export function Chessboard({
   legalSquares = [],
   arrows = [], arrowLengthScale = 1,
   onSquareClick, onPieceDrop, interactive = true,
+  inputMode = "both", evalScore = null,
   animate = true, animationMs = 220, className,
 }: Props) {
+  const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
+  const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
   const visualFiles = orientation === "white" ? files : [...files].reverse();
   const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
