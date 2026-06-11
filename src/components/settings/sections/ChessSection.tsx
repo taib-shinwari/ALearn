@@ -1,9 +1,10 @@
-import { useChessSettings } from "@/lib/chessSettings";
+import { useChessSettings, type InputMode } from "@/lib/chessSettings";
 import { Container } from "@/components/ui/container";
 import { TitleBar } from "@/components/ui/title-bar";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
+import { cn } from "@/lib/utils";
 
 export function ChessSection() {
   const [s, set] = useChessSettings();
