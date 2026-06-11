@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FullPageDialog } from "@/components/ui/full-page-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,22 +43,18 @@ export function WordEditDialog({ open, onOpenChange, word, onSave, onDelete }: P
     const w: WordDetail = {
       id,
       nl: {
+        ...(word?.nl || { word: "" }),
         word: nlWord || enWord,
         definitie: nlDef || undefined,
         voorbeeld: example || undefined,
         pronunciation: pron || undefined,
-        ...(word?.nl || {}),
-        ...(nlWord ? { word: nlWord } : {}),
-        ...(nlDef ? { definitie: nlDef } : {}),
       },
       en: {
+        ...(word?.en || { word: "" }),
         word: enWord || nlWord,
         definition: enDef || undefined,
         example: example || undefined,
         pronunciation: pron || undefined,
-        ...(word?.en || {}),
-        ...(enWord ? { word: enWord } : {}),
-        ...(enDef ? { definition: enDef } : {}),
       },
       ar: word?.ar,
     };
@@ -67,49 +63,48 @@ export function WordEditDialog({ open, onOpenChange, word, onSave, onDelete }: P
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{word ? (t("editWord") || "Edit word") : (t("addWord") || "Add word")}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <label className="text-xs opacity-70">NL</label>
-              <Input value={nlWord} onChange={e => setNlWord(e.target.value)} placeholder="woord" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs opacity-70">EN</label>
-              <Input value={enWord} onChange={e => setEnWord(e.target.value)} placeholder="word" />
-            </div>
+    <FullPageDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={word ? (t("editWord") || "Edit word") : (t("addWord") || "Add word")}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs opacity-70">NL</label>
+            <Input value={nlWord} onChange={e => setNlWord(e.target.value)} placeholder="woord" />
           </div>
           <div className="space-y-1">
-            <label className="text-xs opacity-70">{t("pronunciation") || "Pronunciation"}</label>
-            <Input value={pron} onChange={e => setPron(e.target.value)} placeholder="[woord]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs opacity-70">{t("definition") || "Definition"} (NL)</label>
-            <Textarea value={nlDef} onChange={e => setNlDef(e.target.value)} rows={2} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs opacity-70">{t("definition") || "Definition"} (EN)</label>
-            <Textarea value={enDef} onChange={e => setEnDef(e.target.value)} rows={2} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs opacity-70">{t("example") || "Example"}</label>
-            <Textarea value={example} onChange={e => setExample(e.target.value)} rows={2} />
+            <label className="text-xs opacity-70">EN</label>
+            <Input value={enWord} onChange={e => setEnWord(e.target.value)} placeholder="word" />
           </div>
         </div>
-        <DialogFooter className="gap-2 sm:gap-2">
-          {onDelete && (
-            <Button onClick={() => { onDelete(); onOpenChange(false); }} className="mr-auto">
-              {t("delete") || "Delete"}
-            </Button>
-          )}
-          <Button onClick={() => onOpenChange(false)}>{t("cancel") || "Cancel"}</Button>
-          <Button onClick={save} active>{t("save") || "Save"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="space-y-1">
+          <label className="text-xs opacity-70">{t("pronunciation") || "Pronunciation"}</label>
+          <Input value={pron} onChange={e => setPron(e.target.value)} placeholder="[woord]" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs opacity-70">{t("definition") || "Definition"} (NL)</label>
+          <Textarea value={nlDef} onChange={e => setNlDef(e.target.value)} rows={2} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs opacity-70">{t("definition") || "Definition"} (EN)</label>
+          <Textarea value={enDef} onChange={e => setEnDef(e.target.value)} rows={2} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs opacity-70">{t("example") || "Example"}</label>
+          <Textarea value={example} onChange={e => setExample(e.target.value)} rows={2} />
+        </div>
+      </div>
+      <div className="flex gap-2 mt-6">
+        {onDelete && (
+          <Button onClick={() => { onDelete(); onOpenChange(false); }} className="mr-auto">
+            {t("delete") || "Delete"}
+          </Button>
+        )}
+        <Button onClick={() => onOpenChange(false)} className="ml-auto">{t("cancel") || "Cancel"}</Button>
+        <Button onClick={save} active>{t("save") || "Save"}</Button>
+      </div>
+    </FullPageDialog>
   );
 }
