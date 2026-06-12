@@ -229,6 +229,7 @@ export default function FlashcardsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
