@@ -176,10 +176,7 @@ export function ChessPlayView() {
     <div className="px-4 w-full">
       <div className="grid gap-3 md:grid-cols-[1fr_340px] max-w-5xl mx-auto">
         <div className="flex flex-col items-center gap-2">
-          {showClocks && (
-            <ChessClock ms={clockMs(topClockColor)} active={turn === topClockColor} low />
-          )}
-          <Container className="p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-22rem))] md:max-w-none">
+          <Container className="p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-12rem))] md:max-w-none">
             <Chessboard
               pieces={pieces}
               orientation={orientation}
@@ -194,11 +191,24 @@ export function ChessPlayView() {
               animationMs={settings.animationSpeed}
             />
           </Container>
-          {showClocks && (
-            <ChessClock ms={clockMs(bottomClockColor)} active={turn === bottomClockColor} low />
-          )}
         </div>
         <div className="flex flex-col gap-3">
+          {showClocks && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-wider opacity-60 text-center">
+                  {orientation === "white" ? "Black" : "White"}
+                </p>
+                <ChessClock ms={clockMs(topClockColor)} active={turn === topClockColor} low />
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-wider opacity-60 text-center">
+                  {orientation === "white" ? "White" : "Black"}
+                </p>
+                <ChessClock ms={clockMs(bottomClockColor)} active={turn === bottomClockColor} low />
+              </div>
+            </div>
+          )}
           <MovesList sans={s.sans} />
           {s.game.isGameOver() && (
             <Container className="p-3 text-sm font-semibold text-center">
