@@ -113,31 +113,12 @@ export default function HomePage() {
       ?.subcategories.find(s => s.id === "alfabet");
     const alphabetCount = alphabetSub?.words.length ?? 0;
     return (
-      <div className="px-4 w-full">
-        <div className="grid grid-cols-2 gap-3">
-          <CardButton
-            onClick={() => pushBrowse(ALPHABET_SEGMENT)}
-            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-          >
-            <span className="font-semibold text-sm">{ALPHABET_LABEL[uiLang]}</span>
-            <span className="text-xs opacity-70 whitespace-nowrap">{alphabetCount} {t("words")}</span>
-          </CardButton>
-          {categories.map(cat => {
-            const total = getWordsForCategory(cat.id).length;
-            return (
-              <CardButton
-                key={cat.id}
-                onClick={() => pushBrowse(cat.id)}
-                className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-              >
-                <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
-                <span className="text-xs opacity-70 whitespace-nowrap">{total} {t("words")}</span>
-              </CardButton>
-            );
-          })}
-
-        </div>
-      </div>
+      <LanguageRootView
+        targetLang={targetLang}
+        alphabetCount={alphabetCount}
+        onOpenAlphabet={() => pushBrowse(ALPHABET_SEGMENT)}
+        onOpenCategory={(id) => pushBrowse(id)}
+      />
     );
   }
 
