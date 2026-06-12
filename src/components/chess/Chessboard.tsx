@@ -158,32 +158,35 @@ export function Chessboard({
 
   const renderedArrows = useMemo(() => {
     if (size === 0) return null;
-    const all: { a: Arrow; scale: number }[] = [
-      ...arrows.map(a => ({ a, scale: arrowLengthScale })),
-      ...userArrows.map(a => ({ a, scale: 1 })),
+    const all: { a: Arrow; scale: number; userDrawn: boolean }[] = [
+      ...arrows.map(a => ({ a, scale: arrowLengthScale, userDrawn: false })),
+      ...userArrows.map(a => ({ a, scale: 1, userDrawn: true })),
     ];
-    return all.map(({ a, scale }, i) => {
+    return all.map(({ a, scale, userDrawn }, i) => {
       const f = center(a.from), t = center(a.to);
       const dx = t.x - f.x, dy = t.y - f.y;
       const len = Math.hypot(dx, dy);
       if (len === 0) return null;
       const ux = dx / len, uy = dy / len;
-      const tipX = t.x - ux * sq * 0.25;
-      const tipY = t.y - uy * sq * 0.25;
-      const startX = f.x + ux * sq * 0.15;
-      const startY = f.y + uy * sq * 0.15;
-      // Pulse: shorten toward the source. Width stays constant.
+      // Pull endpoints inward so arrows don't span the full diagonal.
+      const tipX = t.x - ux * sq * 0.42;
+      const tipY = t.y - uy * sq * 0.42;
+      const startX = f.x + ux * sq * 0.35;
+      const startY = f.y + uy * sq * 0.35;
       const eTipX = startX + (tipX - startX) * scale;
       const eTipY = startY + (tipY - startY) * scale;
-      const color = a.color ?? "rgba(255,170,0,0.85)";
+      const color = a.color ?? "rgba(255,170,0,1)";
+      const opacity = userDrawn ? 0.85 : 0.5;
+      const width = sq * 0.22;
+      const head = sq * 0.30;
       return (
-        <g key={`${a.from}-${a.to}-${i}`}>
-          <line x1={startX} y1={startY} x2={eTipX} y2={eTipY} stroke={color} strokeWidth={sq * 0.14} strokeLinecap="round" />
+        <g key={`${a.from}-${a.to}-${i}`} opacity={opacity}>
+          <line x1={startX} y1={startY} x2={eTipX} y2={eTipY} stroke={color} strokeWidth={width} strokeLinecap="round" />
           <polygon
             points={[
-              [eTipX + ux * sq * 0.22, eTipY + uy * sq * 0.22],
-              [eTipX - uy * sq * 0.18, eTipY + ux * sq * 0.18],
-              [eTipX + uy * sq * 0.18, eTipY - ux * sq * 0.18],
+              [eTipX + ux * head, eTipY + uy * head],
+              [eTipX - uy * head * 0.8, eTipY + ux * head * 0.8],
+              [eTipX + uy * head * 0.8, eTipY - ux * head * 0.8],
             ].map(p => p.join(",")).join(" ")}
             fill={color}
           />
