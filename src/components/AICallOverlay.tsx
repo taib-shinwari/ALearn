@@ -131,12 +131,17 @@ export function AICallOverlay({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-between p-6"
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-between"
          style={{ background: "radial-gradient(circle at 50% 30%, hsl(var(--primary) / 0.15), hsl(var(--background)))" }}>
-      <div className="text-center pt-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{uiLang === "nl" ? "Live gesprek" : uiLang === "ar" ? "مكالمة مباشرة" : "Live tutor"}</p>
-        <p className="text-sm font-medium mt-1">{(targetLang || "en").toUpperCase()}</p>
+      <div className="w-full sticky top-0 z-10 bg-background/95 backdrop-blur border-b-2 border-border px-4 py-3">
+        <h2 className="text-base font-semibold text-center">
+          {uiLang === "nl" ? "AI-gesprek" : uiLang === "ar" ? "مكالمة الذكاء" : "AI Call"}
+        </h2>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground text-center mt-1">
+          {(targetLang || "en").toUpperCase()} · {uiLang === "nl" ? "Live" : uiLang === "ar" ? "مباشر" : "Live"}
+        </p>
       </div>
+
 
       {/* Animated orb */}
       <div className="flex flex-col items-center gap-6">
