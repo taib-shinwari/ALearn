@@ -287,6 +287,7 @@ export function Chessboard({
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
+        const pieceInteractive = clickEnabled || dragEnabled;
         return (
           <img
             key={key}
@@ -294,10 +295,14 @@ export function Chessboard({
             alt=""
             draggable={dragEnabled}
             onDragStart={(e) => {
-              if (!dragEnabled) return;
+              if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
-              if (clickEnabled) onSquareClick?.(p.square);
+            }}
+            onClick={(e) => {
+              if (!clickEnabled) return;
+              e.stopPropagation();
+              onSquareClick?.(p.square);
             }}
             style={{
               position: "absolute",
@@ -306,31 +311,41 @@ export function Chessboard({
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
               padding: "2%",
-              pointerEvents: dragEnabled ? "auto" : "none",
-              cursor: dragEnabled ? "grab" : "default",
+              pointerEvents: pieceInteractive ? "auto" : "none",
+              cursor: dragEnabled ? "grab" : clickEnabled ? "pointer" : "default",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}
           />
         );
       })}
 
-      {evalScore !== null && evalScore !== undefined && size > 0 && (
-        <div
-          className="absolute top-0 bottom-0 left-0 w-1.5 bg-black/30 pointer-events-none"
-          aria-hidden
-        >
-          {(() => {
-            const clamped = Math.max(-1000, Math.min(1000, evalScore));
-            const whitePct = 50 + (clamped / 1000) * 50;
-            return (
-              <div
-                className="absolute left-0 right-0 bottom-0 bg-white transition-[height] duration-200"
-                style={{ height: `${whitePct}%` }}
-              />
-            );
-          })()}
-        </div>
-      )}
+      {evalScore !== null && evalScore !== undefined && size > 0 && (() => {
+        const clamped = Math.max(-1000, Math.min(1000, evalScore));
+        const whitePct = 50 + (clamped / 1000) * 50;
+        const pawns = evalScore / 100;
+        const sign = pawns > 0 ? "+" : pawns < 0 ? "" : "";
+        const label = Math.abs(pawns) >= 10 ? `${sign}${pawns.toFixed(0)}` : `${sign}${pawns.toFixed(1)}`;
+        return (
+          <div
+            className="absolute top-0 bottom-0 left-0 w-5 bg-neutral-800 pointer-events-none flex flex-col"
+            aria-hidden
+          >
+            <div
+              className="absolute left-0 right-0 bottom-0 bg-neutral-100 transition-[height] duration-200"
+              style={{ height: `${whitePct}%` }}
+            />
+            <span
+              className={cn(
+                "absolute left-0 right-0 text-center text-[10px] font-bold font-mono leading-none",
+                pawns >= 0 ? "bottom-0.5 text-neutral-900" : "top-0.5 text-neutral-100",
+              )}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      })()}
+
 
       {size > 0 && (
         <svg
