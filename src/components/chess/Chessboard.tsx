@@ -158,32 +158,35 @@ export function Chessboard({
 
   const renderedArrows = useMemo(() => {
     if (size === 0) return null;
-    const all: { a: Arrow; scale: number }[] = [
-      ...arrows.map(a => ({ a, scale: arrowLengthScale })),
-      ...userArrows.map(a => ({ a, scale: 1 })),
+    const all: { a: Arrow; scale: number; userDrawn: boolean }[] = [
+      ...arrows.map(a => ({ a, scale: arrowLengthScale, userDrawn: false })),
+      ...userArrows.map(a => ({ a, scale: 1, userDrawn: true })),
     ];
-    return all.map(({ a, scale }, i) => {
+    return all.map(({ a, scale, userDrawn }, i) => {
       const f = center(a.from), t = center(a.to);
       const dx = t.x - f.x, dy = t.y - f.y;
       const len = Math.hypot(dx, dy);
       if (len === 0) return null;
       const ux = dx / len, uy = dy / len;
-      const tipX = t.x - ux * sq * 0.25;
-      const tipY = t.y - uy * sq * 0.25;
-      const startX = f.x + ux * sq * 0.15;
-      const startY = f.y + uy * sq * 0.15;
-      // Pulse: shorten toward the source. Width stays constant.
+      // Pull endpoints inward so arrows don't span the full diagonal.
+      const tipX = t.x - ux * sq * 0.42;
+      const tipY = t.y - uy * sq * 0.42;
+      const startX = f.x + ux * sq * 0.35;
+      const startY = f.y + uy * sq * 0.35;
       const eTipX = startX + (tipX - startX) * scale;
       const eTipY = startY + (tipY - startY) * scale;
-      const color = a.color ?? "rgba(255,170,0,0.85)";
+      const color = a.color ?? "rgba(255,170,0,1)";
+      const opacity = userDrawn ? 0.85 : 0.5;
+      const width = sq * 0.22;
+      const head = sq * 0.30;
       return (
-        <g key={`${a.from}-${a.to}-${i}`}>
-          <line x1={startX} y1={startY} x2={eTipX} y2={eTipY} stroke={color} strokeWidth={sq * 0.14} strokeLinecap="round" />
+        <g key={`${a.from}-${a.to}-${i}`} opacity={opacity}>
+          <line x1={startX} y1={startY} x2={eTipX} y2={eTipY} stroke={color} strokeWidth={width} strokeLinecap="round" />
           <polygon
             points={[
-              [eTipX + ux * sq * 0.22, eTipY + uy * sq * 0.22],
-              [eTipX - uy * sq * 0.18, eTipY + ux * sq * 0.18],
-              [eTipX + uy * sq * 0.18, eTipY - ux * sq * 0.18],
+              [eTipX + ux * head, eTipY + uy * head],
+              [eTipX - uy * head * 0.8, eTipY + ux * head * 0.8],
+              [eTipX + uy * head * 0.8, eTipY - ux * head * 0.8],
             ].map(p => p.join(",")).join(" ")}
             fill={color}
           />
@@ -284,6 +287,7 @@ export function Chessboard({
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
+        const pieceInteractive = clickEnabled || dragEnabled;
         return (
           <img
             key={key}
@@ -291,10 +295,14 @@ export function Chessboard({
             alt=""
             draggable={dragEnabled}
             onDragStart={(e) => {
-              if (!dragEnabled) return;
+              if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
-              if (clickEnabled) onSquareClick?.(p.square);
+            }}
+            onClick={(e) => {
+              if (!clickEnabled) return;
+              e.stopPropagation();
+              onSquareClick?.(p.square);
             }}
             style={{
               position: "absolute",
@@ -303,31 +311,41 @@ export function Chessboard({
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
               padding: "2%",
-              pointerEvents: dragEnabled ? "auto" : "none",
-              cursor: dragEnabled ? "grab" : "default",
+              pointerEvents: pieceInteractive ? "auto" : "none",
+              cursor: dragEnabled ? "grab" : clickEnabled ? "pointer" : "default",
               transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
             }}
           />
         );
       })}
 
-      {evalScore !== null && evalScore !== undefined && size > 0 && (
-        <div
-          className="absolute top-0 bottom-0 left-0 w-1.5 bg-black/30 pointer-events-none"
-          aria-hidden
-        >
-          {(() => {
-            const clamped = Math.max(-1000, Math.min(1000, evalScore));
-            const whitePct = 50 + (clamped / 1000) * 50;
-            return (
-              <div
-                className="absolute left-0 right-0 bottom-0 bg-white transition-[height] duration-200"
-                style={{ height: `${whitePct}%` }}
-              />
-            );
-          })()}
-        </div>
-      )}
+      {evalScore !== null && evalScore !== undefined && size > 0 && (() => {
+        const clamped = Math.max(-1000, Math.min(1000, evalScore));
+        const whitePct = 50 + (clamped / 1000) * 50;
+        const pawns = evalScore / 100;
+        const sign = pawns > 0 ? "+" : pawns < 0 ? "" : "";
+        const label = Math.abs(pawns) >= 10 ? `${sign}${pawns.toFixed(0)}` : `${sign}${pawns.toFixed(1)}`;
+        return (
+          <div
+            className="absolute top-0 bottom-0 left-0 w-5 bg-neutral-800 pointer-events-none flex flex-col"
+            aria-hidden
+          >
+            <div
+              className="absolute left-0 right-0 bottom-0 bg-neutral-100 transition-[height] duration-200"
+              style={{ height: `${whitePct}%` }}
+            />
+            <span
+              className={cn(
+                "absolute left-0 right-0 text-center text-[10px] font-bold font-mono leading-none",
+                pawns >= 0 ? "bottom-0.5 text-neutral-900" : "top-0.5 text-neutral-100",
+              )}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      })()}
+
 
       {size > 0 && (
         <svg

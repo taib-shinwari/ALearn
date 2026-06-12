@@ -113,31 +113,12 @@ export default function HomePage() {
       ?.subcategories.find(s => s.id === "alfabet");
     const alphabetCount = alphabetSub?.words.length ?? 0;
     return (
-      <div className="px-4 w-full">
-        <div className="grid grid-cols-2 gap-3">
-          <CardButton
-            onClick={() => pushBrowse(ALPHABET_SEGMENT)}
-            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-          >
-            <span className="font-semibold text-sm">{ALPHABET_LABEL[uiLang]}</span>
-            <span className="text-xs opacity-70 whitespace-nowrap">{alphabetCount} {t("words")}</span>
-          </CardButton>
-          {categories.map(cat => {
-            const total = getWordsForCategory(cat.id).length;
-            return (
-              <CardButton
-                key={cat.id}
-                onClick={() => pushBrowse(cat.id)}
-                className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-              >
-                <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
-                <span className="text-xs opacity-70 whitespace-nowrap">{total} {t("words")}</span>
-              </CardButton>
-            );
-          })}
-
-        </div>
-      </div>
+      <LanguageRootView
+        targetLang={targetLang}
+        alphabetCount={alphabetCount}
+        onOpenAlphabet={() => pushBrowse(ALPHABET_SEGMENT)}
+        onOpenCategory={(id) => pushBrowse(id)}
+      />
     );
   }
 
@@ -212,6 +193,106 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
       word={word}
       isCustom={isCustom}
     />
+  );
+}
+
+/* ──────────────────── Language root view ──────────────────── */
+
+function LanguageRootView({
+  targetLang, alphabetCount, onOpenAlphabet, onOpenCategory,
+}: {
+  targetLang: Lang;
+  alphabetCount: number;
+  onOpenAlphabet: () => void;
+  onOpenCategory: (id: string) => void;
+}) {
+  const { uiLang, t } = useCourseLanguage();
+  const rootKey = `__lang_${targetLang}`;
+  const { collections, addCollection, removeCollection } = useCustomCollections(rootKey);
+  const { pushBrowse } = useApp();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState("");
+
+  return (
+    <div className="px-4 w-full space-y-3">
+      <div className="flex justify-end relative">
+        <Button onClick={() => setMenuOpen(o => !o)} aria-label="Add">
+          <Plus className="h-4 w-4 mr-1" /> {t("add") || "Add"}
+        </Button>
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-2 z-20 rounded-[12px] border-2 border-border bg-background shadow-lg overflow-hidden">
+            <button
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-muted"
+              onClick={() => { setMenuOpen(false); setAddOpen(true); }}
+            >
+              {t("collection") || "Collection"}
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <CardButton
+          onClick={onOpenAlphabet}
+          className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
+        >
+          <span className="font-semibold text-sm">{ALPHABET_LABEL[uiLang]}</span>
+          <span className="text-xs opacity-70 whitespace-nowrap">{alphabetCount} {t("words")}</span>
+        </CardButton>
+        {categories.map(cat => {
+          const total = getWordsForCategory(cat.id).length;
+          return (
+            <CardButton
+              key={cat.id}
+              onClick={() => onOpenCategory(cat.id)}
+              className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
+            >
+              <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
+              <span className="text-xs opacity-70 whitespace-nowrap">{total} {t("words")}</span>
+            </CardButton>
+          );
+        })}
+        {collections.map(col => (
+          <CardButton
+            key={col.id}
+            onClick={() => pushBrowse(col.id)}
+            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3 relative"
+          >
+            <span className="font-semibold text-sm">{localizedName(col.name, uiLang)}</span>
+            <span className="text-xs opacity-70 whitespace-nowrap">0 {t("words")}</span>
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); if (confirm("Remove collection?")) removeCollection(rootKey, col.id); }}
+              className="absolute top-1 right-1 p-1 opacity-60 hover:opacity-100"
+              aria-label="Remove"
+            >
+              <X className="h-3 w-3" />
+            </span>
+          </CardButton>
+        ))}
+      </div>
+
+      {addOpen && (
+        <div className="fixed inset-0 z-40 bg-foreground/60 flex items-center justify-center p-4" onClick={() => setAddOpen(false)}>
+          <div className="bg-background rounded-[16px] border-2 border-border p-4 w-full max-w-sm space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-sm">{t("newCollection") || "New collection"}</h3>
+            <input
+              autoFocus
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t("name") || "Name"}
+              className="w-full px-3 py-2 rounded-[10px] border-2 border-border bg-background text-sm"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button onClick={() => { setAddOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
+              <Button active onClick={() => { addCollection(rootKey, name); setAddOpen(false); setName(""); }}>
+                {t("save") || "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
