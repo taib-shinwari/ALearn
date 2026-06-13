@@ -37,12 +37,12 @@ interface Props {
   onSquareClick?: (square: string) => void;
   /** Drag-and-drop a piece. Called with from/to after a successful drag. */
   onPieceDrop?: (from: string, to: string) => void;
+  /** Called when a piece drag begins (used to show legal-move dots). */
+  onDragBegin?: (square: string) => void;
   /** When false, disables click + drag entirely. */
   interactive?: boolean;
   /** Restrict input. "click"=clicks only, "drag"=drag only, "both"=either. */
   inputMode?: "click" | "drag" | "both";
-  /** Optional eval-bar score in centipawns from white's POV. */
-  evalScore?: number | null;
   animate?: boolean;
   animationMs?: number;
   className?: string;
