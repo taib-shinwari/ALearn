@@ -155,6 +155,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
+      {!focusMode && (
       <div className="flex items-center justify-between gap-2 p-4">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
@@ -162,13 +163,16 @@ export default function Layout({ children }: LayoutProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          {!searchOpen && isSettings && (
+          {!searchOpen && topDialog?.title && (
+            <TitleBar className="font-semibold">{topDialog.title}</TitleBar>
+          )}
+          {!searchOpen && !topDialog && isSettings && (
             <TitleBar className="font-semibold">{t("settings") || "Settings"}</TitleBar>
           )}
-          {!searchOpen && isRecall && (
+          {!searchOpen && !topDialog && isRecall && (
             <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
-          {!searchOpen && isSign && (
+          {!searchOpen && !topDialog && isSign && (
             <TitleBar className="font-semibold">Sign</TitleBar>
           )}
         </div>
@@ -197,6 +201,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         )}
       </div>
+      )}
 
       {showCrumbs && (
         <nav aria-label="breadcrumb" className="px-4 mt-1 mb-4">
