@@ -53,11 +53,13 @@ export function FullPageDialog({ open, onOpenChange, title, children, className 
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 bg-background overflow-y-auto animate-in fade-in-0"
+      className="fixed left-0 right-0 bottom-0 top-[72px] z-40 bg-background overflow-y-auto animate-in fade-in-0"
     >
       {title && (
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b-2 border-border px-4 py-3">
-          <h2 className="text-base font-semibold text-center">{title}</h2>
+        <div className="px-4 pt-2">
+          <div className="rounded-[40px] bg-background border-2 border-border text-foreground px-4 py-2 text-sm font-semibold inline-flex w-fit">
+            {title}
+          </div>
         </div>
       )}
       <div className={cn("max-w-2xl mx-auto p-4", className)}>{children}</div>
