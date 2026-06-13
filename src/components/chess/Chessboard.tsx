@@ -70,8 +70,8 @@ export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
   arrows = [], arrowLengthScale = 1,
-  onSquareClick, onPieceDrop, interactive = true,
-  inputMode = "both", evalScore = null,
+  onSquareClick, onPieceDrop, onDragBegin, interactive = true,
+  inputMode = "both",
   animate = true, animationMs = 220, className,
 }: Props) {
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
