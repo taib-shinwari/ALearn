@@ -113,7 +113,12 @@ export default function Layout({ children }: LayoutProps) {
     }
   }
 
-  const showBack = !isSign && (!isHomeRoute || browsePath.length > 0);
+  const topDialog = useTopDialog();
+  const [chessSettings] = useChessSettings();
+  const inChess = isHomeRoute && browsePath[0] === "chess";
+  const focusMode = inChess && chessSettings.focusMode;
+
+  const showBack = !isSign && (!!topDialog || !isHomeRoute || browsePath.length > 0);
 
   // When in a language folder, show Call in the header.
   const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
@@ -126,12 +131,13 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const handleBack = () => {
+    if (topDialog) { topDialog.close(); return; }
     if (isRecall) { restoreFromRecall(); navigate("/"); return; }
     if (isSettings) { navigate("/"); return; }
     if (browsePath.length > 0) popBrowse();
   };
 
-  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen;
+  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen && !topDialog && !focusMode;
 
   if (useSettingsBar) {
     return (
