@@ -138,10 +138,8 @@ export default function FlashcardsPage() {
 
   return (
     <div>
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b-2 border-border px-4 py-3 mb-4">
-        <h2 className="text-base font-semibold text-center">{t("activeRecall") || "Active Recall"}</h2>
-      </div>
       <div className="px-4 max-w-md mx-auto space-y-4">
+
       <Container className="flex items-center justify-between text-xs px-3 py-2">
         <span className="opacity-70">{idx + 1} / {deck.length}</span>
         <span className="font-medium truncate ml-2">

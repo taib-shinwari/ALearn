@@ -18,6 +18,7 @@ import {
 import { RecallButton } from "@/components/RecallButton";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
+import { FullPageDialog } from "@/components/ui/full-page-dialog";
 import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
 import { chessLevels, cName } from "@/data/chessData";
@@ -272,26 +273,23 @@ function LanguageRootView({
         ))}
       </div>
 
-      {addOpen && (
-        <div className="fixed inset-0 z-40 bg-foreground/60 flex items-center justify-center p-4" onClick={() => setAddOpen(false)}>
-          <div className="bg-background rounded-[16px] border-2 border-border p-4 w-full max-w-sm space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold text-sm">{t("newCollection") || "New collection"}</h3>
-            <input
-              autoFocus
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t("name") || "Name"}
-              className="w-full px-3 py-2 rounded-[10px] border-2 border-border bg-background text-sm"
-            />
-            <div className="flex gap-2 justify-end">
-              <Button onClick={() => { setAddOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
-              <Button active onClick={() => { addCollection(rootKey, name); setAddOpen(false); setName(""); }}>
-                {t("save") || "Save"}
-              </Button>
-            </div>
+      <FullPageDialog open={addOpen} onOpenChange={setAddOpen} title={t("newCollection") || "New collection"}>
+        <div className="space-y-3">
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder={t("name") || "Name"}
+            className="w-full px-3 py-2 rounded-[10px] border-2 border-border bg-background text-sm"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => { setAddOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
+            <Button active onClick={() => { addCollection(rootKey, name); setAddOpen(false); setName(""); }}>
+              {t("save") || "Save"}
+            </Button>
           </div>
         </div>
-      )}
+      </FullPageDialog>
     </div>
   );
 }
@@ -358,29 +356,26 @@ function SubcategoriesView({
         </div>
       )}
 
-      {addColOpen && (
-        <div className="fixed inset-0 z-40 bg-foreground/60 flex items-center justify-center p-4" onClick={() => setAddColOpen(false)}>
-          <div className="bg-background rounded-[16px] border-2 border-border p-4 w-full max-w-sm space-y-3" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold text-sm">{t("newCollection") || "New collection"}</h3>
-            <input
-              autoFocus
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t("name") || "Name"}
-              className="w-full px-3 py-2 rounded-[10px] border-2 border-border bg-background text-sm"
-            />
-            <div className="flex gap-2 justify-end">
-              <Button onClick={() => { setAddColOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
-              <Button
-                active
-                onClick={() => { addCollection(category.id, name); setAddColOpen(false); setName(""); }}
-              >
-                {t("save") || "Save"}
-              </Button>
-            </div>
+      <FullPageDialog open={addColOpen} onOpenChange={setAddColOpen} title={t("newCollection") || "New collection"}>
+        <div className="space-y-3">
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder={t("name") || "Name"}
+            className="w-full px-3 py-2 rounded-[10px] border-2 border-border bg-background text-sm"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => { setAddColOpen(false); setName(""); }}>{t("cancel") || "Cancel"}</Button>
+            <Button
+              active
+              onClick={() => { addCollection(category.id, name); setAddColOpen(false); setName(""); }}
+            >
+              {t("save") || "Save"}
+            </Button>
           </div>
         </div>
-      )}
+      </FullPageDialog>
     </div>
   );
 }
