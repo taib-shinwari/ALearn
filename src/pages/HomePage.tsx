@@ -18,6 +18,7 @@ import {
 import { RecallButton } from "@/components/RecallButton";
 import { speak, isSpeechAvailable } from "@/components/practice/speech";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
+import { FullPageDialog } from "@/components/ui/full-page-dialog";
 import { cn } from "@/lib/utils";
 import { fetchWordImage } from "@/lib/wordImage";
 import { chessLevels, cName } from "@/data/chessData";
