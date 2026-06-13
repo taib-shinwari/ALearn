@@ -8,9 +8,10 @@ import { MovesList } from "./MovesList";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
 import { random960Fen } from "@/lib/chess960";
-import { useChessSettings } from "@/lib/chessSettings";
+import { useChessSettings, setChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PlayState {
   game: Chess;
@@ -175,22 +176,30 @@ export function ChessPlayView() {
   return (
     <div className="px-4 w-full">
       <div className="grid gap-3 md:grid-cols-[1fr_340px] max-w-5xl mx-auto">
-        <div className="flex flex-col items-center gap-2">
-          <Container className="p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-12rem))] md:max-w-none">
-            <Chessboard
-              pieces={pieces}
-              orientation={orientation}
-              selected={selected}
-              legalSquares={legal}
-              onSquareClick={handleSquare}
-              onPieceDrop={onMove}
-              inputMode={settings.inputMode}
-              arrows={analysisArrows}
-              evalScore={evalScore}
-              animate={settings.animatePieces}
-              animationMs={settings.animationSpeed}
-            />
-          </Container>
+        <div className="flex justify-center">
+          <div className="flex items-stretch gap-2 w-full max-w-[min(100%,calc(100svh-12rem))] md:max-w-none">
+            {evalScore !== null && <EvalBar score={evalScore} />}
+            <Container className="p-2 rounded-[20px] flex-1 min-w-0">
+              <Chessboard
+                pieces={pieces}
+                orientation={orientation}
+                selected={selected}
+                legalSquares={legal}
+                onSquareClick={handleSquare}
+                onPieceDrop={onMove}
+                onDragBegin={(sq) => {
+                  const piece = s.game.get(sq as any);
+                  if (piece && piece.color === s.playerColor && s.game.turn() === s.playerColor) {
+                    setSelected(sq);
+                  }
+                }}
+                inputMode={settings.inputMode}
+                arrows={analysisArrows}
+                animate={settings.animatePieces}
+                animationMs={settings.animationSpeed}
+              />
+            </Container>
+          </div>
         </div>
         <div className="flex flex-col gap-3">
           {showClocks && (
@@ -218,8 +227,44 @@ export function ChessPlayView() {
           <Button onClick={resetToSetup} variant="outline" className="gap-2">
             <RotateCcw className="h-4 w-4" /> New setup
           </Button>
+          <Button
+            onClick={() => setChessSettings({ focusMode: !settings.focusMode })}
+            variant="outline"
+            className="gap-2"
+          >
+            {settings.focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {settings.focusMode ? "Exit Focus Mode" : "Focus Mode"}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
+
+function EvalBar({ score }: { score: number }) {
+  const clamped = Math.max(-1000, Math.min(1000, score));
+  const whitePct = 50 + (clamped / 1000) * 50;
+  const pawns = score / 100;
+  const sign = pawns > 0 ? "+" : pawns < 0 ? "" : "";
+  const label = Math.abs(pawns) >= 10 ? `${sign}${pawns.toFixed(0)}` : `${sign}${pawns.toFixed(1)}`;
+  return (
+    <div
+      className="relative w-6 rounded-[8px] overflow-hidden bg-neutral-800 border-2 border-border flex flex-col shrink-0"
+      aria-hidden
+    >
+      <div
+        className="absolute left-0 right-0 bottom-0 bg-neutral-100 transition-[height] duration-200"
+        style={{ height: `${whitePct}%` }}
+      />
+      <span
+        className={cn(
+          "absolute left-0 right-0 text-center text-[10px] font-bold font-mono leading-none",
+          pawns >= 0 ? "bottom-0.5 text-neutral-900" : "top-0.5 text-neutral-100",
+        )}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+

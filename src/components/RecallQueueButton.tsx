@@ -59,7 +59,7 @@ export function RecallQueueButton() {
           </span>
         )}
       </Button>
-      <FullPageDialog open={open} onOpenChange={setOpen}>
+      <FullPageDialog open={open} onOpenChange={setOpen} title={t("activeAndRecall") || "Active & Recall"}>
         <Tabs defaultValue={hasReady ? "ready" : "active"} className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="active">

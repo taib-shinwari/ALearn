@@ -273,7 +273,7 @@ function LanguageRootView({
         ))}
       </div>
 
-      <FullPageDialog open={addOpen} onOpenChange={setAddOpen} title={t("newCollection") || "New collection"}>
+      <FullPageDialog open={addOpen} onOpenChange={setAddOpen} title={t("addCollection") || "Add Collection"}>
         <div className="space-y-3">
           <input
             autoFocus
@@ -356,7 +356,7 @@ function SubcategoriesView({
         </div>
       )}
 
-      <FullPageDialog open={addColOpen} onOpenChange={setAddColOpen} title={t("newCollection") || "New collection"}>
+      <FullPageDialog open={addColOpen} onOpenChange={setAddColOpen} title={t("addCollection") || "Add Collection"}>
         <div className="space-y-3">
           <input
             autoFocus

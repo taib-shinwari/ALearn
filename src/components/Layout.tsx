@@ -13,6 +13,8 @@ import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
 import { RecallQueueButton } from "@/components/RecallQueueButton";
 import { AICallButton } from "@/components/AICallButton";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
+import { useTopDialog } from "@/lib/dialog-stack";
+import { useChessSettings } from "@/lib/chessSettings";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
@@ -111,7 +113,12 @@ export default function Layout({ children }: LayoutProps) {
     }
   }
 
-  const showBack = !isSign && (!isHomeRoute || browsePath.length > 0);
+  const topDialog = useTopDialog();
+  const [chessSettings] = useChessSettings();
+  const inChess = isHomeRoute && browsePath[0] === "chess";
+  const focusMode = inChess && chessSettings.focusMode;
+
+  const showBack = !isSign && (!!topDialog || !isHomeRoute || browsePath.length > 0);
 
   // When in a language folder, show Call in the header.
   const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
@@ -124,12 +131,13 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const handleBack = () => {
+    if (topDialog) { topDialog.close(); return; }
     if (isRecall) { restoreFromRecall(); navigate("/"); return; }
     if (isSettings) { navigate("/"); return; }
     if (browsePath.length > 0) popBrowse();
   };
 
-  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen;
+  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen && !topDialog && !focusMode;
 
   if (useSettingsBar) {
     return (
@@ -147,6 +155,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
+      {!focusMode && (
       <div className="flex items-center justify-between gap-2 p-4">
         <div className="flex items-center gap-2 min-w-0">
           {showBack && (
@@ -154,13 +163,16 @@ export default function Layout({ children }: LayoutProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          {!searchOpen && isSettings && (
+          {!searchOpen && topDialog?.title && (
+            <TitleBar className="font-semibold">{topDialog.title}</TitleBar>
+          )}
+          {!searchOpen && !topDialog && isSettings && (
             <TitleBar className="font-semibold">{t("settings") || "Settings"}</TitleBar>
           )}
-          {!searchOpen && isRecall && (
+          {!searchOpen && !topDialog && isRecall && (
             <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
-          {!searchOpen && isSign && (
+          {!searchOpen && !topDialog && isSign && (
             <TitleBar className="font-semibold">Sign</TitleBar>
           )}
         </div>
@@ -189,6 +201,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         )}
       </div>
+      )}
 
       {showCrumbs && (
         <nav aria-label="breadcrumb" className="px-4 mt-1 mb-4">
