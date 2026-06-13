@@ -13,6 +13,8 @@ import { SettingsMobileBar } from "@/components/settings/SettingsMobileBar";
 import { RecallQueueButton } from "@/components/RecallQueueButton";
 import { AICallButton } from "@/components/AICallButton";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
+import { useTopDialog } from "@/lib/dialog-stack";
+import { useChessSettings } from "@/lib/chessSettings";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
