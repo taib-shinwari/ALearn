@@ -10,6 +10,7 @@ export interface ChessSettings {
   showHints: boolean;
   speakNarration: boolean;
   inputMode: InputMode;
+  focusMode: boolean;
 }
 
 const DEFAULTS: ChessSettings = {
@@ -19,6 +20,7 @@ const DEFAULTS: ChessSettings = {
   showHints: true,
   speakNarration: true,
   inputMode: "both",
+  focusMode: false,
 };
 
 const KEY = "chess-settings-v1";
