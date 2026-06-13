@@ -3,10 +3,9 @@ import { Inbox, Trash2, Clock, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
+import { FullPageDialog } from "@/components/ui/full-page-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 import { useApp } from "@/context/AppContext";
 import { formatCountdown, isReady, type RecallItem } from "@/lib/recall";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
