@@ -45,27 +45,21 @@ export function RecallQueueButton() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          aria-label="Recall queue"
-          className="relative"
-        >
-          <Inbox className="h-5 w-5" />
-          {hasReady && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
-              {ready.length}
-            </span>
-          )}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("recall") || "Recall"}</DialogTitle>
-        </DialogHeader>
-
-
+    <>
+      <Button
+        size="icon"
+        aria-label="Recall queue"
+        className="relative"
+        onClick={() => setOpen(true)}
+      >
+        <Inbox className="h-5 w-5" />
+        {hasReady && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-foreground text-background text-[10px] font-bold flex items-center justify-center">
+            {ready.length}
+          </span>
+        )}
+      </Button>
+      <FullPageDialog open={open} onOpenChange={setOpen}>
         <Tabs defaultValue={hasReady ? "ready" : "active"} className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="active">
@@ -75,7 +69,7 @@ export function RecallQueueButton() {
               {t("recallTab") || "Recall"} ({ready.length})
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="active" className="space-y-2 max-h-[60vh] overflow-auto pr-1 mt-3">
+          <TabsContent value="active" className="space-y-2 mt-3">
             {active.length === 0 && (
               <p className="text-sm opacity-60 text-center py-6">
                 {t("noActive") || "Nothing cooling down."}
@@ -91,7 +85,7 @@ export function RecallQueueButton() {
               />
             ))}
           </TabsContent>
-          <TabsContent value="ready" className="space-y-2 max-h-[60vh] overflow-auto pr-1 mt-3">
+          <TabsContent value="ready" className="space-y-2 mt-3">
             {ready.length === 0 && (
               <p className="text-sm opacity-60 text-center py-6">
                 {t("noReady") || "Nothing to recall yet."}
@@ -109,8 +103,8 @@ export function RecallQueueButton() {
             ))}
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+      </FullPageDialog>
+    </>
   );
 }
 
