@@ -298,6 +298,15 @@ export function Chessboard({
               if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
+              onDragBegin?.(p.square);
+            }}
+            onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}
+            onDrop={(e) => {
+              if (!dragEnabled) return;
+              e.preventDefault();
+              e.stopPropagation();
+              const from = e.dataTransfer.getData("text/plain");
+              if (from && from !== p.square) onPieceDrop?.(from, p.square);
             }}
             onClick={(e) => {
               if (!clickEnabled) return;
@@ -319,32 +328,6 @@ export function Chessboard({
         );
       })}
 
-      {evalScore !== null && evalScore !== undefined && size > 0 && (() => {
-        const clamped = Math.max(-1000, Math.min(1000, evalScore));
-        const whitePct = 50 + (clamped / 1000) * 50;
-        const pawns = evalScore / 100;
-        const sign = pawns > 0 ? "+" : pawns < 0 ? "" : "";
-        const label = Math.abs(pawns) >= 10 ? `${sign}${pawns.toFixed(0)}` : `${sign}${pawns.toFixed(1)}`;
-        return (
-          <div
-            className="absolute top-0 bottom-0 left-0 w-5 bg-neutral-800 pointer-events-none flex flex-col"
-            aria-hidden
-          >
-            <div
-              className="absolute left-0 right-0 bottom-0 bg-neutral-100 transition-[height] duration-200"
-              style={{ height: `${whitePct}%` }}
-            />
-            <span
-              className={cn(
-                "absolute left-0 right-0 text-center text-[10px] font-bold font-mono leading-none",
-                pawns >= 0 ? "bottom-0.5 text-neutral-900" : "top-0.5 text-neutral-100",
-              )}
-            >
-              {label}
-            </span>
-          </div>
-        );
-      })()}
 
 
       {size > 0 && (
