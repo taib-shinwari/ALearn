@@ -8,9 +8,10 @@ import { MovesList } from "./MovesList";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
 import { random960Fen } from "@/lib/chess960";
-import { useChessSettings } from "@/lib/chessSettings";
+import { useChessSettings, setChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PlayState {
   game: Chess;
