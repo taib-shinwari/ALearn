@@ -261,11 +261,11 @@ export function ChessPlayView() {
   const isGameOver = s.game.isGameOver() || isResigned;
   const reviewing = viewIndex !== -1;
 
-  // Build the view position (live or historical).
-  const viewGame = useMemo(() => {
-    if (!reviewing) return s.game;
-    try { return new Chess(s.fenHistory[viewIndex + 1]); } catch { return s.game; }
-  }, [reviewing, viewIndex, s.fenHistory, s.game]);
+  // Build the view position (live or historical). Not a hook to keep hook order stable.
+  let viewGame: Chess = s.game;
+  if (reviewing) {
+    try { viewGame = new Chess(s.fenHistory[viewIndex + 1]); } catch { viewGame = s.game; }
+  }
 
   const pieces = reviewing
     ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
