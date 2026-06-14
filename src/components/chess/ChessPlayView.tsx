@@ -13,6 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Tiny single-slot caches keyed by FEN so expensive engine calls don't
+// re-run on every render (e.g. clock ticks).
+class FenCache<T> {
+  private key: string | null = null;
+  private val: T | null = null;
+  get(k: string): T | null { return this.key === k ? this.val : null; }
+  set(k: string, v: T): T { this.key = k; this.val = v; return v; }
+}
+const evalCache = new FenCache<number>();
+const bestCache = new FenCache<ReturnType<typeof findBestMove>["move"]>();
+const threatCache = new FenCache<ReturnType<typeof findThreat>>();
+
 interface PlayState {
   game: Chess;
   tracker: PieceTracker;
