@@ -71,6 +71,7 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
 export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
+  lastMove = null,
   arrows = [], arrowLengthScale = 1,
   onSquareClick, onPieceDrop, onDragBegin, interactive = true,
   inputMode = "both",
