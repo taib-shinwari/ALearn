@@ -30,6 +30,8 @@ interface Props {
   selected?: string | null;
   /** Squares to render as move-dots (legal destinations for selected piece). */
   legalSquares?: string[];
+  /** Highlight the from/to squares of the last move (light blue). */
+  lastMove?: { from: string; to: string } | null;
   /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
   /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
