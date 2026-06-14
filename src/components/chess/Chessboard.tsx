@@ -221,6 +221,7 @@ export function Chessboard({
             const isHighlighted = highlights.has(square);
             const isLegal = legalSquares.includes(square);
             const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
+            const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
             return (
               <button
                 type="button"
