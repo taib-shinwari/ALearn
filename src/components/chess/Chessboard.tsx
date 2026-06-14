@@ -305,6 +305,11 @@ export function Chessboard({
               if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
+              // Center the drag image on the cursor regardless of grab point.
+              try {
+                const img = e.currentTarget as HTMLImageElement;
+                e.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
+              } catch { /* noop */ }
               onDragBegin?.(p.square);
             }}
             onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}
