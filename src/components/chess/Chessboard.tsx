@@ -239,6 +239,9 @@ export function Chessboard({
                   isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]",
                 )}
               >
+                {isLastMove && !isSel && (
+                  <span className="absolute inset-0 bg-sky-400/40 pointer-events-none" />
+                )}
                 {isSel && (
                   <span className="absolute inset-0 bg-sky-400/55 pointer-events-none" />
                 )}
