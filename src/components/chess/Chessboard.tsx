@@ -30,6 +30,8 @@ interface Props {
   selected?: string | null;
   /** Squares to render as move-dots (legal destinations for selected piece). */
   legalSquares?: string[];
+  /** Highlight the from/to squares of the last move (light blue). */
+  lastMove?: { from: string; to: string } | null;
   /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
   /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
@@ -69,6 +71,7 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
 export function Chessboard({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
+  lastMove = null,
   arrows = [], arrowLengthScale = 1,
   onSquareClick, onPieceDrop, onDragBegin, interactive = true,
   inputMode = "both",
@@ -218,6 +221,7 @@ export function Chessboard({
             const isHighlighted = highlights.has(square);
             const isLegal = legalSquares.includes(square);
             const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
+            const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
             return (
               <button
                 type="button"
@@ -235,6 +239,9 @@ export function Chessboard({
                   isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]",
                 )}
               >
+                {isLastMove && !isSel && (
+                  <span className="absolute inset-0 bg-sky-400/40 pointer-events-none" />
+                )}
                 {isSel && (
                   <span className="absolute inset-0 bg-sky-400/55 pointer-events-none" />
                 )}
@@ -298,6 +305,11 @@ export function Chessboard({
               if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
+              // Center the drag image on the cursor regardless of grab point.
+              try {
+                const img = e.currentTarget as HTMLImageElement;
+                e.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
+              } catch { /* noop */ }
               onDragBegin?.(p.square);
             }}
             onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}

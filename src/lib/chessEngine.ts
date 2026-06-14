@@ -101,10 +101,59 @@ export function findThreat(game: Chess): EngineMove | null {
 export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return null;
-  if (elo <= 100) {
+
+  // Map ELO 100-1000 to (depth, blunderChance, randomTopN).
+  // 100  : pure random
+  // 200  : 60% random / 40% depth-1
+  // 300  : 35% random / 65% depth-1
+  // 400  : 20% random / 80% depth-2
+  // 500  : 12% random / 88% depth-2
+  // 600  : 7% random  / 93% depth-2
+  // 700  : depth-2 (pick from top-3)
+  // 800  : depth-2 (pick from top-2)
+  // 900  : depth-3 (pick from top-2)
+  // 1000 : depth-3 best move
+  const cfg = (() => {
+    if (elo <= 100) return { depth: 0, blunder: 1.0, topN: 1 };
+    if (elo <= 200) return { depth: 1, blunder: 0.6, topN: 1 };
+    if (elo <= 300) return { depth: 1, blunder: 0.35, topN: 2 };
+    if (elo <= 400) return { depth: 2, blunder: 0.2, topN: 2 };
+    if (elo <= 500) return { depth: 2, blunder: 0.12, topN: 2 };
+    if (elo <= 600) return { depth: 2, blunder: 0.07, topN: 2 };
+    if (elo <= 700) return { depth: 2, blunder: 0.0, topN: 3 };
+    if (elo <= 800) return { depth: 2, blunder: 0.0, topN: 2 };
+    if (elo <= 900) return { depth: 3, blunder: 0.0, topN: 2 };
+    return { depth: 3, blunder: 0.0, topN: 1 };
+  })();
+
+  if (cfg.blunder > 0 && Math.random() < cfg.blunder) {
     const m = moves[Math.floor(Math.random() * moves.length)];
     return { from: m.from, to: m.to, promotion: m.promotion };
   }
-  // 200 ELO: shallow minimax (depth 2).
-  return findBestMove(game, 2).move;
+
+  if (cfg.depth <= 1) {
+    // Quick: score each move by static eval after the move.
+    const turn = game.turn();
+    const scored = moves.map(m => {
+      game.move(m);
+      const s = (turn === "w" ? 1 : -1) * evaluate(game);
+      game.undo();
+      return { m, s };
+    }).sort((a, b) => b.s - a.s);
+    const pool = scored.slice(0, Math.max(1, cfg.topN));
+    const pick = pool[Math.floor(Math.random() * pool.length)].m;
+    return { from: pick.from, to: pick.to, promotion: pick.promotion };
+  }
+
+  // Depth >= 2: search per move, pick from top-N.
+  const turn = game.turn();
+  const scored = moves.map(m => {
+    game.move(m);
+    const s = -negamax(game, cfg.depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
+    game.undo();
+    return { m, s };
+  }).sort((a, b) => b.s - a.s);
+  const pool = scored.slice(0, Math.max(1, cfg.topN));
+  const pick = pool[Math.floor(Math.random() * pool.length)].m;
+  return { from: pick.from, to: pick.to, promotion: pick.promotion };
 }
