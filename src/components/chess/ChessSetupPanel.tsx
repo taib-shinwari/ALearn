@@ -52,7 +52,7 @@ export interface GameConfig {
 interface Props { onPlay: (cfg: GameConfig) => void }
 
 export function ChessSetupPanel({ onPlay }: Props) {
-  const [elo, setElo] = useState(100);
+  const [elo, setElo] = useState(400);
   const [color, setColor] = useState<ColorChoice>("white");
   const [timer, setTimer] = useState<TimerPreset>(TIMER_GROUPS[0].presets[0]);
   const [variant, setVariant] = useState<"standard" | "960">("standard");
@@ -73,7 +73,7 @@ export function ChessSetupPanel({ onPlay }: Props) {
           <span className="text-sm font-semibold">Engine Strength</span>
           <span className="font-mono text-xs opacity-70">{elo} ELO</span>
         </div>
-        <Slider min={100} max={200} step={100} value={[elo]} onValueChange={v => setElo(v[0])} />
+        <Slider min={100} max={1000} step={100} value={[elo]} onValueChange={v => setElo(v[0])} />
       </Container>
 
       <Container className="p-3 space-y-2">
