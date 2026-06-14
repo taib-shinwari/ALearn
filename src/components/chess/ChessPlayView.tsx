@@ -286,10 +286,14 @@ export function ChessPlayView() {
   const showClocks = cfg.timer.baseMs > 0;
   const turn = s.game.turn();
 
-  // Optional analysis
-  const evalScore = cfg.evalBar ? evaluate(viewGame) : null;
-  const suggestion = cfg.suggestionArrows && !reviewing ? findBestMove(s.game, 2).move : null;
-  const threat = cfg.threatArrows && !reviewing ? findThreat(s.game) : null;
+  // Optional analysis (cached by FEN to keep this cheap on re-renders).
+  const liveFen = s.game.fen();
+  const viewFen = viewGame.fen();
+  const evalScore = cfg.evalBar ? evalCache.get(viewFen) ?? evalCache.set(viewFen, evaluate(viewGame)) : null;
+  const suggestion = cfg.suggestionArrows && !reviewing
+    ? bestCache.get(liveFen) ?? bestCache.set(liveFen, findBestMove(s.game, 2).move) : null;
+  const threat = cfg.threatArrows && !reviewing
+    ? threatCache.get(liveFen) ?? threatCache.set(liveFen, findThreat(s.game)) : null;
   const analysisArrows = [
     ...(suggestion ? [{ from: suggestion.from, to: suggestion.to, color: "hsl(142 70% 45% / 0.85)" }] : []),
     ...(threat ? [{ from: threat.from, to: threat.to, color: "hsl(0 75% 55% / 0.85)" }] : []),
