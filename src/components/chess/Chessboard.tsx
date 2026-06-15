@@ -4,9 +4,10 @@
 //   single right-click toggles a red square highlight (chess.com-style).
 // - Left-click clears all user arrows + right-click highlights, then forwards
 //   the click to onSquareClick.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { PlacedPiece, PieceColor, PieceType, Arrow } from "@/data/chessData";
+import { CLASS_META, type ClassKind } from "./analysis/classification";
 
 const PIECE_URL: Record<string, string> = {
   wK: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
@@ -48,6 +49,8 @@ interface Props {
   animate?: boolean;
   animationMs?: number;
   className?: string;
+  /** Optional classification badge to overlay above the destination square. */
+  moveBadge?: { square: string; kind: ClassKind } | null;
 }
 
 function squareToXY(sq: string, orientation: "white" | "black") {
@@ -68,7 +71,7 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
   return dark ? "w" : "b";
 }
 
-export function Chessboard({
+function ChessboardImpl({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
   lastMove = null,
@@ -76,6 +79,7 @@ export function Chessboard({
   onSquareClick, onPieceDrop, onDragBegin, interactive = true,
   inputMode = "both",
   animate = true, animationMs = 220, className,
+  moveBadge = null,
 }: Props) {
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
   const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
@@ -305,10 +309,17 @@ export function Chessboard({
               if (!dragEnabled) { e.preventDefault(); return; }
               e.dataTransfer.setData("text/plain", p.square);
               e.dataTransfer.effectAllowed = "move";
-              // Center the drag image on the cursor regardless of grab point.
+              // Build a transparent piece-only drag image (no square background),
+              // centered under the cursor regardless of grab point.
               try {
                 const img = e.currentTarget as HTMLImageElement;
-                e.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
+                const s = img.offsetWidth || 48;
+                const ghost = document.createElement("img");
+                ghost.src = url;
+                ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${s}px;height:${s}px;padding:0;background:transparent;pointer-events:none`;
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, s / 2, s / 2);
+                setTimeout(() => ghost.remove(), 0);
               } catch { /* noop */ }
               onDragBegin?.(p.square);
             }}
@@ -352,6 +363,31 @@ export function Chessboard({
           {renderedArrows}
         </svg>
       )}
+
+      {size > 0 && moveBadge && (() => {
+        const { col, row } = squareToXY(moveBadge.square, orientation);
+        const meta = CLASS_META[moveBadge.kind];
+        return (
+          <div
+            className="absolute pointer-events-none flex items-center justify-center rounded-full text-[11px] font-bold shadow-md ring-2 ring-background"
+            style={{
+              left: `calc(${(col / 8) * 100}% + ${sq * 0.62}px)`,
+              top: `calc(${(row / 8) * 100}% - ${sq * 0.10}px)`,
+              width: sq * 0.42,
+              height: sq * 0.42,
+              background: meta.color,
+              color: "white",
+            }}
+            aria-hidden
+          >
+            {meta.glyph}
+          </div>
+        );
+      })()}
     </div>
   );
 }
+
+// React.memo skips re-renders when only the parent state changed (e.g. hovering
+// a move in the list). The board still updates on FEN/lastMove/orientation changes.
+export const Chessboard = memo(ChessboardImpl);
