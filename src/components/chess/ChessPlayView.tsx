@@ -364,13 +364,18 @@ export function ChessPlayView() {
                 interactive={!reviewing && !isGameOver}
                 animate={settings.animatePieces && !noAnimateOnce}
                 animationMs={settings.animationSpeed}
+                moveBadge={
+                  analysisView === "review" && perMove && reviewing && lastMove
+                    ? { square: lastMove.to, kind: perMove[viewIndex].kind }
+                    : null
+                }
               />
             </Container>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 min-h-0">
-          {showClocks && (
+          {showClocks && analysisView !== "analysis" && (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wider opacity-60 text-center">
