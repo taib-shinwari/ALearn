@@ -12,6 +12,8 @@ import { useChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { analyseGame, summarisePlayer, type PerMove } from "./analysis/classification";
+import { AnalysisReport } from "./analysis/AnalysisReport";
 
 // Tiny single-slot caches keyed by FEN so expensive engine calls don't
 // re-run on every render (e.g. clock ticks).
@@ -51,7 +53,10 @@ export function ChessPlayView() {
   const [selected, setSelected] = useState<string | null>(null);
   const [viewIndex, setViewIndex] = useState<number>(-1); // -1 = live
   const [hintArrow, setHintArrow] = useState<{ from: string; to: string } | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  // "play" = playing or just-ended (game-over actions); "analysis" = report card;
+  // "review" = move-by-move review with classifications.
+  const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
+  const [perMove, setPerMove] = useState<PerMove[] | null>(null);
   // Suppress animation for one render after a drag-drop or history jump.
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
 
@@ -82,7 +87,8 @@ export function ChessPlayView() {
     setSelected(null);
     setViewIndex(-1);
     setHintArrow(null);
-    setShowAnalysis(false);
+    setAnalysisView("play");
+    setPerMove(null);
     setNoAnimateOnce(true);
     force(n => n + 1);
     if (playerColor === "b") setTimeout(() => runEngine(), 400);
@@ -181,7 +187,8 @@ export function ChessPlayView() {
     setSelected(null);
     setViewIndex(-1);
     setHintArrow(null);
-    setShowAnalysis(false);
+    setAnalysisView("play");
+    setPerMove(null);
   };
 
   const rematch = () => {
@@ -357,13 +364,18 @@ export function ChessPlayView() {
                 interactive={!reviewing && !isGameOver}
                 animate={settings.animatePieces && !noAnimateOnce}
                 animationMs={settings.animationSpeed}
+                moveBadge={
+                  analysisView === "review" && perMove && reviewing && lastMove
+                    ? { square: lastMove.to, kind: perMove[viewIndex].kind }
+                    : null
+                }
               />
             </Container>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 min-h-0">
-          {showClocks && (
+          {showClocks && analysisView !== "analysis" && (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <p className="text-[10px] uppercase tracking-wider opacity-60 text-center">
@@ -380,47 +392,76 @@ export function ChessPlayView() {
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <MovesList
-              sans={s.sans}
-              times={s.moveTimes}
-              showTimes={!showClocks}
-              activeIndex={reviewing ? viewIndex : s.sans.length - 1}
-              onSelect={(i) => {
-                setNoAnimateOnce(true);
-                setViewIndex(i === s.sans.length - 1 ? -1 : i);
-              }}
-            />
-          </div>
-
-          {isGameOver ? (
-            <>
-              {showAnalysis && <GameAnalysis fens={s.fenHistory} sans={s.sans} />}
-              <Button onClick={() => setShowAnalysis(v => !v)} variant="outline" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                {showAnalysis ? "Hide Analysis" : "Analyse Game"}
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button onClick={rematch} variant="outline" className="gap-2">
-                  <RotateCcw className="h-4 w-4" /> Rematch
-                </Button>
-                <Button onClick={resetToSetup} className="gap-2">
-                  <Play className="h-4 w-4" /> New Game
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              <Button onClick={resign} variant="outline" size="icon" aria-label="Resign" title="Resign">
-                <Flag className="h-4 w-4" />
-              </Button>
-              <Button onClick={undoMove} variant="outline" size="icon" aria-label="Undo" title="Undo">
-                <Undo2 className="h-4 w-4" />
-              </Button>
-              <Button onClick={showHint} variant="outline" size="icon" aria-label="Show hint" title="Show hint">
-                <Lightbulb className="h-4 w-4" />
-              </Button>
+          {/* Right column: depends on analysisView */}
+          {analysisView === "analysis" && isGameOver && perMove ? (
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <AnalysisReport
+                perMove={perMove}
+                white={summarisePlayer(perMove, "w")}
+                black={summarisePlayer(perMove, "b")}
+                onReview={() => setAnalysisView("review")}
+              />
             </div>
+          ) : (
+            <>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <MovesList
+                  sans={s.sans}
+                  times={s.moveTimes}
+                  showTimes={showClocks}
+                  activeIndex={reviewing ? viewIndex : s.sans.length - 1}
+                  classifications={analysisView === "review" ? perMove?.map(m => m.kind) : undefined}
+                  onSelect={(i) => {
+                    setNoAnimateOnce(true);
+                    setViewIndex(i === s.sans.length - 1 ? -1 : i);
+                  }}
+                />
+              </div>
+
+              {isGameOver && analysisView === "play" && (
+                <>
+                  <Button
+                    onClick={() => {
+                      if (!perMove) setPerMove(analyseGame(s.fenHistory, s.sans));
+                      setAnalysisView("analysis");
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Analyse Game
+                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button onClick={rematch} variant="outline" className="gap-2">
+                      <RotateCcw className="h-4 w-4" /> Rematch
+                    </Button>
+                    <Button onClick={resetToSetup} className="gap-2">
+                      <Play className="h-4 w-4" /> New Game
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {isGameOver && analysisView === "review" && (
+                <Button onClick={() => setAnalysisView("analysis")} variant="outline" className="gap-2">
+                  <BarChart3 className="h-4 w-4" /> Show Report Card
+                </Button>
+              )}
+
+              {!isGameOver && (
+                <div className="grid grid-cols-3 gap-2">
+                  <Button onClick={resign} variant="outline" size="icon" aria-label="Resign" title="Resign">
+                    <Flag className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={undoMove} variant="outline" size="icon" aria-label="Undo" title="Undo">
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={showHint} variant="outline" size="icon" aria-label="Show hint" title="Show hint">
+                    <Lightbulb className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

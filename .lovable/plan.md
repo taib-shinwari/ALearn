@@ -1,79 +1,86 @@
-# Plan
+# Chess polish, Analysis redesign, and Lessons
 
-Big batch — grouping into 4 shippable areas. Confirm scope before I build.
+## 1. Chess board/UX fixes (`Chessboard.tsx`, `ChessPlayView.tsx`)
 
-## 1. Chess Play — pre-game setup + board UX
+- **Drag image**: render only the piece glyph (transparent background, no square). Use an offscreen `<img>` of the piece SVG sized to the square, centered under the cursor via `setDragImage(img, w/2, h/2)`.
+- **Smoother performance**: memoize square components, avoid re-rendering the whole board on hover, throttle eval-bar updates.
 
-**Right panel becomes a setup form (game not started until "Play" pressed):**
-- Engine Strength slider — only 100 and 200 ELO selectable (step=100, min=100, max=200)
-- Color: White / Random / Black (segmented buttons)
-- Timer (grouped blocks):
-  - No Timer
-  - Bullet: 1m, 1|1, 2|1
-  - Blitz: 3|2, 5m, 5|5
-  - Rapid: 10m, 15|10, 30m, 10|5, 20m, 60m
-- Variant: Standard / Chess960 (Fischer Random)
-- Toggles: Evaluation Bar, Threat Arrows, Suggestion Arrows, Move Feedback, Engine
-- Play button at bottom
+## 2. Move-time display (`MovesList.tsx`, `ChessPlayView.tsx`)
 
-**Board behavior:**
-- Don't re-sort pieces array on each move — keep stable identity per piece so only position transitions animate (currently `fenToPieces` rebuilds from FEN every move causing visual resort). Track pieces by stable id mapped through moves.
-- Click piece: tint square light-blue (not border), show move dots on legal destinations
-- Drag pieces (HTML5 drag or pointer events) — same highlight/dots while dragging
-- After Play: right panel switches to **Moves list** in PGN-pair format:
-  ```
-  1. d4   | d5
-  2. c4   | dxc4
-  ```
-- Timers: white below board, black above (flips with orientation)
+- Only record/show per-move times when a clock/timer is enabled (`config.minutes > 0`).
+- Format inside each cell as `e4  2s` (SAN first, time after, right-aligned with spacing) instead of the current `2s e4`.
 
-**Engine:** simple JS engine. 100 ELO = random legal move. 200 ELO = random with light material awareness (avoid hanging queen, take free pieces). No Stockfish.
+## 3. Move-list hover flicker (analysis mode)
 
-**960:** chess.js supports Chess960 via custom starting FEN — generate valid back-rank, init game with it.
+- Cause: hovering re-renders the board which re-mounts piece `<img>` and re-runs animation. Fix by:
+  - Stable React `key`s per piece (id-based, not index).
+  - Memoize `Chessboard` with `React.memo` and only update on FEN/lastMove change.
+  - Disable transitions while in analysis preview.
 
-**Toggles initially wired but non-functional placeholders** (Evaluation Bar / Threat Arrows / Suggestion Arrows / Move Feedback / Engine analysis) — UI present, real logic deferred. ✅ confirm this is OK, otherwise I'd need a real engine.
+## 4. Analysis view (replaces current game-over panel)
 
-## 2. Full-page dialogs (no separate route)
+When user clicks **Analyse Game**:
 
-Convert these dialogs to full-screen overlays rendered in place, no URL slug, no X close button — the app's back button / hardware back closes them:
-- Active Recall
-- Add (word/collection)
-- Word Edit
-- (others using `Dialog` in the same flow)
+- Hide: moves list, clocks/timer, Rematch, New Game, the Analyse button itself.
+- Show a vertical Analysis panel:
 
-Intercept browser back via `history.pushState` + `popstate` so back closes the overlay first, then navigates.
+```
+Player:       White           Black
+Accuracy       92.4%          88.1%
 
-## 3. Collections — Add button
+By phase
+ Opening       95%             92%
+ Middlegame    90%             86%
+ Endgame        -               -
 
-- On collection/folder pages (Verb, Adjective, Nederlands root, etc.) add an **Add icon button** on the right side of the breadcrumb row (or below-right if narrow). Icon only.
-- Click → small menu: **Word** or **Collection**
-- Word → opens (full-page) word editor
-- Collection → name + (optional) parent
+Estimated rating   1450        1320
 
-## 4. Word detail polish
+Move classification
+ Brilliant !!     0     1
+ Great    !      0     0
+ Book     📖     5     5
+ Best     ★     15    21
+ Excellent 👍   18    18
+ Good     ✓      5     2
+ Inaccuracy ?!   2     0
+ Mistake   ?     0     1
+ Miss      ✗     0     0
+ Blunder   ??    1     0
 
-- Top toolbar order: **Language · Speak · Bookmark · Favorite · Edit** (currently Speak · Language · …)
-- Container text in word/collection cards: center-aligned
-- Card action buttons (Add, Select, etc.): icon-only
+[horizontal stacked color bar — one row per player showing % of each class]
 
----
+[ Review Game ]   ← primary button
+```
+
+- **Review** click → restore the timer column + moves list. Each move cell now:
+  - shows a small classification icon to the right of the SAN,
+  - cell background tinted with the classification color,
+  - and when that move is active on the board, an icon badge floats above the destination piece on the board.
+- Bottom of the Review view: `Show Report Card` button → returns to the analysis summary above.
+
+### Implementation
+- New `src/components/chess/analysis/` folder:
+  - `AnalysisReport.tsx` (summary card),
+  - `MoveClassificationRow.tsx`,
+  - `ClassificationBar.tsx`,
+  - `classification.ts` (enum, colors, icons, thresholds based on centipawn loss; phase split by move number; accuracy via standard `100 * exp(-0.04 * avgCPL)` style formula; rating estimate from accuracy).
+- `MovesList.tsx`: optional `classifications` prop to render icon + tinted background.
+- `Chessboard.tsx`: optional `moveBadge?: { square, kind }` to render the icon overlay on the active square.
+- `ChessPlayView.tsx`: add `view: "play" | "analysis" | "review"` state and swap the right column accordingly.
+
+## 5. Re-add Lessons (Duolingo-style)
+
+- Add a `Lessons` tab to the language section reachable from the language page.
+- New files:
+  - `src/pages/LessonsPage.tsx` — vertical path of lesson "nodes" (locked / current / done), Duolingo-style with the active node highlighted and a pop-up "Start" bubble.
+  - `src/components/lessons/LessonNode.tsx`, `LessonPath.tsx`.
+  - `src/components/lessons/LessonRunner.tsx` — runs through a small ordered set of word/phrase exercises (multiple choice + tap-to-build sentence) pulled from existing `courseData` / `useCustomWords`.
+  - Route added in `App.tsx`: `/language/:lang/lessons` and a card entry on the language home.
+- Progress persisted in `localStorage` under `lessons:<lang>` (units completed, XP).
 
 ## Technical notes
-
-- New file: `src/components/chess/ChessSetupPanel.tsx` — form state lifted, emits `GameConfig` on Play
-- New file: `src/lib/chessEngine.ts` — `pickMove(game, elo)`
-- New file: `src/lib/chess960.ts` — random Fischer back-rank → FEN
-- New file: `src/components/chess/ChessClock.tsx` — increments + low-time styling
-- New file: `src/components/chess/MovesList.tsx`
-- Edit `ChessPlayView.tsx` — orchestrate setup → play; remove status/new-game buttons during setup
-- Edit `Chessboard.tsx` — stable piece ids (don't re-derive from FEN every render), click selection tint + legal-move dots, HTML5 drag handlers
-- New file: `src/components/ui/full-page-dialog.tsx` — fullscreen overlay + back-button interception
-- Migrate Add/Edit/Recall dialog usages to it
-
-## Out of scope / confirm
-
-- Real Stockfish/eval (deferred — placeholder toggles only)
-- Move sounds, premoves, draw/resign buttons
-- Persisting unfinished games
-
-OK to proceed with the above? Anything you want trimmed (e.g. drop 960, drop timers for now) so I can land a smaller first pass?
+- No backend changes required. All new state lives in component state + `localStorage`.
+- Classification thresholds (centipawn loss vs best move from existing engine):
+  Best ≤ 10, Excellent ≤ 25, Good ≤ 50, Inaccuracy ≤ 100, Mistake ≤ 200, Blunder > 200; Brilliant = only best move avoids mate/large loss; Book = move from a small built-in opening list for first 8 plies.
+- Accuracy per phase: avg of per-move accuracy in plies 1–16 (Opening), 17–40 (Middle), 41+ (End).
+- Rating estimate: `round(400 + accuracy * 22)` clamped 100–2800 (rough, transparent heuristic).

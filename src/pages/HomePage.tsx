@@ -211,6 +211,7 @@ function LanguageRootView({
   const rootKey = `__lang_${targetLang}`;
   const { collections, addCollection, removeCollection } = useCustomCollections(rootKey);
   const { pushBrowse } = useApp();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [name, setName] = useState("");
@@ -233,6 +234,13 @@ function LanguageRootView({
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
+        <CardButton
+          onClick={() => navigate(`/lessons/${targetLang}`)}
+          className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3 col-span-2 bg-primary/10"
+        >
+          <span className="font-semibold text-sm">Lessons</span>
+          <span className="text-xs opacity-70 whitespace-nowrap">Duolingo-style path</span>
+        </CardButton>
         <CardButton
           onClick={onOpenAlphabet}
           className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
