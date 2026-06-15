@@ -12,6 +12,8 @@ import { useChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { analyseGame, summarisePlayer, type PerMove } from "./analysis/classification";
+import { AnalysisReport } from "./analysis/AnalysisReport";
 
 // Tiny single-slot caches keyed by FEN so expensive engine calls don't
 // re-run on every render (e.g. clock ticks).
@@ -51,7 +53,10 @@ export function ChessPlayView() {
   const [selected, setSelected] = useState<string | null>(null);
   const [viewIndex, setViewIndex] = useState<number>(-1); // -1 = live
   const [hintArrow, setHintArrow] = useState<{ from: string; to: string } | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  // "play" = playing or just-ended (game-over actions); "analysis" = report card;
+  // "review" = move-by-move review with classifications.
+  const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
+  const [perMove, setPerMove] = useState<PerMove[] | null>(null);
   // Suppress animation for one render after a drag-drop or history jump.
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
 
