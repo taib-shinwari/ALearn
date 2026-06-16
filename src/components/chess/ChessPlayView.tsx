@@ -4,7 +4,8 @@ import { Chessboard } from "@/components/chess/Chessboard";
 import { Container } from "@/components/ui/container";
 import { ChessSetupPanel, type GameConfig } from "./ChessSetupPanel";
 import { ChessClock } from "./ChessClock";
-import { MovesList } from "./MovesList";
+import { MovesList, type MoveVariation, type VariationCursor } from "./MovesList";
+import { MoveDetailPanel } from "./MoveDetailPanel";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
 import { random960Fen } from "@/lib/chess960";
@@ -27,21 +28,44 @@ const evalCache = new FenCache<number>();
 const bestCache = new FenCache<ReturnType<typeof findBestMove>["move"]>();
 const threatCache = new FenCache<ReturnType<typeof findThreat>>();
 
+interface VariationData extends MoveVariation {
+  fens: string[];               // fens from parent position onward; length = sans.length + 1
+  lastMoves: Array<{ from: string; to: string }>;
+}
+
 interface PlayState {
   game: Chess;
   tracker: PieceTracker;
   playerColor: "w" | "b";
   sans: string[];
-  moveTimes: number[]; // seconds per move
-  /** FEN before each move (length = sans.length + 1). Used for fast history navigation. */
+  moveTimes: number[];
   fenHistory: string[];
-  /** From/To squares per move. */
   lastMoves: Array<{ from: string; to: string }>;
   whiteMs: number;
   blackMs: number;
   cfg: GameConfig;
-  startedAt: number; // performance.now of game start (for first move timing)
-  lastMoveAt: number; // performance.now of the previous move
+  startedAt: number;
+  lastMoveAt: number;
+  variations: VariationData[];
+}
+
+// ────────────────────────── audio ─────────────────────────────
+let audioCtx: AudioContext | null = null;
+function playMoveSound(kind: "move" | "capture" = "move") {
+  try {
+    audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "triangle";
+    osc.frequency.value = kind === "capture" ? 220 : 380;
+    gain.gain.value = 0.0001;
+    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.13);
+  } catch { /* noop */ }
 }
 
 export function ChessPlayView() {
@@ -51,16 +75,13 @@ export function ChessPlayView() {
   const stateRef = useRef<PlayState | null>(null);
   const lastTickRef = useRef<number>(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [viewIndex, setViewIndex] = useState<number>(-1); // -1 = live
+  const [viewIndex, setViewIndex] = useState<number>(-1); // -1 = live (or before any move if 0 sans)
+  const [varCursor, setVarCursor] = useState<VariationCursor | null>(null);
   const [hintArrow, setHintArrow] = useState<{ from: string; to: string } | null>(null);
-  // "play" = playing or just-ended (game-over actions); "analysis" = report card;
-  // "review" = move-by-move review with classifications.
   const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
   const [perMove, setPerMove] = useState<PerMove[] | null>(null);
-  // Suppress animation for one render after a drag-drop or history jump.
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
 
-  // Idle preview board (not playable) shown before game starts.
   const idlePieces = useMemo(() => {
     const g = new Chess();
     const t = new PieceTracker();
@@ -81,11 +102,13 @@ export function ChessPlayView() {
       fenHistory: [game.fen()], lastMoves: [],
       whiteMs: gc.timer.baseMs, blackMs: gc.timer.baseMs, cfg: gc,
       startedAt: now, lastMoveAt: now,
+      variations: [],
     };
     lastTickRef.current = now;
     setCfg(gc);
     setSelected(null);
     setViewIndex(-1);
+    setVarCursor(null);
     setHintArrow(null);
     setAnalysisView("play");
     setPerMove(null);
@@ -110,7 +133,6 @@ export function ChessPlayView() {
     return () => window.clearInterval(id);
   }, [cfg]);
 
-  // Clear the noAnimate flag after the render that used it.
   useEffect(() => {
     if (noAnimateOnce) {
       const id = requestAnimationFrame(() => setNoAnimateOnce(false));
@@ -118,7 +140,7 @@ export function ChessPlayView() {
     }
   }, [noAnimateOnce]);
 
-  const recordMove = useCallback((mv: any) => {
+  const recordMainlineMove = useCallback((mv: any) => {
     const s = stateRef.current;
     if (!s) return;
     const now = performance.now();
@@ -133,17 +155,90 @@ export function ChessPlayView() {
       if (mv.color === "w") s.whiteMs += s.cfg.timer.incMs;
       else s.blackMs += s.cfg.timer.incMs;
     }
+    playMoveSound(mv.captured ? "capture" : "move");
   }, []);
+
+  // Try to make a move during review (creates / extends a variation).
+  const tryVariationMove = (from: string, to: string): boolean => {
+    const s = stateRef.current;
+    if (!s) return false;
+
+    // Determine base FEN and current variation context.
+    let baseFen: string;
+    let parentIndex: number;
+    if (varCursor) {
+      const v = s.variations[varCursor.varIndex];
+      baseFen = v.fens[varCursor.step + 1];
+      parentIndex = v.parentIndex;
+    } else {
+      // Mainline review at viewIndex.
+      baseFen = s.fenHistory[viewIndex + 1];
+      parentIndex = viewIndex;
+    }
+
+    let g: Chess;
+    try { g = new Chess(baseFen); } catch { return false; }
+    let mv: any;
+    try { mv = g.move({ from, to, promotion: "q" }); } catch { return false; }
+    if (!mv) return false;
+
+    if (varCursor) {
+      const v = s.variations[varCursor.varIndex];
+      // If next step already matches, just advance.
+      const existingNext = v.sans[varCursor.step + 1];
+      if (existingNext === mv.san) {
+        setVarCursor({ varIndex: varCursor.varIndex, step: varCursor.step + 1 });
+      } else {
+        // Truncate variation past current step and append.
+        v.sans = v.sans.slice(0, varCursor.step + 1);
+        v.fens = v.fens.slice(0, varCursor.step + 2);
+        v.lastMoves = v.lastMoves.slice(0, varCursor.step + 1);
+        v.sans.push(mv.san);
+        v.fens.push(g.fen());
+        v.lastMoves.push({ from: mv.from, to: mv.to });
+        setVarCursor({ varIndex: varCursor.varIndex, step: v.sans.length - 1 });
+      }
+    } else {
+      // Mainline branch: check if a variation already exists at this parent with same first san.
+      const existing = s.variations.findIndex(
+        v => v.parentIndex === parentIndex && v.sans[0] === mv.san
+      );
+      if (existing >= 0) {
+        setVarCursor({ varIndex: existing, step: 0 });
+      } else {
+        const v: VariationData = {
+          parentIndex,
+          sans: [mv.san],
+          fens: [baseFen, g.fen()],
+          lastMoves: [{ from: mv.from, to: mv.to }],
+        };
+        s.variations.push(v);
+        setVarCursor({ varIndex: s.variations.length - 1, step: 0 });
+      }
+    }
+    playMoveSound(mv.captured ? "capture" : "move");
+    setSelected(null);
+    setHintArrow(null);
+    setNoAnimateOnce(true);
+    force(n => n + 1);
+    return true;
+  };
 
   const onMove = (from: string, to: string, viaDrag = false) => {
     const s = stateRef.current;
-    if (!s || s.game.isGameOver()) return;
-    if (viewIndex !== -1) return; // can't move while reviewing
+    if (!s) return;
+    const live = viewIndex === -1 && varCursor == null;
+    if (!live) {
+      // Reviewing — branch into a variation.
+      tryVariationMove(from, to);
+      return;
+    }
+    if (s.game.isGameOver()) return;
     if (s.game.turn() !== s.playerColor) return;
     try {
       const mv = s.game.move({ from, to, promotion: "q" });
       if (!mv) return;
-      recordMove(mv);
+      recordMainlineMove(mv);
       setSelected(null);
       setHintArrow(null);
       if (viaDrag) setNoAnimateOnce(true);
@@ -160,14 +255,48 @@ export function ChessPlayView() {
     if (!m) return;
     const mv = s.game.move({ from: m.from, to: m.to, promotion: m.promotion ?? "q" });
     if (!mv) return;
-    recordMove(mv);
+    recordMainlineMove(mv);
     force(n => n + 1);
+  };
+
+  // Compute current viewing position.
+  const computeView = () => {
+    const s = stateRef.current!;
+    if (varCursor) {
+      const v = s.variations[varCursor.varIndex];
+      return { fen: v.fens[varCursor.step + 1], lastMove: v.lastMoves[varCursor.step] };
+    }
+    if (viewIndex === -1) {
+      return {
+        fen: s.game.fen(),
+        lastMove: s.lastMoves.length ? s.lastMoves[s.lastMoves.length - 1] : null,
+      };
+    }
+    return { fen: s.fenHistory[viewIndex + 1], lastMove: viewIndex >= 0 ? s.lastMoves[viewIndex] : null };
   };
 
   const handleSquare = (sq: string) => {
     const s = stateRef.current;
-    if (!s || s.game.isGameOver()) return;
-    if (viewIndex !== -1) return;
+    if (!s) return;
+    const live = viewIndex === -1 && varCursor == null;
+    const viewing = !live;
+    if (viewing) {
+      // Allow click-to-move on the reviewed position.
+      const view = computeView();
+      let g: Chess;
+      try { g = new Chess(view.fen); } catch { return; }
+      const piece = g.get(sq as any);
+      if (selected) {
+        if (sq === selected) { setSelected(null); return; }
+        const moves = g.moves({ square: selected as any, verbose: true }) as any[];
+        if (moves.some(m => m.to === sq)) { tryVariationMove(selected, sq); return; }
+        if (piece) setSelected(sq); else setSelected(null);
+        return;
+      }
+      if (piece) setSelected(sq);
+      return;
+    }
+    if (s.game.isGameOver()) return;
     if (s.game.turn() !== s.playerColor) return;
     const piece = s.game.get(sq as any);
     if (selected) {
@@ -186,20 +315,17 @@ export function ChessPlayView() {
     setCfg(null);
     setSelected(null);
     setViewIndex(-1);
+    setVarCursor(null);
     setHintArrow(null);
     setAnalysisView("play");
     setPerMove(null);
   };
 
-  const rematch = () => {
-    if (!cfg) return;
-    startGame(cfg);
-  };
+  const rematch = () => { if (cfg) startGame(cfg); };
 
   const undoMove = () => {
     const s = stateRef.current;
     if (!s || s.sans.length === 0) return;
-    // Undo until it's the player's turn again (typically 2 plies).
     const target = s.game.turn() === s.playerColor ? 2 : 1;
     for (let i = 0; i < target && s.sans.length > 0; i++) {
       s.game.undo();
@@ -208,7 +334,6 @@ export function ChessPlayView() {
       s.fenHistory.pop();
       s.lastMoves.pop();
     }
-    // Rebuild tracker from scratch (cheap enough).
     const t = new PieceTracker();
     t.reset(s.game);
     s.tracker = t;
@@ -228,8 +353,6 @@ export function ChessPlayView() {
   const resign = () => {
     const s = stateRef.current;
     if (!s || s.game.isGameOver()) return;
-    // Force checkmate-like end by clearing legal moves: we just mark game over via FEN trick.
-    // chess.js has no "resign" — simulate by setting a flag locally.
     (s as any).resigned = true;
     force(n => n + 1);
   };
@@ -243,10 +366,24 @@ export function ChessPlayView() {
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
+        if (varCursor) {
+          if (varCursor.step > 0) setVarCursor({ ...varCursor, step: varCursor.step - 1 });
+          else { setVarCursor(null); setViewIndex(s.variations[varCursor.varIndex].parentIndex); }
+          setNoAnimateOnce(true);
+          return;
+        }
         const current = viewIndex === -1 ? s.sans.length - 1 : viewIndex - 1;
-        if (current >= 0) { setNoAnimateOnce(true); setViewIndex(current); }
+        if (current >= -1) { setNoAnimateOnce(true); setViewIndex(current); }
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
+        if (varCursor) {
+          const v = s.variations[varCursor.varIndex];
+          if (varCursor.step + 1 < v.sans.length) {
+            setVarCursor({ ...varCursor, step: varCursor.step + 1 });
+            setNoAnimateOnce(true);
+          }
+          return;
+        }
         if (viewIndex === -1) return;
         const next = viewIndex + 1;
         setNoAnimateOnce(true);
@@ -255,7 +392,7 @@ export function ChessPlayView() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [viewIndex]);
+  }, [viewIndex, varCursor]);
 
   // ── Idle (setup) view ────────────────────────────────────────────────
   if (!cfg || !stateRef.current) {
@@ -273,45 +410,37 @@ export function ChessPlayView() {
     );
   }
 
-  // ── Active game view ─────────────────────────────────────────────────
   const s = stateRef.current;
   const orientation = s.playerColor === "w" ? "white" : "black";
   const isResigned = (s as any).resigned === true;
   const isGameOver = s.game.isGameOver() || isResigned;
-  const reviewing = viewIndex !== -1;
+  const live = viewIndex === -1 && varCursor == null;
+  const reviewing = !live;
 
-  // Build the view position (live or historical). Not a hook to keep hook order stable.
+  const view = computeView();
   let viewGame: Chess = s.game;
-  if (reviewing) {
-    try { viewGame = new Chess(s.fenHistory[viewIndex + 1]); } catch { viewGame = s.game; }
-  }
-
+  try { viewGame = new Chess(view.fen); } catch { /* keep live */ }
   const pieces = reviewing
     ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
     : s.tracker.withIds(s.game);
 
-  const legal: string[] = !reviewing && selected
-    ? (s.game.moves({ square: selected as any, verbose: true }) as any[]).map(m => m.to)
+  const legal: string[] = selected
+    ? (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to)
     : [];
 
-  const lastMove = reviewing
-    ? (viewIndex >= 0 ? s.lastMoves[viewIndex] : null)
-    : (s.lastMoves.length > 0 ? s.lastMoves[s.lastMoves.length - 1] : null);
+  const lastMove = view.lastMove;
 
-  // Clocks
   const topClockColor: "w" | "b" = orientation === "white" ? "b" : "w";
   const bottomClockColor: "w" | "b" = orientation === "white" ? "w" : "b";
   const clockMs = (c: "w" | "b") => c === "w" ? s.whiteMs : s.blackMs;
   const showClocks = cfg.timer.baseMs > 0;
   const turn = s.game.turn();
 
-  // Optional analysis (cached by FEN to keep this cheap on re-renders).
   const liveFen = s.game.fen();
-  const viewFen = viewGame.fen();
-  const evalScore = cfg.evalBar ? evalCache.get(viewFen) ?? evalCache.set(viewFen, evaluate(viewGame)) : null;
-  const suggestion = cfg.suggestionArrows && !reviewing
+  const evalScore = cfg.evalBar ? evalCache.get(view.fen) ?? evalCache.set(view.fen, evaluate(viewGame)) : null;
+  const suggestion = cfg.suggestionArrows && live
     ? bestCache.get(liveFen) ?? bestCache.set(liveFen, findBestMove(s.game, 2).move) : null;
-  const threat = cfg.threatArrows && !reviewing
+  const threat = cfg.threatArrows && live
     ? threatCache.get(liveFen) ?? threatCache.set(liveFen, findThreat(s.game)) : null;
   const analysisArrows = [
     ...(suggestion ? [{ from: suggestion.from, to: suggestion.to, color: "hsl(142 70% 45% / 0.85)" }] : []),
@@ -322,6 +451,16 @@ export function ChessPlayView() {
   const wrapperClass = settings.focusMode
     ? "fixed inset-0 z-30 flex items-center justify-center p-4 overflow-hidden bg-background"
     : "px-4 w-full";
+
+  // Compute current ply index for chart / detail panel.
+  const currentPly = varCursor
+    ? s.variations[varCursor.varIndex].parentIndex // chart highlights the branch parent
+    : (viewIndex === -1 ? s.sans.length - 1 : viewIndex);
+
+  // Build classification badge for the board overlay (only in review).
+  const reviewBadge = analysisView === "review" && perMove && reviewing && !varCursor && lastMove
+    ? { square: lastMove.to, kind: perMove[viewIndex].kind }
+    : null;
 
   return (
     <div className={wrapperClass}>
@@ -342,7 +481,7 @@ export function ChessPlayView() {
               ? { maxWidth: "min(100%, calc(100vh - 2rem))", maxHeight: "calc(100vh - 2rem)" }
               : undefined}
           >
-            {evalScore !== null && <EvalBar score={evalScore} />}
+            {evalScore !== null && analysisView !== "analysis" && <EvalBar score={evalScore} />}
             <Container className="p-2 rounded-[20px] flex-1 min-w-0">
               <Chessboard
                 pieces={pieces}
@@ -353,7 +492,7 @@ export function ChessPlayView() {
                 onSquareClick={handleSquare}
                 onPieceDrop={(from, to) => onMove(from, to, true)}
                 onDragBegin={(sq) => {
-                  if (reviewing) return;
+                  if (reviewing) { setSelected(sq); return; }
                   const piece = s.game.get(sq as any);
                   if (piece && piece.color === s.playerColor && s.game.turn() === s.playerColor) {
                     setSelected(sq);
@@ -361,14 +500,10 @@ export function ChessPlayView() {
                 }}
                 inputMode={settings.inputMode}
                 arrows={analysisArrows}
-                interactive={!reviewing && !isGameOver}
+                interactive={true}
                 animate={settings.animatePieces && !noAnimateOnce}
                 animationMs={settings.animationSpeed}
-                moveBadge={
-                  analysisView === "review" && perMove && reviewing && lastMove
-                    ? { square: lastMove.to, kind: perMove[viewIndex].kind }
-                    : null
-                }
+                moveBadge={reviewBadge}
               />
             </Container>
           </div>
@@ -392,28 +527,54 @@ export function ChessPlayView() {
             </div>
           )}
 
-          {/* Right column: depends on analysisView */}
           {analysisView === "analysis" && isGameOver && perMove ? (
             <div className="min-h-0 flex-1 overflow-hidden">
               <AnalysisReport
                 perMove={perMove}
+                fens={s.fenHistory}
                 white={summarisePlayer(perMove, "w")}
                 black={summarisePlayer(perMove, "b")}
+                currentIndex={currentPly}
+                onSelect={(i) => {
+                  setVarCursor(null);
+                  setNoAnimateOnce(true);
+                  setViewIndex(i >= s.sans.length - 1 ? -1 : i);
+                }}
                 onReview={() => setAnalysisView("review")}
               />
             </div>
           ) : (
             <>
+              <MoveDetailPanel
+                sans={s.sans}
+                fens={s.fenHistory}
+                currentIndex={currentPly}
+                perMove={analysisView === "review" ? perMove ?? undefined : undefined}
+                orientation={orientation}
+                onSelect={(i) => {
+                  setVarCursor(null);
+                  setNoAnimateOnce(true);
+                  setViewIndex(i >= s.sans.length - 1 ? -1 : i);
+                }}
+              />
+
               <div className="min-h-0 flex-1 overflow-hidden">
                 <MovesList
                   sans={s.sans}
                   times={s.moveTimes}
                   showTimes={showClocks}
-                  activeIndex={reviewing ? viewIndex : s.sans.length - 1}
+                  activeIndex={varCursor ? -1 : (live ? s.sans.length - 1 : viewIndex)}
                   classifications={analysisView === "review" ? perMove?.map(m => m.kind) : undefined}
+                  variations={s.variations}
+                  activeCursor={varCursor}
                   onSelect={(i) => {
+                    setVarCursor(null);
                     setNoAnimateOnce(true);
                     setViewIndex(i === s.sans.length - 1 ? -1 : i);
+                  }}
+                  onSelectVariation={(c) => {
+                    setNoAnimateOnce(true);
+                    setVarCursor(c);
                   }}
                 />
               </div>
@@ -493,69 +654,5 @@ function EvalBar({ score }: { score: number }) {
         {label}
       </span>
     </div>
-  );
-}
-
-/** Lightweight per-move eval chart shown after the game ends. */
-function GameAnalysis({ fens, sans }: { fens: string[]; sans: string[] }) {
-  const evals = useMemo(() => {
-    const out: number[] = [];
-    for (let i = 1; i < fens.length; i++) {
-      try {
-        const g = new Chess(fens[i]);
-        out.push(evaluate(g));
-      } catch { out.push(0); }
-    }
-    return out;
-  }, [fens]);
-
-  if (evals.length === 0) return null;
-  const max = 1000;
-  const width = 280;
-  const height = 80;
-  const stepX = evals.length > 1 ? width / (evals.length - 1) : width;
-  const pts = evals
-    .map((e, i) => {
-      const x = i * stepX;
-      const y = height / 2 - (Math.max(-max, Math.min(max, e)) / max) * (height / 2);
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  // Classify each move by delta vs previous eval (from mover's POV).
-  const classify = (delta: number): { label: string; color: string } => {
-    const a = Math.abs(delta);
-    if (a < 30) return { label: "Best", color: "text-emerald-500" };
-    if (a < 80) return { label: "Good", color: "text-sky-500" };
-    if (a < 200) return { label: "Inaccuracy", color: "text-amber-500" };
-    if (a < 400) return { label: "Mistake", color: "text-orange-500" };
-    return { label: "Blunder", color: "text-red-500" };
-  };
-
-  const rows = sans.map((san, i) => {
-    const prev = i === 0 ? 0 : evals[i - 1];
-    const cur = evals[i];
-    const moverSign = i % 2 === 0 ? 1 : -1;
-    const delta = (cur - prev) * moverSign;
-    return { san, delta, tag: classify(delta) };
-  });
-
-  return (
-    <Container className="p-3 space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Analysis</p>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-20 bg-muted/40 rounded">
-        <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" strokeOpacity="0.2" />
-        <polyline fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" points={pts} />
-      </svg>
-      <div className="max-h-32 overflow-y-auto text-xs space-y-0.5">
-        {rows.map((r, i) => (
-          <div key={i} className="flex justify-between gap-2 font-mono">
-            <span className="opacity-60 w-8">{Math.floor(i / 2) + 1}{i % 2 === 0 ? "." : "..."}</span>
-            <span className="flex-1">{r.san}</span>
-            <span className={cn("font-semibold", r.tag.color)}>{r.tag.label}</span>
-          </div>
-        ))}
-      </div>
-    </Container>
   );
 }
