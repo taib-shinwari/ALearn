@@ -1,26 +1,72 @@
-// Lightweight JS chess engine. Two strengths for play + a small evaluator
-// for the in-game eval bar and suggestion/threat arrows.
+// Lightweight JS chess engine with alpha-beta + quiescence + light positional eval.
+// Tuned for ELO range 100..1000 in pickEngineMove.
 import { Chess } from "chess.js";
 
 const VAL: Record<string, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
 
-// Center-weighted piece-square table (small bonus).
-const CENTER = [
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 1, 1, 2, 2, 1, 1, 0,
-  0, 1, 2, 3, 3, 2, 1, 0,
-  0, 2, 3, 4, 4, 3, 2, 0,
-  0, 2, 3, 4, 4, 3, 2, 0,
-  0, 1, 2, 3, 3, 2, 1, 0,
-  0, 1, 1, 2, 2, 1, 1, 0,
-  0, 0, 0, 0, 0, 0, 0, 0,
-];
-
-function sqIdx(sq: string) {
-  const f = sq.charCodeAt(0) - 97;
-  const r = parseInt(sq[1], 10) - 1;
-  return r * 8 + f;
-}
+// Piece-square tables (white POV, ranks 8→1).
+const PST = {
+  p: [
+     0, 0, 0, 0, 0, 0, 0, 0,
+    50,50,50,50,50,50,50,50,
+    10,10,20,30,30,20,10,10,
+     5, 5,10,25,25,10, 5, 5,
+     0, 0, 0,20,20, 0, 0, 0,
+     5,-5,-10, 0, 0,-10,-5, 5,
+     5,10,10,-20,-20,10,10, 5,
+     0, 0, 0, 0, 0, 0, 0, 0,
+  ],
+  n: [
+   -50,-40,-30,-30,-30,-30,-40,-50,
+   -40,-20,  0,  0,  0,  0,-20,-40,
+   -30,  0, 10, 15, 15, 10,  0,-30,
+   -30,  5, 15, 20, 20, 15,  5,-30,
+   -30,  0, 15, 20, 20, 15,  0,-30,
+   -30,  5, 10, 15, 15, 10,  5,-30,
+   -40,-20,  0,  5,  5,  0,-20,-40,
+   -50,-40,-30,-30,-30,-30,-40,-50,
+  ],
+  b: [
+   -20,-10,-10,-10,-10,-10,-10,-20,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -10,  0,  5, 10, 10,  5,  0,-10,
+   -10,  5,  5, 10, 10,  5,  5,-10,
+   -10,  0, 10, 10, 10, 10,  0,-10,
+   -10, 10, 10, 10, 10, 10, 10,-10,
+   -10,  5,  0,  0,  0,  0,  5,-10,
+   -20,-10,-10,-10,-10,-10,-10,-20,
+  ],
+  r: [
+     0, 0, 0, 0, 0, 0, 0, 0,
+     5,10,10,10,10,10,10, 5,
+    -5, 0, 0, 0, 0, 0, 0,-5,
+    -5, 0, 0, 0, 0, 0, 0,-5,
+    -5, 0, 0, 0, 0, 0, 0,-5,
+    -5, 0, 0, 0, 0, 0, 0,-5,
+    -5, 0, 0, 0, 0, 0, 0,-5,
+     0, 0, 0, 5, 5, 0, 0, 0,
+  ],
+  q: [
+   -20,-10,-10,-5,-5,-10,-10,-20,
+   -10,  0,  0, 0, 0,  0,  0,-10,
+   -10,  0,  5, 5, 5,  5,  0,-10,
+    -5,  0,  5, 5, 5,  5,  0, -5,
+     0,  0,  5, 5, 5,  5,  0, -5,
+   -10,  5,  5, 5, 5,  5,  0,-10,
+   -10,  0,  5, 0, 0,  0,  0,-10,
+   -20,-10,-10,-5,-5,-10,-10,-20,
+  ],
+  k: [
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -30,-40,-40,-50,-50,-40,-40,-30,
+   -20,-30,-30,-40,-40,-30,-30,-20,
+   -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20,
+  ],
+} as const;
 
 /** Static evaluation in centipawns from White's POV. */
 export function evaluate(game: Chess): number {
@@ -33,48 +79,57 @@ export function evaluate(game: Chess): number {
       const p = board[r][f];
       if (!p) continue;
       const v = VAL[p.type] || 0;
-      const idx = (7 - r) * 8 + f;
-      const pst = CENTER[idx];
+      const table = (PST as any)[p.type] as number[];
+      // Index for white from white-POV; mirror for black.
+      const idx = p.color === "w" ? r * 8 + f : (7 - r) * 8 + f;
+      const pst = table ? table[idx] : 0;
       const tot = v + pst;
       s += p.color === "w" ? tot : -tot;
     }
   }
+  // Light mobility (cheap: count current side moves and negate for opponent estimate).
+  const turn = game.turn();
+  const myMoves = (game.moves() as string[]).length;
+  s += (turn === "w" ? 1 : -1) * myMoves * 2;
   return s;
 }
 
 export interface EngineMove { from: string; to: string; promotion?: string; san?: string }
 
-/** Negamax with alpha-beta to a small depth. Returns best move + score. */
-export function findBestMove(game: Chess, depth = 2): { move: EngineMove | null; score: number } {
-  const turn = game.turn();
-  const moves = game.moves({ verbose: true }) as any[];
-  if (!moves.length) return { move: null, score: evaluate(game) };
+function orderMoves(moves: any[]): any[] {
+  // MVV-LVA-ish: prioritise captures of high-value pieces by low-value attackers, then promotions, then checks.
+  return moves.slice().sort((a, b) => {
+    const sa = (a.captured ? (VAL[a.captured] || 0) - (VAL[a.piece] || 0) / 10 : 0)
+             + (a.promotion ? 800 : 0) + (a.san?.endsWith("+") ? 50 : 0);
+    const sb = (b.captured ? (VAL[b.captured] || 0) - (VAL[b.piece] || 0) / 10 : 0)
+             + (b.promotion ? 800 : 0) + (b.san?.endsWith("+") ? 50 : 0);
+    return sb - sa;
+  });
+}
 
-  let bestMove: EngineMove | null = null;
-  let bestScore = -Infinity;
-  // Light move ordering: captures first.
-  moves.sort((a, b) => (b.captured ? VAL[b.captured] : 0) - (a.captured ? VAL[a.captured] : 0));
-
-  for (const m of moves) {
+function quiesce(game: Chess, alpha: number, beta: number, sign: number, depth: number): number {
+  const standPat = sign * evaluate(game);
+  if (standPat >= beta) return beta;
+  if (standPat > alpha) alpha = standPat;
+  if (depth <= 0) return alpha;
+  const moves = (game.moves({ verbose: true }) as any[]).filter(m => m.captured || m.promotion);
+  for (const m of orderMoves(moves)) {
     game.move(m);
-    const score = -negamax(game, depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
+    const score = -quiesce(game, -beta, -alpha, -sign, depth - 1);
     game.undo();
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = { from: m.from, to: m.to, promotion: m.promotion, san: m.san };
-    }
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
   }
-  // bestScore is from side-to-move POV; return White-POV via sign.
-  const whitePOV = turn === "w" ? bestScore : -bestScore;
-  return { move: bestMove, score: whitePOV };
+  return alpha;
 }
 
 function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: number): number {
-  if (depth <= 0 || game.isGameOver()) return sign * evaluate(game);
+  if (game.isGameOver()) return sign * evaluate(game);
+  if (depth <= 0) return quiesce(game, alpha, beta, sign, 4);
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return sign * evaluate(game);
   let best = -Infinity;
-  for (const m of moves) {
+  for (const m of orderMoves(moves)) {
     game.move(m);
     const v = -negamax(game, depth - 1, -beta, -alpha, -sign);
     game.undo();
@@ -85,13 +140,32 @@ function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: 
   return best;
 }
 
+/** Best move at the requested depth, plus its score (white POV centipawns). */
+export function findBestMove(game: Chess, depth = 3): { move: EngineMove | null; score: number } {
+  const turn = game.turn();
+  const moves = game.moves({ verbose: true }) as any[];
+  if (!moves.length) return { move: null, score: evaluate(game) };
+
+  let bestMove: EngineMove | null = null;
+  let bestScore = -Infinity;
+  for (const m of orderMoves(moves)) {
+    game.move(m);
+    const score = -negamax(game, depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
+    game.undo();
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = { from: m.from, to: m.to, promotion: m.promotion, san: m.san };
+    }
+  }
+  const whitePOV = turn === "w" ? bestScore : -bestScore;
+  return { move: bestMove, score: whitePOV };
+}
+
 /** Opponent's best reply if they were to move now (threat arrow). */
 export function findThreat(game: Chess): EngineMove | null {
-  // Build a position where the opponent moves: flip the side-to-move via FEN edit.
   try {
     const parts = game.fen().split(" ");
     parts[1] = parts[1] === "w" ? "b" : "w";
-    // Reset en passant + castling rights stay; clear EP square to avoid illegal state.
     parts[3] = "-";
     const g2 = new Chess(parts.join(" "));
     return findBestMove(g2, 2).move;
@@ -102,28 +176,18 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return null;
 
-  // Map ELO 100-1000 to (depth, blunderChance, randomTopN).
-  // 100  : pure random
-  // 200  : 60% random / 40% depth-1
-  // 300  : 35% random / 65% depth-1
-  // 400  : 20% random / 80% depth-2
-  // 500  : 12% random / 88% depth-2
-  // 600  : 7% random  / 93% depth-2
-  // 700  : depth-2 (pick from top-3)
-  // 800  : depth-2 (pick from top-2)
-  // 900  : depth-3 (pick from top-2)
-  // 1000 : depth-3 best move
+  // ELO 100..1000 → (depth, blunderChance, topN).
   const cfg = (() => {
-    if (elo <= 100) return { depth: 0, blunder: 1.0, topN: 1 };
-    if (elo <= 200) return { depth: 1, blunder: 0.6, topN: 1 };
-    if (elo <= 300) return { depth: 1, blunder: 0.35, topN: 2 };
-    if (elo <= 400) return { depth: 2, blunder: 0.2, topN: 2 };
-    if (elo <= 500) return { depth: 2, blunder: 0.12, topN: 2 };
-    if (elo <= 600) return { depth: 2, blunder: 0.07, topN: 2 };
-    if (elo <= 700) return { depth: 2, blunder: 0.0, topN: 3 };
-    if (elo <= 800) return { depth: 2, blunder: 0.0, topN: 2 };
-    if (elo <= 900) return { depth: 3, blunder: 0.0, topN: 2 };
-    return { depth: 3, blunder: 0.0, topN: 1 };
+    if (elo <= 100) return { depth: 1, blunder: 0.85, topN: 1 };
+    if (elo <= 200) return { depth: 1, blunder: 0.55, topN: 2 };
+    if (elo <= 300) return { depth: 2, blunder: 0.30, topN: 3 };
+    if (elo <= 400) return { depth: 2, blunder: 0.18, topN: 3 };
+    if (elo <= 500) return { depth: 2, blunder: 0.10, topN: 2 };
+    if (elo <= 600) return { depth: 3, blunder: 0.05, topN: 2 };
+    if (elo <= 700) return { depth: 3, blunder: 0.02, topN: 2 };
+    if (elo <= 800) return { depth: 3, blunder: 0.0,  topN: 2 };
+    if (elo <= 900) return { depth: 4, blunder: 0.0,  topN: 2 };
+    return { depth: 4, blunder: 0.0, topN: 1 };
   })();
 
   if (cfg.blunder > 0 && Math.random() < cfg.blunder) {
@@ -131,23 +195,8 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
     return { from: m.from, to: m.to, promotion: m.promotion };
   }
 
-  if (cfg.depth <= 1) {
-    // Quick: score each move by static eval after the move.
-    const turn = game.turn();
-    const scored = moves.map(m => {
-      game.move(m);
-      const s = (turn === "w" ? 1 : -1) * evaluate(game);
-      game.undo();
-      return { m, s };
-    }).sort((a, b) => b.s - a.s);
-    const pool = scored.slice(0, Math.max(1, cfg.topN));
-    const pick = pool[Math.floor(Math.random() * pool.length)].m;
-    return { from: pick.from, to: pick.to, promotion: pick.promotion };
-  }
-
-  // Depth >= 2: search per move, pick from top-N.
   const turn = game.turn();
-  const scored = moves.map(m => {
+  const scored = orderMoves(moves).map(m => {
     game.move(m);
     const s = -negamax(game, cfg.depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
     game.undo();
