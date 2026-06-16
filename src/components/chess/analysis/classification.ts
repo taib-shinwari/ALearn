@@ -22,16 +22,16 @@ export interface ClassMeta {
 }
 
 export const CLASS_META: Record<ClassKind, ClassMeta> = {
-  brilliant:  { label: "Brilliant",  short: "!!", glyph: "‼",  color: "hsl(174 70% 45%)", text: "text-teal-400",    bg: "bg-teal-500/20" },
-  great:      { label: "Great",      short: "!",  glyph: "!",   color: "hsl(217 70% 55%)", text: "text-blue-400",    bg: "bg-blue-500/20" },
-  book:       { label: "Book",       short: "📖", glyph: "📖", color: "hsl(28 60% 55%)",  text: "text-amber-700",   bg: "bg-amber-700/20" },
-  best:       { label: "Best",       short: "★",  glyph: "★",  color: "hsl(142 65% 45%)", text: "text-emerald-500", bg: "bg-emerald-500/15" },
-  excellent:  { label: "Excellent",  short: "👍", glyph: "👍", color: "hsl(142 55% 50%)", text: "text-emerald-400", bg: "bg-emerald-400/15" },
-  good:       { label: "Good",       short: "✓",  glyph: "✓",  color: "hsl(150 50% 50%)", text: "text-green-400",   bg: "bg-green-400/15" },
-  inaccuracy: { label: "Inaccuracy", short: "?!", glyph: "?!", color: "hsl(45 90% 55%)",  text: "text-yellow-500",  bg: "bg-yellow-500/15" },
-  mistake:    { label: "Mistake",    short: "?",  glyph: "?",  color: "hsl(28 90% 55%)",  text: "text-orange-500",  bg: "bg-orange-500/20" },
-  miss:       { label: "Miss",       short: "✗",  glyph: "✗",  color: "hsl(0 70% 55%)",   text: "text-rose-500",    bg: "bg-rose-500/15" },
-  blunder:    { label: "Blunder",    short: "??", glyph: "??", color: "hsl(0 80% 50%)",   text: "text-red-500",     bg: "bg-red-500/25" },
+  brilliant:  { label: "Brilliant",  short: "!!", glyph: "!!", color: "hsl(174 70% 45%)", text: "text-teal-400",    bg: "" },
+  great:      { label: "Great",      short: "!",  glyph: "!",  color: "hsl(217 70% 55%)", text: "text-blue-400",    bg: "" },
+  book:       { label: "Book",       short: "B",  glyph: "B",  color: "hsl(28 60% 55%)",  text: "text-amber-500",   bg: "" },
+  best:       { label: "Best",       short: "*",  glyph: "*",  color: "hsl(142 65% 45%)", text: "text-emerald-500", bg: "" },
+  excellent:  { label: "Excellent",  short: "+",  glyph: "+",  color: "hsl(142 55% 50%)", text: "text-emerald-400", bg: "" },
+  good:       { label: "Good",       short: "✓",  glyph: "✓",  color: "hsl(150 50% 50%)", text: "text-green-400",   bg: "" },
+  inaccuracy: { label: "Inaccuracy", short: "?!", glyph: "?!", color: "hsl(45 90% 55%)",  text: "text-yellow-500",  bg: "" },
+  mistake:    { label: "Mistake",    short: "?",  glyph: "?",  color: "hsl(28 90% 55%)",  text: "text-orange-500",  bg: "" },
+  miss:       { label: "Miss",       short: "x",  glyph: "x",  color: "hsl(0 70% 55%)",   text: "text-rose-500",    bg: "" },
+  blunder:    { label: "Blunder",    short: "??", glyph: "??", color: "hsl(0 80% 50%)",   text: "text-red-500",     bg: "" },
 };
 
 // Tiny built-in opening book (first plies in SAN). Anything matching counts as "book".

@@ -111,6 +111,7 @@ function ChessboardImpl({
   }, []);
 
   const dragStart = useRef<string | null>(null);
+  const [bounceSquare, setBounceSquare] = useState<string | null>(null);
   const onContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
   const sqAt = (clientX: number, clientY: number): string | null => {
@@ -334,6 +335,8 @@ function ChessboardImpl({
             onClick={(e) => {
               if (!clickEnabled) return;
               e.stopPropagation();
+              setBounceSquare(p.square);
+              window.setTimeout(() => setBounceSquare(s => (s === p.square ? null : s)), 140);
               onSquareClick?.(p.square);
             }}
             style={{
@@ -342,10 +345,15 @@ function ChessboardImpl({
               top: `${(row / 8) * 100}%`,
               width: `${100 / 8}%`,
               height: `${100 / 8}%`,
-              padding: "2%",
+              padding: "0%",
               pointerEvents: pieceInteractive ? "auto" : "none",
               cursor: dragEnabled ? "grab" : clickEnabled ? "pointer" : "default",
-              transition: animate ? `left ${animationMs}ms ease, top ${animationMs}ms ease` : undefined,
+              transition: animate
+                ? `left ${animationMs}ms ease, top ${animationMs}ms ease, transform 140ms ease`
+                : "transform 140ms ease",
+              transform: bounceSquare === p.square ? "scale(1.12)" : "scale(1)",
+              filter: bounceSquare === p.square ? "drop-shadow(0 4px 6px rgba(0,0,0,0.35))" : undefined,
+              zIndex: bounceSquare === p.square ? 5 : 1,
             }}
           />
         );
