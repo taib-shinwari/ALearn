@@ -215,6 +215,29 @@ function LanguageRootView({
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [name, setName] = useState("");
+  const [view, setView] = useState<"menu" | "dictionary">("menu");
+
+  if (view === "menu") {
+    return (
+      <div className="px-4 w-full space-y-3 max-w-md mx-auto">
+        <div className="grid gap-3">
+          <Button
+            className="h-auto py-6 text-base"
+            active
+            onClick={() => navigate(`/lessons/${targetLang}`)}
+          >
+            Lesson
+          </Button>
+          <Button
+            className="h-auto py-6 text-base"
+            onClick={() => setView("dictionary")}
+          >
+            Dictionary
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 w-full space-y-3">
@@ -234,13 +257,6 @@ function LanguageRootView({
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <CardButton
-          onClick={() => navigate(`/lessons/${targetLang}`)}
-          className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3 col-span-2 bg-primary/10"
-        >
-          <span className="font-semibold text-sm">Lessons</span>
-          <span className="text-xs opacity-70 whitespace-nowrap">Duolingo-style path</span>
-        </CardButton>
         <CardButton
           onClick={onOpenAlphabet}
           className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
