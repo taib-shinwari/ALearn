@@ -1,86 +1,117 @@
-# Chess polish, Analysis redesign, and Lessons
+## 1. Chess board interaction
 
-## 1. Chess board/UX fixes (`Chessboard.tsx`, `ChessPlayView.tsx`)
+**Click-to-grab micro-animation** (`Chessboard.tsx`)
+- On click, briefly scale the piece (≈120ms transform: `scale(1.1)` + slight lift shadow) then return — visual "pick up & drop back" while still showing the move-dot overlay for legal targets.
+- Keep current "show dots" behavior.
 
-- **Drag image**: render only the piece glyph (transparent background, no square). Use an offscreen `<img>` of the piece SVG sized to the square, centered under the cursor via `setDragImage(img, w/2, h/2)`.
-- **Smoother performance**: memoize square components, avoid re-rendering the whole board on hover, throttle eval-bar updates.
+**Bigger pieces**
+- Increase piece SVG size from current `~78%` of square to `92%` of square in `Chessboard.tsx`.
 
-## 2. Move-time display (`MovesList.tsx`, `ChessPlayView.tsx`)
+**Move icons in board overlay**
+- When viewing a move (review or freeform), render a classification badge at top-right of the moved-to piece (overlay div inside the square).
+- Icons: `*` for Best/Brilliant, `x` for Miss, `??` Blunder, `?!` Inaccuracy, `!` Great, `!!` Brilliant — using the existing classification colors.
 
-- Only record/show per-move times when a clock/timer is enabled (`config.minutes > 0`).
-- Format inside each cell as `e4  2s` (SAN first, time after, right-aligned with spacing) instead of the current `2s e4`.
+## 2. Engine strengthening (`src/lib/chessEngine.ts`)
 
-## 3. Move-list hover flicker (analysis mode)
+- Add quiescence search (captures only) on top of current alpha-beta minimax.
+- Increase max depth from 3 → 4 at top ELO, with iterative deepening + simple move ordering (MVV-LVA + previous best move first).
+- Better eval: piece-square tables (already partial) + mobility + king safety (pawn shield) + passed pawn bonus.
+- ELO scaling: keep 100–1000 range; lower ELOs add blunder probability and shallower depth (depth 1 + 30% random at 100, depth 4 at 1000).
 
-- Cause: hovering re-renders the board which re-mounts piece `<img>` and re-runs animation. Fix by:
-  - Stable React `key`s per piece (id-based, not index).
-  - Memoize `Chessboard` with `React.memo` and only update on FEN/lastMove change.
-  - Disable transitions while in analysis preview.
+## 3. Analysis view rebuild (`ChessPlayView.tsx`, `analysis/AnalysisReport.tsx`)
 
-## 4. Analysis view (replaces current game-over panel)
+**Replace eval bar with Highcharts-style chart**
+- Add `highcharts` + `highcharts-react-official` deps.
+- Replace the two-line eval chart with an **area chart** in the user's screenshot style:
+  - dark bg, white smoothed area for white advantage, black area below, mid-line at 0
+  - colored dots per move using classification color
+  - green vertical line marks current move
+- Chart is the centerpiece of the report; remove the prior two SVG lines.
 
-When user clicks **Analyse Game**:
+**Layout — sub-containers (Cards)**
+Each in its own `Card`:
+1. Accuracy (white vs black, %)
+2. Estimated Rating (white vs black)
+3. Move Classification breakdown (counts per type)
+4. Eval Chart (the Highcharts area chart)
 
-- Hide: moves list, clocks/timer, Rematch, New Game, the Analyse button itself.
-- Show a vertical Analysis panel:
+In classification card: **only the text color** changes per type, not the row background. On the board overlay, the square's color tints with the classification color and an icon shows top-right.
 
-```
-Player:       White           Black
-Accuracy       92.4%          88.1%
+**Review button** uses the standard shadcn `<Button>` component (not custom-styled div).
 
-By phase
- Opening       95%             92%
- Middlegame    90%             86%
- Endgame        -               -
+## 4. Move list + sound panel (above moves list)
 
-Estimated rating   1450        1320
+New `MoveSoundPanel.tsx` rendered above `MovesList`:
+- Plays the move sound when a new move is made (capture/move/check/castle/promote).
+- Shows: last move SAN + classification icon + color, then the next 2–3 follow-up moves in notation underneath.
+- Hovering a follow-up shows a `HoverCard` with a mini `Chessboard` preview of that position.
 
-Move classification
- Brilliant !!     0     1
- Great    !      0     0
- Book     📖     5     5
- Best     ★     15    21
- Excellent 👍   18    18
- Good     ✓      5     2
- Inaccuracy ?!   2     0
- Mistake   ?     0     1
- Miss      ✗     0     0
- Blunder   ??    1     0
+## 5. Freeform interaction in analysis/review
 
-[horizontal stacked color bar — one row per player showing % of each class]
+- Allow the user to make moves on the board at any history index.
+- If the move differs from the mainline next move, branch as a **variation** under that ply:
+  ```text
+  1. e4 e5
+     |_ 1... c5     (user side-line from move 2)
+        2. Nf3 ...
+  2. Nf3 Nc6
+  ```
+- Data model: each move node gets optional `variations: MoveNode[][]`. New `MoveTree` type replaces flat array.
+- Navigation:
+  - Clicking a move (mainline or variation) jumps to that node.
+  - "Next" advances within the current branch; if user is inside a variation, next stays in that variation.
+  - Going back to the start and playing a new move creates a new top-level variation off ply 0.
+- Render moves list as nested tree with `|_` prefix for variations, indented.
 
-[ Review Game ]   ← primary button
-```
+## 6. Lessons restructure
 
-- **Review** click → restore the timer column + moves list. Each move cell now:
-  - shows a small classification icon to the right of the SAN,
-  - cell background tinted with the classification color,
-  - and when that move is active on the board, an icon badge floats above the destination piece on the board.
-- Bottom of the Review view: `Show Report Card` button → returns to the analysis summary above.
+**Language home cards** (`HomePage.tsx`)
+- For each course language, show TWO buttons: **Lesson** and **Dictionary**.
+- Remove the "Add" card from this view (move to the Dictionary page).
 
-### Implementation
-- New `src/components/chess/analysis/` folder:
-  - `AnalysisReport.tsx` (summary card),
-  - `MoveClassificationRow.tsx`,
-  - `ClassificationBar.tsx`,
-  - `classification.ts` (enum, colors, icons, thresholds based on centipawn loss; phase split by move number; accuracy via standard `100 * exp(-0.04 * avgCPL)` style formula; rating estimate from accuracy).
-- `MovesList.tsx`: optional `classifications` prop to render icon + tinted background.
-- `Chessboard.tsx`: optional `moveBadge?: { square, kind }` to render the icon overlay on the active square.
-- `ChessPlayView.tsx`: add `view: "play" | "analysis" | "review"` state and swap the right column accordingly.
+**Lessons page (`/lessons/:lang`)** (`LessonsPage.tsx` rewrite)
+- Remove the page title and back button. Keep breadcrumbs.
+- Render **Sections** as 2D `<Button>` cards in a responsive grid (no zig-zag path, no 3D, no stars):
+  - Left: section number (e.g. `01`)
+  - Middle: section name (`Beginner`)
+  - Right: `12 Lessons`
+- Clicking a section reveals its lessons inline (or routes to `/lessons/:lang?section=N`) as a grid of `<Button>` cards:
+  - Top: lesson number / item count badge
+  - Bottom: thin container with lesson title (e.g. `Alphabet (1)`)
+  - No stars.
+- Order is enforced — early lessons unlocked, later ones locked.
+- Clicking a locked lesson opens an `AlertDialog`: "This lesson is locked. Proceed anyway?" with Cancel / Proceed.
 
-## 5. Re-add Lessons (Duolingo-style)
+**Lesson runner** at `/lesson/:lang/:lessonId` (single route)
+- The lessons grid does NOT use its own slug — only the runner uses `/lesson/...`.
+- Existing quiz logic preserved.
 
-- Add a `Lessons` tab to the language section reachable from the language page.
-- New files:
-  - `src/pages/LessonsPage.tsx` — vertical path of lesson "nodes" (locked / current / done), Duolingo-style with the active node highlighted and a pop-up "Start" bubble.
-  - `src/components/lessons/LessonNode.tsx`, `LessonPath.tsx`.
-  - `src/components/lessons/LessonRunner.tsx` — runs through a small ordered set of word/phrase exercises (multiple choice + tap-to-build sentence) pulled from existing `courseData` / `useCustomWords`.
-  - Route added in `App.tsx`: `/language/:lang/lessons` and a card entry on the language home.
-- Progress persisted in `localStorage` under `lessons:<lang>` (units completed, XP).
+**Section data**
+- Group existing `courseData[lang].topics` by section (Beginner / Intermediate / Advanced) using a simple bucket function (first N → Beginner, next N → Intermediate, rest → Advanced) until explicit metadata is added.
 
-## Technical notes
-- No backend changes required. All new state lives in component state + `localStorage`.
-- Classification thresholds (centipawn loss vs best move from existing engine):
-  Best ≤ 10, Excellent ≤ 25, Good ≤ 50, Inaccuracy ≤ 100, Mistake ≤ 200, Blunder > 200; Brilliant = only best move avoids mate/large loss; Book = move from a small built-in opening list for first 8 plies.
-- Accuracy per phase: avg of per-move accuracy in plies 1–16 (Opening), 17–40 (Middle), 41+ (End).
-- Rating estimate: `round(400 + accuracy * 22)` clamped 100–2800 (rough, transparent heuristic).
+## 7. Files
+
+**New**
+- `src/components/chess/MoveSoundPanel.tsx`
+- `src/components/chess/analysis/EvalChart.tsx` (Highcharts)
+- `src/lib/moveTree.ts` (variation tree helpers)
+- `src/pages/LessonRunnerPage.tsx` (split out of LessonsPage)
+
+**Edited**
+- `src/lib/chessEngine.ts` — stronger search + eval
+- `src/components/chess/Chessboard.tsx` — bigger pieces, click bounce, classification overlay
+- `src/components/chess/ChessPlayView.tsx` — variation tree state, freeform moves, swap chart, Review uses `<Button>`
+- `src/components/chess/MovesList.tsx` — tree rendering with `|_` variations, classification text color only
+- `src/components/chess/analysis/AnalysisReport.tsx` — Card sub-containers, Highcharts chart
+- `src/pages/HomePage.tsx` — Lesson + Dictionary buttons, remove Add
+- `src/pages/LessonsPage.tsx` — section/lesson grid, locked dialog, no title/back
+- `src/App.tsx` — `/lesson/:lang/:lessonId` route
+
+**Deps**
+- `bun add highcharts highcharts-react-official`
+
+## Notes / open assumptions
+
+- Highcharts has a free non-commercial license; if you need a different chart lib (Recharts, visx), say so before I install.
+- "Brilliant" mapping for `*` vs Best — I'll use `*` for Best, `★` for Brilliant unless you prefer otherwise.
+- Section bucketing uses a heuristic until you give explicit grouping per course.
