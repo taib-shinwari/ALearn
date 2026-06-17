@@ -77,17 +77,27 @@ export default function Layout({ children }: LayoutProps) {
       const seg = browsePath[2];
       if (seg === ALPHABET_SEGMENT) {
         crumbs.push({ label: uiLang === "nl" ? "Alfabet" : uiLang === "ar" ? "الحروف" : "Alphabet", idx: 2 });
+      } else if (seg === "lessons") {
+        crumbs.push({ label: uiLang === "nl" ? "Lessen" : uiLang === "ar" ? "دروس" : "Lessons", idx: 2 });
+        if (browsePath.length >= 4) {
+          // section
+          const secLabels: Record<string, string> = { "sec-0": "Beginner", "sec-1": "Intermediate", "sec-2": "Advanced" };
+          crumbs.push({ label: secLabels[browsePath[3]] || browsePath[3], idx: 3 });
+        }
+        if (browsePath.length >= 5) {
+          crumbs.push({ label: "Lesson", idx: 4 });
+        }
       } else {
         const cat = categories.find(c => c.id === seg);
         if (cat) crumbs.push({ label: localizedName(cat.name, uiLang), idx: 2 });
       }
     }
-    if (browsePath.length >= 4) {
+    if (browsePath.length >= 4 && browsePath[2] !== "lessons" && browsePath[2] !== ALPHABET_SEGMENT) {
       const cat = categories.find(c => c.id === browsePath[2]);
       const sub = cat?.subcategories.find(s => s.id === browsePath[3]);
       if (cat && sub) crumbs.push({ label: localizedName(sub.name, uiLang), idx: 3 });
     }
-    if (browsePath.length >= 5) {
+    if (browsePath.length >= 5 && browsePath[2] !== "lessons" && browsePath[2] !== ALPHABET_SEGMENT) {
       const cat = categories.find(c => c.id === browsePath[2]);
       const sub = cat?.subcategories.find(s => s.id === browsePath[3]);
       const word = sub?.words.find(w => w.id === browsePath[4]);

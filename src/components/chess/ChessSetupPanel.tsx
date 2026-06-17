@@ -73,7 +73,7 @@ export function ChessSetupPanel({ onPlay }: Props) {
           <span className="text-sm font-semibold">Engine Strength</span>
           <span className="font-mono text-xs opacity-70">{elo} ELO</span>
         </div>
-        <Slider min={100} max={1000} step={100} value={[elo]} onValueChange={v => setElo(v[0])} />
+        <Slider min={100} max={2000} step={100} value={[elo]} onValueChange={v => setElo(v[0])} />
       </Container>
 
       <Container className="p-3 space-y-2">

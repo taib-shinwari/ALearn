@@ -81,6 +81,7 @@ export function ChessPlayView() {
   const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
   const [perMove, setPerMove] = useState<PerMove[] | null>(null);
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
+  const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
 
   const idlePieces = useMemo(() => {
     const g = new Chess();
@@ -234,7 +235,15 @@ export function ChessPlayView() {
       return;
     }
     if (s.game.isGameOver()) return;
-    if (s.game.turn() !== s.playerColor) return;
+    if (s.game.turn() !== s.playerColor) {
+      // Not our turn → queue a premove (validate basic ownership only).
+      const piece = s.game.get(from as any);
+      if (piece && piece.color === s.playerColor) {
+        setPremove({ from, to });
+        setSelected(null);
+      }
+      return;
+    }
     try {
       const mv = s.game.move({ from, to, promotion: "q" });
       if (!mv) return;
@@ -247,6 +256,22 @@ export function ChessPlayView() {
     } catch { /* illegal */ }
   };
 
+  const tryPlayPremove = () => {
+    const s = stateRef.current;
+    if (!s || !premove) return;
+    if (s.game.isGameOver() || s.game.turn() !== s.playerColor) return;
+    const pm = premove;
+    setPremove(null);
+    try {
+      const mv = s.game.move({ from: pm.from, to: pm.to, promotion: "q" });
+      if (!mv) return;
+      recordMainlineMove(mv);
+      setNoAnimateOnce(true);
+      force(n => n + 1);
+      if (!s.game.isGameOver() && s.cfg.engine) setTimeout(() => runEngine(), 350);
+    } catch { /* premove no longer legal — drop silently */ }
+  };
+
   const runEngine = () => {
     const s = stateRef.current;
     if (!s || s.game.isGameOver()) return;
@@ -257,6 +282,8 @@ export function ChessPlayView() {
     if (!mv) return;
     recordMainlineMove(mv);
     force(n => n + 1);
+    // Attempt to execute queued premove right after engine's response.
+    setTimeout(() => tryPlayPremove(), 30);
   };
 
   // Compute current viewing position.
@@ -297,17 +324,32 @@ export function ChessPlayView() {
       return;
     }
     if (s.game.isGameOver()) return;
-    if (s.game.turn() !== s.playerColor) return;
+    const myTurn = s.game.turn() === s.playerColor;
     const piece = s.game.get(sq as any);
     if (selected) {
       if (sq === selected) { setSelected(null); return; }
-      const moves = s.game.moves({ square: selected as any, verbose: true }) as any[];
-      if (moves.some(m => m.to === sq)) { onMove(selected, sq, false); return; }
-      if (piece && piece.color === s.playerColor) setSelected(sq);
-      else setSelected(null);
+      if (myTurn) {
+        const moves = s.game.moves({ square: selected as any, verbose: true }) as any[];
+        if (moves.some(m => m.to === sq)) { onMove(selected, sq, false); return; }
+        if (piece && piece.color === s.playerColor) setSelected(sq);
+        else setSelected(null);
+        return;
+      }
+      // Opponent's turn → queue premove if click target is reasonable
+      const own = s.game.get(selected as any);
+      if (own && own.color === s.playerColor && sq !== selected) {
+        setPremove({ from: selected, to: sq });
+        setSelected(null);
+        return;
+      }
+      setSelected(null);
       return;
     }
-    if (piece && piece.color === s.playerColor) setSelected(sq);
+    if (piece && piece.color === s.playerColor) {
+      // Clicking own piece always allowed (even off-turn to start a premove).
+      if (premove) setPremove(null);
+      setSelected(sq);
+    }
   };
 
   const resetToSetup = () => {
@@ -319,6 +361,7 @@ export function ChessPlayView() {
     setHintArrow(null);
     setAnalysisView("play");
     setPerMove(null);
+    setPremove(null);
   };
 
   const rematch = () => { if (cfg) startGame(cfg); };
@@ -446,6 +489,7 @@ export function ChessPlayView() {
     ...(suggestion ? [{ from: suggestion.from, to: suggestion.to, color: "hsl(142 70% 45% / 0.85)" }] : []),
     ...(threat ? [{ from: threat.from, to: threat.to, color: "hsl(0 75% 55% / 0.85)" }] : []),
     ...(hintArrow ? [{ from: hintArrow.from, to: hintArrow.to, color: "hsl(48 96% 53% / 0.9)" }] : []),
+    ...(live && premove ? [{ from: premove.from, to: premove.to, color: "hsl(28 95% 55% / 0.9)" }] : []),
   ];
 
   const wrapperClass = settings.focusMode
@@ -494,7 +538,9 @@ export function ChessPlayView() {
                 onDragBegin={(sq) => {
                   if (reviewing) { setSelected(sq); return; }
                   const piece = s.game.get(sq as any);
-                  if (piece && piece.color === s.playerColor && s.game.turn() === s.playerColor) {
+                  if (piece && piece.color === s.playerColor) {
+                    // Allow selecting/dragging own piece even on opponent turn (premove).
+                    if (premove) setPremove(null);
                     setSelected(sq);
                   }
                 }}
