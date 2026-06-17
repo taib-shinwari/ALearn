@@ -10,8 +10,6 @@ import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
 import FlashcardsPage from "./pages/FlashcardsPage";
-import LessonsPage from "./pages/LessonsPage";
-import LessonRunnerPage from "./pages/LessonRunnerPage";
 import NotFound from "./pages/NotFound";
 import { ReactNode } from "react";
 
@@ -25,8 +23,6 @@ function AppRoutes() {
       <Route path="/sign" element={withLayout(<AuthPage />)} />
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
       <Route path="/recall" element={withLayout(<FlashcardsPage />)} />
-      <Route path="/lessons/:lang" element={withLayout(<LessonsPage />)} />
-      <Route path="/lesson/:lang/:lessonId" element={withLayout(<LessonRunnerPage />)} />
       <Route path="/" element={withLayout(<HomePage />)} />
       <Route path="*" element={<NotFound />} />
     </Routes>
