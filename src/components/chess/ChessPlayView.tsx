@@ -81,6 +81,7 @@ export function ChessPlayView() {
   const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
   const [perMove, setPerMove] = useState<PerMove[] | null>(null);
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
+  const [premove, setPremove] = useState<{ from: string; to: string } | null>(null);
 
   const idlePieces = useMemo(() => {
     const g = new Chess();
