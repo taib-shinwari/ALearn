@@ -29,6 +29,7 @@ import { PUZZLES } from "@/data/chessPuzzles";
 import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WordEditDialog } from "@/components/word/WordEditDialog";
+import { LessonsView } from "@/components/lessons/LessonsView";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
@@ -225,11 +226,11 @@ function LanguageRootView({
   if (view === "menu") {
     return (
       <div className="px-4 w-full space-y-3 max-w-md mx-auto">
-        <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-auto py-6 text-base"
             active
-            onClick={() => navigate(`/lessons/${targetLang}`)}
+            onClick={() => pushBrowse("lessons")}
           >
             Lesson
           </Button>
