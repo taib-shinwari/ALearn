@@ -1,5 +1,5 @@
-// Lightweight JS chess engine with alpha-beta + quiescence + light positional eval.
-// Tuned for ELO range 100..1000 in pickEngineMove.
+// Chess engine: alpha-beta + iterative deepening + transposition table + quiescence
+// + killer/history heuristics. Tuned for ELO range 100..2000 in pickEngineMove.
 import { Chess } from "chess.js";
 
 const VAL: Record<string, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
@@ -66,6 +66,17 @@ const PST = {
     20, 20,  0,  0,  0,  0, 20, 20,
     20, 30, 10,  0,  0, 10, 30, 20,
   ],
+  // Endgame king PST favours central king.
+  kEnd: [
+   -50,-40,-30,-20,-20,-30,-40,-50,
+   -30,-20,-10,  0,  0,-10,-20,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 30, 40, 40, 30,-10,-30,
+   -30,-10, 20, 30, 30, 20,-10,-30,
+   -30,-30,  0,  0,  0,  0,-30,-30,
+   -50,-30,-30,-30,-30,-30,-30,-50,
+  ],
 } as const;
 
 /** Static evaluation in centipawns from White's POV. */
@@ -73,38 +84,88 @@ export function evaluate(game: Chess): number {
   if (game.isCheckmate()) return game.turn() === "w" ? -99999 : 99999;
   if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition()) return 0;
   let s = 0;
+  let totalMaterial = 0;
   const board = game.board();
+  let wBishops = 0, bBishops = 0;
+  const wPawnFiles: number[] = [], bPawnFiles: number[] = [];
+
   for (let r = 0; r < 8; r++) {
     for (let f = 0; f < 8; f++) {
       const p = board[r][f];
       if (!p) continue;
       const v = VAL[p.type] || 0;
-      const table = (PST as any)[p.type] as number[];
-      // Index for white from white-POV; mirror for black.
+      totalMaterial += v;
+      if (p.type === "b") { if (p.color === "w") wBishops++; else bBishops++; }
+      if (p.type === "p") { (p.color === "w" ? wPawnFiles : bPawnFiles).push(f); }
+    }
+  }
+  const endgame = totalMaterial < 2400; // light endgame heuristic
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      const p = board[r][f];
+      if (!p) continue;
+      const v = VAL[p.type] || 0;
+      const tableSrc = (p.type === "k" && endgame) ? (PST as any).kEnd : (PST as any)[p.type];
       const idx = p.color === "w" ? r * 8 + f : (7 - r) * 8 + f;
-      const pst = table ? table[idx] : 0;
+      const pst = tableSrc ? tableSrc[idx] : 0;
       const tot = v + pst;
       s += p.color === "w" ? tot : -tot;
     }
   }
-  // Light mobility (cheap: count current side moves and negate for opponent estimate).
+
+  // Bishop pair bonus
+  if (wBishops >= 2) s += 35;
+  if (bBishops >= 2) s -= 35;
+
+  // Doubled pawns penalty
+  const dup = (files: number[]) => {
+    const seen: Record<number, number> = {};
+    for (const f of files) seen[f] = (seen[f] || 0) + 1;
+    let pen = 0;
+    for (const k in seen) if (seen[k] > 1) pen += (seen[k] - 1) * 18;
+    return pen;
+  };
+  s -= dup(wPawnFiles);
+  s += dup(bPawnFiles);
+
+  // Light mobility heuristic — count current side moves and estimate opponent.
   const turn = game.turn();
   const myMoves = (game.moves() as string[]).length;
-  s += (turn === "w" ? 1 : -1) * myMoves * 2;
+  s += (turn === "w" ? 1 : -1) * myMoves * 3;
+
   return s;
 }
 
 export interface EngineMove { from: string; to: string; promotion?: string; san?: string }
 
-function orderMoves(moves: any[]): any[] {
-  // MVV-LVA-ish: prioritise captures of high-value pieces by low-value attackers, then promotions, then checks.
-  return moves.slice().sort((a, b) => {
-    const sa = (a.captured ? (VAL[a.captured] || 0) - (VAL[a.piece] || 0) / 10 : 0)
-             + (a.promotion ? 800 : 0) + (a.san?.endsWith("+") ? 50 : 0);
-    const sb = (b.captured ? (VAL[b.captured] || 0) - (VAL[b.piece] || 0) / 10 : 0)
-             + (b.promotion ? 800 : 0) + (b.san?.endsWith("+") ? 50 : 0);
-    return sb - sa;
-  });
+// ── Transposition table ────────────────────────────────────────
+type TTEntry = { depth: number; score: number; flag: 0 | 1 | 2; best?: string };
+const TT = new Map<string, TTEntry>();
+const TT_LIMIT = 50_000;
+function ttKey(g: Chess): string {
+  const f = g.fen().split(" ");
+  return `${f[0]} ${f[1]} ${f[2]} ${f[3]}`;
+}
+function ttStore(key: string, e: TTEntry) {
+  if (TT.size > TT_LIMIT) TT.clear();
+  TT.set(key, e);
+}
+
+// Killer moves and history heuristic
+const killers: string[][] = Array.from({ length: 32 }, () => []);
+const history: Record<string, number> = {};
+function moveKey(m: any): string { return `${m.from}${m.to}${m.promotion || ""}`; }
+
+function orderMoves(moves: any[], ply: number, ttBest?: string): any[] {
+  return moves.slice().sort((a, b) => score(b) - score(a));
+  function score(m: any) {
+    const k = moveKey(m);
+    if (ttBest && k === ttBest) return 100000;
+    if (m.captured) return 10000 + (VAL[m.captured] || 0) * 10 - (VAL[m.piece] || 0);
+    if (m.promotion) return 9000 + (VAL[m.promotion] || 0);
+    if (killers[ply]?.includes(k)) return 8000;
+    return history[k] || 0;
+  }
 }
 
 function quiesce(game: Chess, alpha: number, beta: number, sign: number, depth: number): number {
@@ -113,7 +174,7 @@ function quiesce(game: Chess, alpha: number, beta: number, sign: number, depth: 
   if (standPat > alpha) alpha = standPat;
   if (depth <= 0) return alpha;
   const moves = (game.moves({ verbose: true }) as any[]).filter(m => m.captured || m.promotion);
-  for (const m of orderMoves(moves)) {
+  for (const m of orderMoves(moves, 0)) {
     game.move(m);
     const score = -quiesce(game, -beta, -alpha, -sign, depth - 1);
     game.undo();
@@ -123,39 +184,71 @@ function quiesce(game: Chess, alpha: number, beta: number, sign: number, depth: 
   return alpha;
 }
 
-function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: number): number {
+function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: number, ply: number): number {
+  const alphaOrig = alpha;
+  const key = ttKey(game);
+  const tte = TT.get(key);
+  if (tte && tte.depth >= depth) {
+    if (tte.flag === 0) return tte.score;
+    if (tte.flag === 1 && tte.score > alpha) alpha = tte.score;
+    else if (tte.flag === 2 && tte.score < beta) beta = tte.score;
+    if (alpha >= beta) return tte.score;
+  }
   if (game.isGameOver()) return sign * evaluate(game);
   if (depth <= 0) return quiesce(game, alpha, beta, sign, 4);
+
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return sign * evaluate(game);
+
   let best = -Infinity;
-  for (const m of orderMoves(moves)) {
+  let bestMoveKey: string | undefined;
+  for (const m of orderMoves(moves, ply, tte?.best)) {
     game.move(m);
-    const v = -negamax(game, depth - 1, -beta, -alpha, -sign);
+    const v = -negamax(game, depth - 1, -beta, -alpha, -sign, ply + 1);
     game.undo();
-    if (v > best) best = v;
+    if (v > best) { best = v; bestMoveKey = moveKey(m); }
     if (best > alpha) alpha = best;
-    if (alpha >= beta) break;
+    if (alpha >= beta) {
+      if (!m.captured) {
+        const kk = killers[ply] || (killers[ply] = []);
+        if (!kk.includes(bestMoveKey!)) { kk.unshift(bestMoveKey!); if (kk.length > 2) kk.pop(); }
+        history[bestMoveKey!] = (history[bestMoveKey!] || 0) + depth * depth;
+      }
+      break;
+    }
   }
+  const flag: 0 | 1 | 2 = best <= alphaOrig ? 2 : (best >= beta ? 1 : 0);
+  ttStore(key, { depth, score: best, flag, best: bestMoveKey });
   return best;
 }
 
-/** Best move at the requested depth, plus its score (white POV centipawns). */
+/** Best move via iterative deepening. */
 export function findBestMove(game: Chess, depth = 3): { move: EngineMove | null; score: number } {
   const turn = game.turn();
-  const moves = game.moves({ verbose: true }) as any[];
-  if (!moves.length) return { move: null, score: evaluate(game) };
+  const root = game.moves({ verbose: true }) as any[];
+  if (!root.length) return { move: null, score: evaluate(game) };
 
   let bestMove: EngineMove | null = null;
   let bestScore = -Infinity;
-  for (const m of orderMoves(moves)) {
-    game.move(m);
-    const score = -negamax(game, depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
-    game.undo();
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = { from: m.from, to: m.to, promotion: m.promotion, san: m.san };
+  let ordered = root.slice();
+  for (let d = 1; d <= Math.max(1, depth); d++) {
+    let curBest: EngineMove | null = null;
+    let curScore = -Infinity;
+    const scored: { m: any; s: number }[] = [];
+    for (const m of ordered) {
+      game.move(m);
+      const s = -negamax(game, d - 1, -Infinity, Infinity, turn === "w" ? -1 : 1, 1);
+      game.undo();
+      scored.push({ m, s });
+      if (s > curScore) {
+        curScore = s;
+        curBest = { from: m.from, to: m.to, promotion: m.promotion, san: m.san };
+      }
     }
+    scored.sort((a, b) => b.s - a.s);
+    ordered = scored.map(x => x.m);
+    bestMove = curBest;
+    bestScore = curScore;
   }
   const whitePOV = turn === "w" ? bestScore : -bestScore;
   return { move: bestMove, score: whitePOV };
@@ -176,18 +269,21 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return null;
 
-  // ELO 100..1000 → (depth, blunderChance, topN).
+  // ELO 100..2000 → (depth, blunderChance, topN).
   const cfg = (() => {
-    if (elo <= 100) return { depth: 1, blunder: 0.85, topN: 1 };
-    if (elo <= 200) return { depth: 1, blunder: 0.55, topN: 2 };
-    if (elo <= 300) return { depth: 2, blunder: 0.30, topN: 3 };
-    if (elo <= 400) return { depth: 2, blunder: 0.18, topN: 3 };
-    if (elo <= 500) return { depth: 2, blunder: 0.10, topN: 2 };
-    if (elo <= 600) return { depth: 3, blunder: 0.05, topN: 2 };
-    if (elo <= 700) return { depth: 3, blunder: 0.02, topN: 2 };
-    if (elo <= 800) return { depth: 3, blunder: 0.0,  topN: 2 };
-    if (elo <= 900) return { depth: 4, blunder: 0.0,  topN: 2 };
-    return { depth: 4, blunder: 0.0, topN: 1 };
+    if (elo <= 100)  return { depth: 1, blunder: 0.80, topN: 1 };
+    if (elo <= 200)  return { depth: 1, blunder: 0.55, topN: 2 };
+    if (elo <= 300)  return { depth: 2, blunder: 0.35, topN: 3 };
+    if (elo <= 400)  return { depth: 2, blunder: 0.22, topN: 3 };
+    if (elo <= 500)  return { depth: 2, blunder: 0.12, topN: 2 };
+    if (elo <= 600)  return { depth: 3, blunder: 0.08, topN: 2 };
+    if (elo <= 800)  return { depth: 3, blunder: 0.04, topN: 2 };
+    if (elo <= 1000) return { depth: 3, blunder: 0.0,  topN: 2 };
+    if (elo <= 1200) return { depth: 4, blunder: 0.0,  topN: 2 };
+    if (elo <= 1400) return { depth: 4, blunder: 0.0,  topN: 1 };
+    if (elo <= 1600) return { depth: 5, blunder: 0.0,  topN: 1 };
+    if (elo <= 1800) return { depth: 5, blunder: 0.0,  topN: 1 };
+    return { depth: 6, blunder: 0.0, topN: 1 };
   })();
 
   if (cfg.blunder > 0 && Math.random() < cfg.blunder) {
@@ -195,14 +291,23 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
     return { from: m.from, to: m.to, promotion: m.promotion };
   }
 
+  // Iterative deepening at the root and pick from topN best.
   const turn = game.turn();
-  const scored = orderMoves(moves).map(m => {
-    game.move(m);
-    const s = -negamax(game, cfg.depth - 1, -Infinity, Infinity, turn === "w" ? -1 : 1);
-    game.undo();
-    return { m, s };
-  }).sort((a, b) => b.s - a.s);
-  const pool = scored.slice(0, Math.max(1, cfg.topN));
+  let ordered = moves.slice();
+  let final: { m: any; s: number }[] = [];
+  for (let d = 1; d <= cfg.depth; d++) {
+    const scored: { m: any; s: number }[] = [];
+    for (const m of ordered) {
+      game.move(m);
+      const s = -negamax(game, d - 1, -Infinity, Infinity, turn === "w" ? -1 : 1, 1);
+      game.undo();
+      scored.push({ m, s });
+    }
+    scored.sort((a, b) => b.s - a.s);
+    ordered = scored.map(x => x.m);
+    final = scored;
+  }
+  const pool = final.slice(0, Math.max(1, cfg.topN));
   const pick = pool[Math.floor(Math.random() * pool.length)].m;
   return { from: pick.from, to: pick.to, promotion: pick.promotion };
 }
