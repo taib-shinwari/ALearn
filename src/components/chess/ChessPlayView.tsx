@@ -324,17 +324,32 @@ export function ChessPlayView() {
       return;
     }
     if (s.game.isGameOver()) return;
-    if (s.game.turn() !== s.playerColor) return;
+    const myTurn = s.game.turn() === s.playerColor;
     const piece = s.game.get(sq as any);
     if (selected) {
       if (sq === selected) { setSelected(null); return; }
-      const moves = s.game.moves({ square: selected as any, verbose: true }) as any[];
-      if (moves.some(m => m.to === sq)) { onMove(selected, sq, false); return; }
-      if (piece && piece.color === s.playerColor) setSelected(sq);
-      else setSelected(null);
+      if (myTurn) {
+        const moves = s.game.moves({ square: selected as any, verbose: true }) as any[];
+        if (moves.some(m => m.to === sq)) { onMove(selected, sq, false); return; }
+        if (piece && piece.color === s.playerColor) setSelected(sq);
+        else setSelected(null);
+        return;
+      }
+      // Opponent's turn → queue premove if click target is reasonable
+      const own = s.game.get(selected as any);
+      if (own && own.color === s.playerColor && sq !== selected) {
+        setPremove({ from: selected, to: sq });
+        setSelected(null);
+        return;
+      }
+      setSelected(null);
       return;
     }
-    if (piece && piece.color === s.playerColor) setSelected(sq);
+    if (piece && piece.color === s.playerColor) {
+      // Clicking own piece always allowed (even off-turn to start a premove).
+      if (premove) setPremove(null);
+      setSelected(sq);
+    }
   };
 
   const resetToSetup = () => {
