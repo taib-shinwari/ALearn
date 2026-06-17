@@ -361,6 +361,7 @@ export function ChessPlayView() {
     setHintArrow(null);
     setAnalysisView("play");
     setPerMove(null);
+    setPremove(null);
   };
 
   const rematch = () => { if (cfg) startGame(cfg); };
