@@ -538,7 +538,9 @@ export function ChessPlayView() {
                 onDragBegin={(sq) => {
                   if (reviewing) { setSelected(sq); return; }
                   const piece = s.game.get(sq as any);
-                  if (piece && piece.color === s.playerColor && s.game.turn() === s.playerColor) {
+                  if (piece && piece.color === s.playerColor) {
+                    // Allow selecting/dragging own piece even on opponent turn (premove).
+                    if (premove) setPremove(null);
                     setSelected(sq);
                   }
                 }}
