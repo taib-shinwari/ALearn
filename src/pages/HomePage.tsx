@@ -128,6 +128,11 @@ export default function HomePage() {
     return <AlphabetView targetLang={targetLang} uiLang={uiLang} />;
   }
 
+  // ── lessons ─────────────────────────────────────────────────────────
+  if (browsePath[2] === "lessons") {
+    return <LessonsView lang={targetLang} />;
+  }
+
   // ── subcategories ──────────────────────────────────────────────────
   const category = categories.find(c => c.id === browsePath[2]);
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
