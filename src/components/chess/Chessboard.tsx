@@ -111,7 +111,6 @@ function ChessboardImpl({
   }, []);
 
   const dragStart = useRef<string | null>(null);
-  const [bounceSquare, setBounceSquare] = useState<string | null>(null);
   const onContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
   const sqAt = (clientX: number, clientY: number): string | null => {
