@@ -235,7 +235,15 @@ export function ChessPlayView() {
       return;
     }
     if (s.game.isGameOver()) return;
-    if (s.game.turn() !== s.playerColor) return;
+    if (s.game.turn() !== s.playerColor) {
+      // Not our turn → queue a premove (validate basic ownership only).
+      const piece = s.game.get(from as any);
+      if (piece && piece.color === s.playerColor) {
+        setPremove({ from, to });
+        setSelected(null);
+      }
+      return;
+    }
     try {
       const mv = s.game.move({ from, to, promotion: "q" });
       if (!mv) return;
@@ -248,6 +256,22 @@ export function ChessPlayView() {
     } catch { /* illegal */ }
   };
 
+  const tryPlayPremove = () => {
+    const s = stateRef.current;
+    if (!s || !premove) return;
+    if (s.game.isGameOver() || s.game.turn() !== s.playerColor) return;
+    const pm = premove;
+    setPremove(null);
+    try {
+      const mv = s.game.move({ from: pm.from, to: pm.to, promotion: "q" });
+      if (!mv) return;
+      recordMainlineMove(mv);
+      setNoAnimateOnce(true);
+      force(n => n + 1);
+      if (!s.game.isGameOver() && s.cfg.engine) setTimeout(() => runEngine(), 350);
+    } catch { /* premove no longer legal — drop silently */ }
+  };
+
   const runEngine = () => {
     const s = stateRef.current;
     if (!s || s.game.isGameOver()) return;
@@ -258,6 +282,8 @@ export function ChessPlayView() {
     if (!mv) return;
     recordMainlineMove(mv);
     force(n => n + 1);
+    // Attempt to execute queued premove right after engine's response.
+    setTimeout(() => tryPlayPremove(), 30);
   };
 
   // Compute current viewing position.
