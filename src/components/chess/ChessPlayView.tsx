@@ -373,16 +373,13 @@ export function ChessPlayView() {
       // Opponent's turn → queue premove if click target is reasonable
       const own = s.game.get(selected as any);
       if (own && own.color === s.playerColor && sq !== selected) {
-        setPremove({ from: selected, to: sq });
-        setSelected(null);
+        queuePremove(selected, sq);
         return;
       }
       setSelected(null);
       return;
     }
     if (piece && piece.color === s.playerColor) {
-      // Clicking own piece always allowed (even off-turn to start a premove).
-      if (premove) setPremove(null);
       setSelected(sq);
     }
   };
@@ -396,7 +393,7 @@ export function ChessPlayView() {
     setHintArrow(null);
     setAnalysisView("play");
     setPerMove(null);
-    setPremove(null);
+    setPremoves([]);
   };
 
   const rematch = () => { if (cfg) startGame(cfg); };
