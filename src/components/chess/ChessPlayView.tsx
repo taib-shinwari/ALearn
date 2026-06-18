@@ -521,7 +521,7 @@ export function ChessPlayView() {
     ...(suggestion ? [{ from: suggestion.from, to: suggestion.to, color: "hsl(142 70% 45% / 0.85)" }] : []),
     ...(threat ? [{ from: threat.from, to: threat.to, color: "hsl(0 75% 55% / 0.85)" }] : []),
     ...(hintArrow ? [{ from: hintArrow.from, to: hintArrow.to, color: "hsl(48 96% 53% / 0.9)" }] : []),
-    ...(live && premove ? [{ from: premove.from, to: premove.to, color: "hsl(28 95% 55% / 0.9)" }] : []),
+    ...(live ? premoves.map(pm => ({ from: pm.from, to: pm.to, color: "hsl(0 80% 55% / 0.85)" })) : []),
   ];
 
   const wrapperClass = settings.focusMode
