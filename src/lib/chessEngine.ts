@@ -184,7 +184,22 @@ function quiesce(game: Chess, alpha: number, beta: number, sign: number, depth: 
   return alpha;
 }
 
-function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: number, ply: number): number {
+function isEndgame(game: Chess): boolean {
+  let mat = 0;
+  const b = game.board();
+  for (const row of b) for (const p of row) if (p) mat += VAL[p.type] || 0;
+  return mat < 2600;
+}
+
+function negamax(
+  game: Chess,
+  depth: number,
+  alpha: number,
+  beta: number,
+  sign: number,
+  ply: number,
+  allowNull = true,
+): number {
   const alphaOrig = alpha;
   const key = ttKey(game);
   const tte = TT.get(key);
@@ -197,25 +212,56 @@ function negamax(game: Chess, depth: number, alpha: number, beta: number, sign: 
   if (game.isGameOver()) return sign * evaluate(game);
   if (depth <= 0) return quiesce(game, alpha, beta, sign, 4);
 
+  const inCheck = game.inCheck();
+
+  // Null-move pruning.
+  if (allowNull && !inCheck && depth >= 3 && !isEndgame(game)) {
+    try {
+      const parts = game.fen().split(" ");
+      parts[1] = parts[1] === "w" ? "b" : "w";
+      parts[3] = "-";
+      const nullGame = new Chess(parts.join(" "));
+      const R = depth > 6 ? 3 : 2;
+      const v = -negamax(nullGame, depth - 1 - R, -beta, -beta + 1, -sign, ply + 1, false);
+      if (v >= beta) return beta;
+    } catch { /* skip */ }
+  }
+
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return sign * evaluate(game);
 
   let best = -Infinity;
   let bestMoveKey: string | undefined;
+  let moveIdx = 0;
   for (const m of orderMoves(moves, ply, tte?.best)) {
+    const isQuiet = !m.captured && !m.promotion;
     game.move(m);
-    const v = -negamax(game, depth - 1, -beta, -alpha, -sign, ply + 1);
+    let v: number;
+    let reduction = 0;
+    if (depth >= 3 && moveIdx >= 3 && isQuiet && !inCheck) reduction = 1;
+    if (moveIdx === 0) {
+      v = -negamax(game, depth - 1, -beta, -alpha, -sign, ply + 1, true);
+    } else {
+      v = -negamax(game, depth - 1 - reduction, -alpha - 1, -alpha, -sign, ply + 1, true);
+      if (v > alpha && reduction > 0) {
+        v = -negamax(game, depth - 1, -alpha - 1, -alpha, -sign, ply + 1, true);
+      }
+      if (v > alpha && v < beta) {
+        v = -negamax(game, depth - 1, -beta, -alpha, -sign, ply + 1, true);
+      }
+    }
     game.undo();
     if (v > best) { best = v; bestMoveKey = moveKey(m); }
     if (best > alpha) alpha = best;
     if (alpha >= beta) {
-      if (!m.captured) {
+      if (isQuiet) {
         const kk = killers[ply] || (killers[ply] = []);
         if (!kk.includes(bestMoveKey!)) { kk.unshift(bestMoveKey!); if (kk.length > 2) kk.pop(); }
         history[bestMoveKey!] = (history[bestMoveKey!] || 0) + depth * depth;
       }
       break;
     }
+    moveIdx++;
   }
   const flag: 0 | 1 | 2 = best <= alphaOrig ? 2 : (best >= beta ? 1 : 0);
   ttStore(key, { depth, score: best, flag, best: bestMoveKey });
@@ -254,6 +300,21 @@ export function findBestMove(game: Chess, depth = 3): { move: EngineMove | null;
   return { move: bestMove, score: whitePOV };
 }
 
+/** Principal variation: best move sequence up to `plies` deep. */
+export function getBestLine(game: Chess, plies = 4, searchDepth = 3): EngineMove[] {
+  const line: EngineMove[] = [];
+  const g = new Chess(game.fen());
+  for (let i = 0; i < plies; i++) {
+    if (g.isGameOver()) break;
+    const { move } = findBestMove(g, searchDepth);
+    if (!move) break;
+    try { g.move({ from: move.from, to: move.to, promotion: move.promotion ?? "q" }); }
+    catch { break; }
+    line.push(move);
+  }
+  return line;
+}
+
 /** Opponent's best reply if they were to move now (threat arrow). */
 export function findThreat(game: Chess): EngineMove | null {
   try {
@@ -269,21 +330,20 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
   const moves = game.moves({ verbose: true }) as any[];
   if (!moves.length) return null;
 
-  // ELO 100..2000 → (depth, blunderChance, topN).
   const cfg = (() => {
     if (elo <= 100)  return { depth: 1, blunder: 0.80, topN: 1 };
     if (elo <= 200)  return { depth: 1, blunder: 0.55, topN: 2 };
     if (elo <= 300)  return { depth: 2, blunder: 0.35, topN: 3 };
     if (elo <= 400)  return { depth: 2, blunder: 0.22, topN: 3 };
-    if (elo <= 500)  return { depth: 2, blunder: 0.12, topN: 2 };
+    if (elo <= 500)  return { depth: 3, blunder: 0.12, topN: 2 };
     if (elo <= 600)  return { depth: 3, blunder: 0.08, topN: 2 };
-    if (elo <= 800)  return { depth: 3, blunder: 0.04, topN: 2 };
-    if (elo <= 1000) return { depth: 3, blunder: 0.0,  topN: 2 };
-    if (elo <= 1200) return { depth: 4, blunder: 0.0,  topN: 2 };
-    if (elo <= 1400) return { depth: 4, blunder: 0.0,  topN: 1 };
-    if (elo <= 1600) return { depth: 5, blunder: 0.0,  topN: 1 };
-    if (elo <= 1800) return { depth: 5, blunder: 0.0,  topN: 1 };
-    return { depth: 6, blunder: 0.0, topN: 1 };
+    if (elo <= 800)  return { depth: 4, blunder: 0.04, topN: 2 };
+    if (elo <= 1000) return { depth: 4, blunder: 0.0,  topN: 2 };
+    if (elo <= 1200) return { depth: 5, blunder: 0.0,  topN: 2 };
+    if (elo <= 1400) return { depth: 5, blunder: 0.0,  topN: 1 };
+    if (elo <= 1600) return { depth: 6, blunder: 0.0,  topN: 1 };
+    if (elo <= 1800) return { depth: 6, blunder: 0.0,  topN: 1 };
+    return { depth: 7, blunder: 0.0, topN: 1 };
   })();
 
   if (cfg.blunder > 0 && Math.random() < cfg.blunder) {
@@ -291,7 +351,6 @@ export function pickEngineMove(game: Chess, elo: number): EngineMove | null {
     return { from: m.from, to: m.to, promotion: m.promotion };
   }
 
-  // Iterative deepening at the root and pick from topN best.
   const turn = game.turn();
   let ordered = moves.slice();
   let final: { m: any; s: number }[] = [];
