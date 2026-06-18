@@ -628,6 +628,7 @@ export function ChessPlayView() {
                 fens={s.fenHistory}
                 currentIndex={currentPly}
                 perMove={analysisView === "review" ? perMove ?? undefined : undefined}
+                showBestLine={analysisView === "review"}
                 orientation={orientation}
                 onSelect={(i) => {
                   setVarCursor(null);
