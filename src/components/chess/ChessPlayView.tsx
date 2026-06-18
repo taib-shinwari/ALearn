@@ -571,8 +571,6 @@ export function ChessPlayView() {
                   if (reviewing) { setSelected(sq); return; }
                   const piece = s.game.get(sq as any);
                   if (piece && piece.color === s.playerColor) {
-                    // Allow selecting/dragging own piece even on opponent turn (premove).
-                    if (premove) setPremove(null);
                     setSelected(sq);
                   }
                 }}
@@ -582,6 +580,8 @@ export function ChessPlayView() {
                 animate={settings.animatePieces && !noAnimateOnce}
                 animationMs={settings.animationSpeed}
                 moveBadge={reviewBadge}
+                premoveSquares={live ? premoves.flatMap(pm => [pm.from, pm.to]) : []}
+                onCancelPremoves={cancelPremoves}
               />
             </Container>
           </div>
