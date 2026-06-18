@@ -156,3 +156,28 @@ export function summarisePlayer(perMove: PerMove[], color: "w" | "b"): PlayerSum
     estimatedRating,
   };
 }
+
+/**
+ * Short human-readable explanation for a move based on its classification
+ * and centipawn loss. Optionally suffixed with the engine's preferred move.
+ */
+export function explainMove(
+  kind: ClassKind,
+  cpl: number,
+  bestSan?: string,
+): string {
+  const lost = cpl >= 100 ? ` (lost ${(cpl / 100).toFixed(1)} pawns)` : "";
+  const better = bestSan ? ` Engine preferred ${bestSan}.` : "";
+  switch (kind) {
+    case "brilliant": return "A brilliant move — finds the only winning idea.";
+    case "great":     return "A great move — clearly the strongest continuation.";
+    case "best":      return "The best move — matches the engine's top choice.";
+    case "excellent": return "An excellent move — nearly engine-perfect.";
+    case "good":      return "A good move — solid and safe.";
+    case "book":      return "A known book move from theory.";
+    case "inaccuracy":return `An inaccuracy${lost}.${better}`;
+    case "mistake":   return `A mistake${lost}.${better}`;
+    case "miss":      return `Missed a much stronger continuation${lost}.${better}`;
+    case "blunder":   return `A blunder${lost}.${better}`;
+  }
+}
