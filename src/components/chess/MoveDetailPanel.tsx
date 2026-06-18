@@ -1,6 +1,6 @@
 // Panel rendered above the moves list. Shows:
-// - the move just played (SAN + classification)
-// - the next 3 moves in the mainline; hovering one previews its position.
+// - the move just played (SAN + classification + explanation)
+// - the engine's preferred follow-up line; hovering a move previews the position.
 import { Chess } from "chess.js";
 import { useMemo } from "react";
 import { Container } from "@/components/ui/container";
@@ -8,7 +8,8 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { cn } from "@/lib/utils";
 import { Chessboard } from "./Chessboard";
 import { PieceTracker } from "./chessHelpers";
-import { CLASS_META, type PerMove } from "./analysis/classification";
+import { CLASS_META, explainMove, type PerMove } from "./analysis/classification";
+import { getBestLine } from "@/lib/chessEngine";
 
 interface Props {
   sans: string[];
@@ -16,6 +17,8 @@ interface Props {
   currentIndex: number;    // -1 = before first move
   perMove?: PerMove[];
   orientation?: "white" | "black";
+  /** When true, the engine's best line is shown (analysis/review mode). */
+  showBestLine?: boolean;
   onSelect?: (index: number) => void;
 }
 
@@ -25,20 +28,46 @@ function moveLabel(index: number): string {
 }
 
 export function MoveDetailPanel({
-  sans, fens, currentIndex, perMove, orientation = "white", onSelect,
+  sans, fens, currentIndex, perMove, orientation = "white", showBestLine = false, onSelect,
 }: Props) {
   const current = currentIndex >= 0 && currentIndex < sans.length
-    ? { san: sans[currentIndex], kind: perMove?.[currentIndex]?.kind }
+    ? { san: sans[currentIndex], kind: perMove?.[currentIndex]?.kind, cpl: perMove?.[currentIndex]?.cpl ?? 0 }
     : null;
 
-  const nextMoves = useMemo(() => {
-    const out: { index: number; san: string; fen: string }[] = [];
+  // Either the mainline upcoming moves OR (in analysis) the engine's best line
+  // computed from the current position.
+  const followUps = useMemo(() => {
+    if (showBestLine) {
+      const fen = fens[currentIndex + 1];
+      if (!fen) return [];
+      try {
+        const g = new Chess(fen);
+        const line = getBestLine(g, 4, 3);
+        const proj = new Chess(fen);
+        return line.map((m, k) => {
+          let san = `${m.from}${m.to}`;
+          try { const mv = proj.move({ from: m.from, to: m.to, promotion: m.promotion ?? "q" }); if (mv) san = mv.san; }
+          catch { /* ignore */ }
+          return {
+            index: currentIndex + 1 + k,
+            san,
+            fen: proj.fen(),
+            isEngine: true,
+          };
+        });
+      } catch { return []; }
+    }
     const start = currentIndex + 1;
+    const out: { index: number; san: string; fen: string; isEngine: false }[] = [];
     for (let i = start; i < Math.min(sans.length, start + 3); i++) {
-      out.push({ index: i, san: sans[i], fen: fens[i + 1] });
+      out.push({ index: i, san: sans[i], fen: fens[i + 1], isEngine: false });
     }
     return out;
-  }, [sans, fens, currentIndex]);
+  }, [sans, fens, currentIndex, showBestLine]);
+
+  const explanation = current && current.kind
+    ? explainMove(current.kind, current.cpl)
+    : null;
 
   return (
     <Container className="p-3 space-y-2">
@@ -59,17 +88,28 @@ export function MoveDetailPanel({
         )}
       </div>
 
-      {nextMoves.length > 0 && (
+      {explanation && (
+        <p className={cn("text-xs leading-snug", current?.kind && CLASS_META[current.kind].text)}>
+          {explanation}
+        </p>
+      )}
+
+      {followUps.length > 0 && (
         <div className="border-t border-border/60 pt-2">
-          <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">Coming up</p>
+          <p className="text-[10px] uppercase tracking-wider opacity-60 mb-1">
+            {showBestLine ? "Engine line" : "Coming up"}
+          </p>
           <div className="flex flex-wrap gap-1.5 font-mono text-xs">
-            {nextMoves.map(m => (
-              <HoverCard key={m.index} openDelay={120} closeDelay={60}>
+            {followUps.map(m => (
+              <HoverCard key={`${m.index}-${m.san}`} openDelay={120} closeDelay={60}>
                 <HoverCardTrigger asChild>
                   <button
                     type="button"
-                    onClick={() => onSelect?.(m.index)}
-                    className="px-1.5 py-0.5 rounded hover:bg-muted/60"
+                    onClick={() => !showBestLine && onSelect?.(m.index)}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded hover:bg-muted/60",
+                      showBestLine && "text-emerald-400",
+                    )}
                   >
                     <span className="opacity-60 mr-1">{moveLabel(m.index)}</span>
                     {m.san}
