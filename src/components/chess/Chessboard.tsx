@@ -1,13 +1,18 @@
 // Custom chessboard renderer using Wikimedia Commons SVG pieces.
-// - Pieces are positioned absolutely so they can animate between squares.
-// - Right-click is disabled. Right-drag (or right-click) draws an arrow,
-//   single right-click toggles a red square highlight (chess.com-style).
-// - Left-click clears all user arrows + right-click highlights, then forwards
-//   the click to onSquareClick.
+// Unified Pointer Events for click/drag:
+//  - PointerDown on a piece: lift it centered at the cursor.
+//  - Below DRAG_THRESHOLD movement → click-select (release on same square).
+//  - Past threshold → drag mode; release on legal target plays the move.
+// Right-click / right-drag handles arrows + highlights and (via callback)
+// cancels queued premoves when right-clicking on a premove square.
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { PlacedPiece, PieceColor, PieceType, Arrow } from "@/data/chessData";
 import { CLASS_META, type ClassKind } from "./analysis/classification";
+
+const DRAG_THRESHOLD = 6;     // px – distance before we treat as drag
+const PREMOVE_TINT  = "rgba(220, 38, 38, 0.45)";
+const PREMOVE_RING  = "rgba(220, 38, 38, 0.95)";
 
 const PIECE_URL: Record<string, string> = {
   wK: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
@@ -29,28 +34,23 @@ interface Props {
   stars?: string[];
   orientation?: "white" | "black";
   selected?: string | null;
-  /** Squares to render as move-dots (legal destinations for selected piece). */
   legalSquares?: string[];
-  /** Highlight the from/to squares of the last move (light blue). */
   lastMove?: { from: string; to: string } | null;
-  /** Arrows passed in by the lesson (intro arrows etc.) — not user-drawn. */
   arrows?: Arrow[];
-  /** 0..1 multiplier applied to lesson-provided arrows for pulsing effect. */
   arrowLengthScale?: number;
   onSquareClick?: (square: string) => void;
-  /** Drag-and-drop a piece. Called with from/to after a successful drag. */
   onPieceDrop?: (from: string, to: string) => void;
-  /** Called when a piece drag begins (used to show legal-move dots). */
   onDragBegin?: (square: string) => void;
-  /** When false, disables click + drag entirely. */
   interactive?: boolean;
-  /** Restrict input. "click"=clicks only, "drag"=drag only, "both"=either. */
   inputMode?: "click" | "drag" | "both";
   animate?: boolean;
   animationMs?: number;
   className?: string;
-  /** Optional classification badge to overlay above the destination square. */
   moveBadge?: { square: string; kind: ClassKind } | null;
+  /** Squares involved in any queued premove (tinted red). */
+  premoveSquares?: string[];
+  /** Called when user right-clicks a premove square to cancel the queue. */
+  onCancelPremoves?: () => void;
 }
 
 function squareToXY(sq: string, orientation: "white" | "black") {
@@ -71,6 +71,14 @@ function pieceColor(p: PlacedPiece, dark: boolean): PieceColor {
   return dark ? "w" : "b";
 }
 
+interface DragState {
+  pointerId: number;
+  fromSquare: string;
+  startX: number; startY: number;
+  curX: number; curY: number;
+  isDragging: boolean;
+}
+
 function ChessboardImpl({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
@@ -80,6 +88,8 @@ function ChessboardImpl({
   inputMode = "both",
   animate = true, animationMs = 220, className,
   moveBadge = null,
+  premoveSquares = [],
+  onCancelPremoves,
 }: Props) {
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
   const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
@@ -87,7 +97,6 @@ function ChessboardImpl({
   const visualFiles = orientation === "white" ? files : [...files].reverse();
   const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
 
-  // User-drawn arrows + right-click highlights live inside the board.
   const [userArrows, setUserArrows] = useState<Arrow[]>([]);
   const [highlights, setHighlights] = useState<Set<string>>(new Set());
 
@@ -110,8 +119,12 @@ function ChessboardImpl({
     return () => ro.disconnect();
   }, []);
 
-  const dragStart = useRef<string | null>(null);
+  // ── Right-click arrows / highlights (separate from left-click pointer drag).
+  const rightDown = useRef<string | null>(null);
   const onContextMenu = (e: React.MouseEvent) => e.preventDefault();
+
+  // ── Active left-button drag state.
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   const sqAt = (clientX: number, clientY: number): string | null => {
     if (!boardRef.current) return null;
@@ -125,24 +138,78 @@ function ChessboardImpl({
     return `${file}${rank}`;
   };
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 0) {
-      // Left click — clear user arrows + highlights.
-      if (userArrows.length) setUserArrows([]);
-      if (highlights.size) setHighlights(new Set());
-    }
-    if (e.button === 2) {
-      dragStart.current = sqAt(e.clientX, e.clientY);
-    }
+  // ── Left-button pointer-drag handlers (attached to piece images).
+  const beginPieceDrag = (e: React.PointerEvent, square: string) => {
+    if (e.button !== 0) return;
+    if (!clickEnabled && !dragEnabled) return;
+    // Clear ephemeral right-click overlays on any left interaction.
+    if (userArrows.length) setUserArrows([]);
+    if (highlights.size) setHighlights(new Set());
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
+    setDrag({
+      pointerId: e.pointerId,
+      fromSquare: square,
+      startX: e.clientX, startY: e.clientY,
+      curX: e.clientX, curY: e.clientY,
+      isDragging: false,
+    });
+    onDragBegin?.(square);
   };
-  const onMouseUp = (e: React.MouseEvent) => {
+
+  const movePieceDrag = (e: React.PointerEvent) => {
+    setDrag(d => {
+      if (!d || d.pointerId !== e.pointerId) return d;
+      const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
+      const isDragging = d.isDragging || Math.hypot(dx, dy) >= DRAG_THRESHOLD;
+      return { ...d, curX: e.clientX, curY: e.clientY, isDragging };
+    });
+  };
+
+  const endPieceDrag = (e: React.PointerEvent) => {
+    const d = drag;
+    if (!d || d.pointerId !== e.pointerId) return;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    const target = sqAt(e.clientX, e.clientY);
+    setDrag(null);
+    if (!target) {
+      if (!d.isDragging && clickEnabled) onSquareClick?.(d.fromSquare);
+      return;
+    }
+    if (!d.isDragging) {
+      // Click: select the square.
+      if (clickEnabled) onSquareClick?.(target === d.fromSquare ? d.fromSquare : target);
+      return;
+    }
+    // Drag release: attempt move; if released on origin, treat as no-op.
+    if (target === d.fromSquare) return;
+    if (dragEnabled) onPieceDrop?.(d.fromSquare, target);
+    else if (clickEnabled) onSquareClick?.(target);
+  };
+
+  const cancelPieceDrag = () => setDrag(null);
+
+  // ── Board background pointer handlers (clicks on empty squares + right-click).
+  const onBoardPointerDown = (e: React.PointerEvent) => {
+    if (e.button === 2) {
+      const sq = sqAt(e.clientX, e.clientY);
+      rightDown.current = sq;
+      if (sq && premoveSquares.includes(sq)) onCancelPremoves?.();
+      return;
+    }
+    if (e.button !== 0) return;
+    // Left click on empty area — clear overlays.
+    if (userArrows.length) setUserArrows([]);
+    if (highlights.size) setHighlights(new Set());
+  };
+  const onBoardPointerUp = (e: React.PointerEvent) => {
     if (e.button !== 2) return;
-    const from = dragStart.current;
+    const from = rightDown.current;
     const to = sqAt(e.clientX, e.clientY);
-    dragStart.current = null;
+    rightDown.current = null;
     if (!from || !to) return;
     if (from === to) {
-      // Toggle right-click highlight
+      // Toggle red highlight (unless cancelling premoves).
+      if (premoveSquares.includes(from)) return;
       setHighlights(prev => {
         const next = new Set(prev);
         if (next.has(from)) next.delete(from); else next.add(from);
@@ -175,7 +242,6 @@ function ChessboardImpl({
       const len = Math.hypot(dx, dy);
       if (len === 0) return null;
       const ux = dx / len, uy = dy / len;
-      // Pull endpoints inward so arrows don't span the full diagonal.
       const tipX = t.x - ux * sq * 0.42;
       const tipY = t.y - uy * sq * 0.42;
       const startX = f.x + ux * sq * 0.35;
@@ -202,12 +268,19 @@ function ChessboardImpl({
     });
   }, [arrows, userArrows, arrowLengthScale, size, orientation]);
 
+  // Compute ghost (dragged piece) screen position relative to board.
+  const ghost = useMemo(() => {
+    if (!drag || size === 0 || !boardRef.current) return null;
+    const r = boardRef.current.getBoundingClientRect();
+    return { x: drag.curX - r.left, y: drag.curY - r.top };
+  }, [drag, size]);
+
   return (
     <div
       ref={boardRef}
       onContextMenu={onContextMenu}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
+      onPointerDown={onBoardPointerDown}
+      onPointerUp={onBoardPointerUp}
       className={cn(
         "relative w-full aspect-square select-none rounded-[14px] overflow-hidden border-2 border-border",
         className,
@@ -226,17 +299,16 @@ function ChessboardImpl({
             const isLegal = legalSquares.includes(square);
             const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
             const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
+            const isPremove = premoveSquares.includes(square);
             return (
               <button
                 type="button"
                 key={square}
-                onClick={() => clickEnabled && onSquareClick?.(square)}
-                onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}
-                onDrop={(e) => {
-                  if (!dragEnabled) return;
-                  e.preventDefault();
-                  const from = e.dataTransfer.getData("text/plain");
-                  if (from && from !== square) onPieceDrop?.(from, square);
+                onClick={() => {
+                  // Pointer drag handles square selection when it begins on a
+                  // piece; this fallback handles clicks on empty squares.
+                  if (drag) return;
+                  if (clickEnabled) onSquareClick?.(square);
                 }}
                 className={cn(
                   "relative flex items-center justify-center p-0 m-0 outline-none transition-colors",
@@ -251,6 +323,12 @@ function ChessboardImpl({
                 )}
                 {isHighlighted && (
                   <span className="absolute inset-0 bg-red-500/55 pointer-events-none" />
+                )}
+                {isPremove && (
+                  <span
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: PREMOVE_TINT, boxShadow: `inset 0 0 0 2px ${PREMOVE_RING}` }}
+                  />
                 )}
                 {isLegal && !hasPieceOnLegal && (
                   <span className="absolute rounded-full bg-black/30 pointer-events-none"
@@ -293,49 +371,23 @@ function ChessboardImpl({
         )}
       </div>
 
-      {size > 0 && pieces.map((p, i) => {
+      {size > 0 && pieces.map((p) => {
         const { col, row } = squareToXY(p.square, orientation);
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
         const pieceInteractive = clickEnabled || dragEnabled;
+        const isBeingDragged = drag?.isDragging && drag.fromSquare === p.square;
         return (
           <img
             key={key}
             src={url}
             alt=""
-            draggable={dragEnabled}
-            onDragStart={(e) => {
-              if (!dragEnabled) { e.preventDefault(); return; }
-              e.dataTransfer.setData("text/plain", p.square);
-              e.dataTransfer.effectAllowed = "move";
-              // Build a transparent piece-only drag image (no square background),
-              // centered under the cursor regardless of grab point.
-              try {
-                const img = e.currentTarget as HTMLImageElement;
-                const s = img.offsetWidth || 48;
-                const ghost = document.createElement("img");
-                ghost.src = url;
-                ghost.style.cssText = `position:fixed;top:-9999px;left:-9999px;width:${s}px;height:${s}px;padding:0;background:transparent;pointer-events:none`;
-                document.body.appendChild(ghost);
-                e.dataTransfer.setDragImage(ghost, s / 2, s / 2);
-                setTimeout(() => ghost.remove(), 0);
-              } catch { /* noop */ }
-              onDragBegin?.(p.square);
-            }}
-            onDragOver={(e) => { if (dragEnabled) e.preventDefault(); }}
-            onDrop={(e) => {
-              if (!dragEnabled) return;
-              e.preventDefault();
-              e.stopPropagation();
-              const from = e.dataTransfer.getData("text/plain");
-              if (from && from !== p.square) onPieceDrop?.(from, p.square);
-            }}
-            onClick={(e) => {
-              if (!clickEnabled) return;
-              e.stopPropagation();
-              onSquareClick?.(p.square);
-            }}
+            draggable={false}
+            onPointerDown={(e) => beginPieceDrag(e, p.square)}
+            onPointerMove={movePieceDrag}
+            onPointerUp={endPieceDrag}
+            onPointerCancel={cancelPieceDrag}
             style={{
               position: "absolute",
               left: `${(col / 8) * 100}%`,
@@ -344,17 +396,41 @@ function ChessboardImpl({
               height: `${100 / 8}%`,
               padding: "0%",
               pointerEvents: pieceInteractive ? "auto" : "none",
-              cursor: dragEnabled ? "grab" : clickEnabled ? "pointer" : "default",
-              transition: animate
+              cursor: pieceInteractive ? (drag ? "grabbing" : "grab") : "default",
+              opacity: isBeingDragged ? 0 : 1,
+              transition: animate && !isBeingDragged
                 ? `left ${animationMs}ms ease, top ${animationMs}ms ease`
                 : undefined,
+              touchAction: "none",
               zIndex: 1,
             }}
           />
         );
       })}
 
-
+      {/* Ghost piece — centered at cursor while dragging. */}
+      {drag?.isDragging && ghost && (() => {
+        const piece = pieces.find(p => p.square === drag.fromSquare);
+        if (!piece) return null;
+        const color = pieceColor(piece, dark);
+        const url = PIECE_URL[`${color}${piece.type as PieceType}`];
+        return (
+          <img
+            src={url}
+            alt=""
+            style={{
+              position: "absolute",
+              left: ghost.x - sq / 2,
+              top: ghost.y - sq / 2,
+              width: sq,
+              height: sq,
+              pointerEvents: "none",
+              zIndex: 10,
+              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.35))",
+            }}
+          />
+        );
+      })()}
 
       {size > 0 && (
         <svg
@@ -391,6 +467,4 @@ function ChessboardImpl({
   );
 }
 
-// React.memo skips re-renders when only the parent state changed (e.g. hovering
-// a move in the list). The board still updates on FEN/lastMove/orientation changes.
 export const Chessboard = memo(ChessboardImpl);
