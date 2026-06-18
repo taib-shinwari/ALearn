@@ -1,117 +1,96 @@
-## 1. Chess board interaction
+## 1. Lesson & Dictionary Theme Unification
 
-**Click-to-grab micro-animation** (`Chessboard.tsx`)
-- On click, briefly scale the piece (≈120ms transform: `scale(1.1)` + slight lift shadow) then return — visual "pick up & drop back" while still showing the move-dot overlay for legal targets.
-- Keep current "show dots" behavior.
+Goal: make the Lesson and Dictionary folder views look like the root home view — same background, padding, typography, no black panel.
 
-**Bigger pieces**
-- Increase piece SVG size from current `~78%` of square to `92%` of square in `Chessboard.tsx`.
+- `src/components/lessons/LessonsView.tsx`: remove its own `bg-*`/dark wrapper, drop hardcoded `bg-black`/`bg-zinc-950`, inherit `bg-background text-foreground` from `Layout`. Use the same outer container spacing (`px-4 md:px-6 py-6`) as `HomePage` root grid.
+- Dictionary folder view (rendered via `HomePage` path `["language", lang, "dictionary"]`): same change — remove dark wrapper, reuse the home grid spacing and `CardButton` rounded-full grid styling.
+- Both views render their folder grids inside the existing `HomePage` shell so the navbar/breadcrumb sits on the same background, no nested theme.
+- Verify against `src/index.css` tokens; no new colors introduced.
 
-**Move icons in board overlay**
-- When viewing a move (review or freeform), render a classification badge at top-right of the moved-to piece (overlay div inside the square).
-- Icons: `*` for Best/Brilliant, `x` for Miss, `??` Blunder, `?!` Inaccuracy, `!` Great, `!!` Brilliant — using the existing classification colors.
+## 2. Chess Engine Rewrite (bitboard + NNUE-flavored eval)
 
-## 2. Engine strengthening (`src/lib/chessEngine.ts`)
+File: `src/lib/chessEngine.ts` (full rewrite, keep the existing `getEngineMove(fen, elo)` and `evaluatePosition(fen)` exports so callers don't change).
 
-- Add quiescence search (captures only) on top of current alpha-beta minimax.
-- Increase max depth from 3 → 4 at top ELO, with iterative deepening + simple move ordering (MVV-LVA + previous best move first).
-- Better eval: piece-square tables (already partial) + mobility + king safety (pawn shield) + passed pawn bonus.
-- ELO scaling: keep 100–1000 range; lower ELOs add blunder probability and shallower depth (depth 1 + 30% random at 100, depth 4 at 1000).
+Core architecture:
+- **Bitboard representation** — 12 `BigInt` boards (one per piece type/color) plus occupancy boards. Move generation built on bit-twiddling (precomputed knight/king attack tables, magic-style ray lookups for sliders implemented as classical ray scans for simplicity).
+- **Search**: negamax with alpha-beta, iterative deepening from depth 1 up to the ELO-mapped cap.
+- **Transposition table**: Zobrist hashing (random 64-bit keys per piece/square + side + castling + ep), 1M-entry array keyed by `key & mask`, storing `{key, depth, score, flag, bestMove}`.
+- **PVS** (principal variation search) — first move searched full window, rest with null window then re-search on fail-high.
+- **Null-move pruning** — R=2, disabled in endgame / when in check.
+- **Late Move Reductions** — reduce depth for quiet moves after the first 3 at depth ≥ 3.
+- **Quiescence search** — captures + promotions + checks, stand-pat with delta pruning.
+- **Move ordering**: TT move → MVV-LVA captures → killer moves (2 per ply) → history heuristic.
+- **NNUE-flavored eval** at top strength: small handcrafted "accumulator" — piece-square tables + tapered eval (mg/eg) + mobility + king safety (pawn shield, attacker count) + bishop pair + passed/doubled/isolated pawns + rook on open file. Wrapped in `evaluateNNUE(board)` so it can be swapped for a real NNUE blob later without touching search. We do not ship real NNUE weights (binary asset); the function name and layered API matches an NNUE pipeline so the eval bar/arrows consume one source of truth.
+- **ELO scaling (100–2000)**: maps to `(maxDepth, randomness, blunderChance, useQS, useNullMove)`. Below 800 we inject blunders by picking from top-N with weighted noise; at 2000 full search, no noise.
 
-## 3. Analysis view rebuild (`ChessPlayView.tsx`, `analysis/AnalysisReport.tsx`)
+Engine exports used by UI:
+- `getEngineMove(fen, elo) → {from,to,promotion?}`
+- `evaluatePosition(fen) → centipawnsFromWhitePOV` (used by eval bar + chart)
+- `getBestLine(fen, depth) → Move[]` (used by analysis arrows + "next optimal lines")
 
-**Replace eval bar with Highcharts-style chart**
-- Add `highcharts` + `highcharts-react-official` deps.
-- Replace the two-line eval chart with an **area chart** in the user's screenshot style:
-  - dark bg, white smoothed area for white advantage, black area below, mid-line at 0
-  - colored dots per move using classification color
-  - green vertical line marks current move
-- Chart is the centerpiece of the report; remove the prior two SVG lines.
+All synchronous, but search is time-bounded (`softTime` derived from ELO) so the UI doesn't freeze. Wrap top-level call in `requestIdleCallback` fallback in `ChessPlayView` when starting engine think.
 
-**Layout — sub-containers (Cards)**
-Each in its own `Card`:
-1. Accuracy (white vs black, %)
-2. Estimated Rating (white vs black)
-3. Move Classification breakdown (counts per type)
-4. Eval Chart (the Highcharts area chart)
+## 3. Analysis Feedback Panel
 
-In classification card: **only the text color** changes per type, not the row background. On the board overlay, the square's color tints with the classification color and an icon shows top-right.
+Files: `src/components/chess/MoveDetailPanel.tsx`, `src/components/chess/analysis/AnalysisReport.tsx`.
 
-**Review button** uses the standard shadcn `<Button>` component (not custom-styled div).
+When analysis mode is active AND feedback toggle is on, the panel above the moves list shows for the currently selected move:
+1. **Header row**: piece glyph + SAN + classification badge (`*`, `!!`, `!`, `?!`, `?`, `??`, `x`) colored per `CLASS_META`.
+2. **Explanation line**: short generated string based on classification + eval delta + tactical hints (e.g. "Best — develops the knight and contests the center", "Blunder — drops the rook to Nxe5", "Miss — missed Qxh7# mate in 1"). Generator is a pure function `explainMove(prevEval, newEval, bestLine, playedMove, board)` in `analysis/classification.ts`.
+3. **Next optimal lines**: top 2 engine lines from the position before the move, rendered as SAN sequences (3–4 plies each), hover shows mini-board preview via `HoverCard` (already wired).
 
-## 4. Move list + sound panel (above moves list)
+Eval bar + suggestion arrows on the board both read from the same `evaluatePosition` / `getBestLine` calls so they stay in sync with what the panel shows.
 
-New `MoveSoundPanel.tsx` rendered above `MovesList`:
-- Plays the move sound when a new move is made (capture/move/check/castle/promote).
-- Shows: last move SAN + classification icon + color, then the next 2–3 follow-up moves in notation underneath.
-- Hovering a follow-up shows a `HoverCard` with a mini `Chessboard` preview of that position.
+## 4. Chess.com-Style Pointer Drag
 
-## 5. Freeform interaction in analysis/review
+File: `src/components/chess/Chessboard.tsx`.
 
-- Allow the user to make moves on the board at any history index.
-- If the move differs from the mainline next move, branch as a **variation** under that ply:
-  ```text
-  1. e4 e5
-     |_ 1... c5     (user side-line from move 2)
-        2. Nf3 ...
-  2. Nf3 Nc6
-  ```
-- Data model: each move node gets optional `variations: MoveNode[][]`. New `MoveTree` type replaces flat array.
-- Navigation:
-  - Clicking a move (mainline or variation) jumps to that node.
-  - "Next" advances within the current branch; if user is inside a variation, next stays in that variation.
-  - Going back to the start and playing a new move creates a new top-level variation off ply 0.
-- Render moves list as nested tree with `|_` prefix for variations, indented.
+Replace current mouse/touch handlers with unified **Pointer Events**:
+- `onPointerDown` on a piece: `setPointerCapture`, record `{startX, startY, square, pointerId}`, immediately render the piece centered on the cursor (translate by `cursor - squareCenter`) and show move dots. No scale animation.
+- `onPointerMove`: if total movement < `DRAG_THRESHOLD` (6px), treat as potential click (piece stays "lifted" at cursor but we don't mark as dragging yet). Past threshold, set `isDragging=true` and follow cursor.
+- `onPointerUp`:
+  - If never crossed threshold AND released on the same square → click-select (keep selection + dots).
+  - If released on a legal target square → play move.
+  - If released elsewhere → snap back, keep selection if click-mode, clear if drag-mode.
+- `onPointerCancel` / loss of capture → snap back.
+- Drag image is the piece SVG with its square background tint preserved (already the case via the piece div); no native HTML5 drag.
+- Right-click (`onContextMenu`) reserved for arrows / premove cancel (section 5).
 
-## 6. Lessons restructure
+This removes the dual click+HTML5-drag code paths and fixes corner-grab offset.
 
-**Language home cards** (`HomePage.tsx`)
-- For each course language, show TWO buttons: **Lesson** and **Dictionary**.
-- Remove the "Add" card from this view (move to the Dictionary page).
+## 5. Multi-Premove FIFO Queue
 
-**Lessons page (`/lessons/:lang`)** (`LessonsPage.tsx` rewrite)
-- Remove the page title and back button. Keep breadcrumbs.
-- Render **Sections** as 2D `<Button>` cards in a responsive grid (no zig-zag path, no 3D, no stars):
-  - Left: section number (e.g. `01`)
-  - Middle: section name (`Beginner`)
-  - Right: `12 Lessons`
-- Clicking a section reveals its lessons inline (or routes to `/lessons/:lang?section=N`) as a grid of `<Button>` cards:
-  - Top: lesson number / item count badge
-  - Bottom: thin container with lesson title (e.g. `Alphabet (1)`)
-  - No stars.
-- Order is enforced — early lessons unlocked, later ones locked.
-- Clicking a locked lesson opens an `AlertDialog`: "This lesson is locked. Proceed anyway?" with Cancel / Proceed.
+File: `src/components/chess/ChessPlayView.tsx` (state) + `Chessboard.tsx` (rendering/input).
 
-**Lesson runner** at `/lesson/:lang/:lessonId` (single route)
-- The lessons grid does NOT use its own slug — only the runner uses `/lesson/...`.
-- Existing quiz logic preserved.
+State: `premoves: Array<{from, to, promotion?}>` as FIFO queue.
 
-**Section data**
-- Group existing `courseData[lang].topics` by section (Beginner / Intermediate / Advanced) using a simple bucket function (first N → Beginner, next N → Intermediate, rest → Advanced) until explicit metadata is added.
+Behavior:
+- When it's not the user's turn, attempting a move pushes onto `premoves` if it's pseudo-legal in the projected board (apply queued premoves in sequence on a scratch `Chess` instance to validate the next one).
+- Affected squares (every `from` and `to` across the queue) are tinted **red** (`bg-red-500/35`) on the board overlay. Last queued destination gets a brighter red border.
+- On engine move completion → `tryFlushPremoves`: pop head, attempt to play; if legal, play it and trigger the engine again (so chained premoves work); if illegal, clear the entire queue.
+- **Right-click on any premove square** → cancel entire queue (Chess.com behavior). Right-drag still draws arrows when no premove exists on that square.
+- Passive interactions (arrow drawing, square highlight via right-click on empty squares, shift-click highlight) remain available at all times regardless of turn.
 
-## 7. Files
+## Technical Details
 
-**New**
-- `src/components/chess/MoveSoundPanel.tsx`
-- `src/components/chess/analysis/EvalChart.tsx` (Highcharts)
-- `src/lib/moveTree.ts` (variation tree helpers)
-- `src/pages/LessonRunnerPage.tsx` (split out of LessonsPage)
+- New helper module `src/lib/bitboard.ts` for board representation + move generation so `chessEngine.ts` stays focused on search/eval.
+- Zobrist keys initialized once at module load with a seeded PRNG (deterministic across reloads for reproducible TT behavior in tests).
+- `evaluatePosition` memoized per-FEN with an LRU of 512 entries to avoid re-evaluating during analysis chart rendering.
+- Premove validation uses `chess.js` `Chess` clones (cheap enough for queue length ≤ 5; cap queue at 5).
+- Drag threshold and tint colors exposed as constants at the top of `Chessboard.tsx` for easy tuning.
+- No new dependencies.
 
-**Edited**
-- `src/lib/chessEngine.ts` — stronger search + eval
-- `src/components/chess/Chessboard.tsx` — bigger pieces, click bounce, classification overlay
-- `src/components/chess/ChessPlayView.tsx` — variation tree state, freeform moves, swap chart, Review uses `<Button>`
-- `src/components/chess/MovesList.tsx` — tree rendering with `|_` variations, classification text color only
-- `src/components/chess/analysis/AnalysisReport.tsx` — Card sub-containers, Highcharts chart
-- `src/pages/HomePage.tsx` — Lesson + Dictionary buttons, remove Add
-- `src/pages/LessonsPage.tsx` — section/lesson grid, locked dialog, no title/back
-- `src/App.tsx` — `/lesson/:lang/:lessonId` route
+## Files
 
-**Deps**
-- `bun add highcharts highcharts-react-official`
+Created:
+- `src/lib/bitboard.ts`
 
-## Notes / open assumptions
-
-- Highcharts has a free non-commercial license; if you need a different chart lib (Recharts, visx), say so before I install.
-- "Brilliant" mapping for `*` vs Best — I'll use `*` for Best, `★` for Brilliant unless you prefer otherwise.
-- Section bucketing uses a heuristic until you give explicit grouping per course.
+Edited:
+- `src/lib/chessEngine.ts` (rewrite)
+- `src/components/chess/Chessboard.tsx` (pointer drag, premove rendering)
+- `src/components/chess/ChessPlayView.tsx` (premove FIFO, engine think scheduling)
+- `src/components/chess/MoveDetailPanel.tsx` (richer feedback)
+- `src/components/chess/analysis/classification.ts` (`explainMove`)
+- `src/components/chess/analysis/AnalysisReport.tsx` (consume `getBestLine`)
+- `src/components/lessons/LessonsView.tsx` (theme unification)
+- `src/pages/HomePage.tsx` (dictionary view wrapper cleanup, shared container)
