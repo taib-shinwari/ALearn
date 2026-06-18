@@ -236,12 +236,8 @@ export function ChessPlayView() {
     }
     if (s.game.isGameOver()) return;
     if (s.game.turn() !== s.playerColor) {
-      // Not our turn → queue a premove (validate basic ownership only).
-      const piece = s.game.get(from as any);
-      if (piece && piece.color === s.playerColor) {
-        setPremove({ from, to });
-        setSelected(null);
-      }
+      // Not our turn → queue a premove (FIFO, validated against projected board).
+      queuePremove(from, to);
       return;
     }
     try {
@@ -256,20 +252,59 @@ export function ChessPlayView() {
     } catch { /* illegal */ }
   };
 
+  // ── Premoves ──────────────────────────────────────────────────────
+  // FIFO queue, capped, validated against the projected board.
+  const PREMOVE_LIMIT = 5;
+  const projectedBoard = useCallback((extra?: { from: string; to: string; promotion?: string }) => {
+    const s = stateRef.current;
+    if (!s) return null;
+    const g = new Chess(s.game.fen());
+    for (const pm of premoves) {
+      try { g.move({ from: pm.from, to: pm.to, promotion: pm.promotion ?? "q" }); }
+      catch { return null; }
+    }
+    if (extra) {
+      try { g.move({ from: extra.from, to: extra.to, promotion: extra.promotion ?? "q" }); }
+      catch { return null; }
+    }
+    return g;
+  }, [premoves]);
+
+  const queuePremove = (from: string, to: string) => {
+    const s = stateRef.current;
+    if (!s) return;
+    if (premoves.length >= PREMOVE_LIMIT) return;
+    // Quick ownership check on the projected board.
+    const projected = projectedBoard();
+    if (!projected) return;
+    const piece = projected.get(from as any);
+    if (!piece || piece.color !== s.playerColor) return;
+    // Validate move on the projected board.
+    const next = new Chess(projected.fen());
+    try {
+      const mv = next.move({ from, to, promotion: "q" });
+      if (!mv) return;
+    } catch { return; }
+    setPremoves(prev => [...prev, { from, to }]);
+    setSelected(null);
+  };
+
+  const cancelPremoves = useCallback(() => setPremoves([]), []);
+
   const tryPlayPremove = () => {
     const s = stateRef.current;
-    if (!s || !premove) return;
+    if (!s || premoves.length === 0) return;
     if (s.game.isGameOver() || s.game.turn() !== s.playerColor) return;
-    const pm = premove;
-    setPremove(null);
+    const [head, ...rest] = premoves;
     try {
-      const mv = s.game.move({ from: pm.from, to: pm.to, promotion: "q" });
-      if (!mv) return;
+      const mv = s.game.move({ from: head.from, to: head.to, promotion: head.promotion ?? "q" });
+      if (!mv) { setPremoves([]); return; }
       recordMainlineMove(mv);
+      setPremoves(rest);
       setNoAnimateOnce(true);
       force(n => n + 1);
       if (!s.game.isGameOver() && s.cfg.engine) setTimeout(() => runEngine(), 350);
-    } catch { /* premove no longer legal — drop silently */ }
+    } catch { setPremoves([]); }
   };
 
   const runEngine = () => {
