@@ -225,22 +225,19 @@ function LanguageRootView({
 
   if (view === "menu") {
     return (
-      <div className="px-4 w-full space-y-3 max-w-md mx-auto">
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            className="h-auto py-6 text-base"
-            active
-            onClick={() => pushBrowse("lessons")}
-          >
-            Lesson
-          </Button>
-          <Button
-            className="h-auto py-6 text-base"
-            onClick={() => setView("dictionary")}
-          >
-            Dictionary
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        <CardButton
+          onClick={() => pushBrowse("lessons")}
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
+        >
+          <span className="font-semibold">{uiLang === "nl" ? "Lessen" : uiLang === "ar" ? "دروس" : "Lessons"}</span>
+        </CardButton>
+        <CardButton
+          onClick={() => setView("dictionary")}
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
+        >
+          <span className="font-semibold">{uiLang === "nl" ? "Woordenboek" : uiLang === "ar" ? "قاموس" : "Dictionary"}</span>
+        </CardButton>
       </div>
     );
   }
