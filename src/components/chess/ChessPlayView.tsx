@@ -80,6 +80,7 @@ export function ChessPlayView() {
   const [hintArrow, setHintArrow] = useState<{ from: string; to: string } | null>(null);
   const [analysisView, setAnalysisView] = useState<"play" | "analysis" | "review">("play");
   const [perMove, setPerMove] = useState<PerMove[] | null>(null);
+  const [analysing, setAnalysing] = useState<{ done: number; total: number } | null>(null);
   const [noAnimateOnce, setNoAnimateOnce] = useState(false);
   const [premoves, setPremoves] = useState<Array<{ from: string; to: string; promotion?: string }>>([]);
 
@@ -661,15 +662,29 @@ export function ChessPlayView() {
               {isGameOver && analysisView === "play" && (
                 <>
                   <Button
-                    onClick={() => {
-                      if (!perMove) setPerMove(analyseGame(s.fenHistory, s.sans));
+                    onClick={async () => {
+                      if (!perMove) {
+                        setAnalysing({ done: 0, total: s.sans.length });
+                        try {
+                          const result = await analyseGame(s.fenHistory, s.sans, {
+                            depth: 12,
+                            onProgress: (done, total) => setAnalysing({ done, total }),
+                          });
+                          setPerMove(result);
+                        } finally {
+                          setAnalysing(null);
+                        }
+                      }
                       setAnalysisView("analysis");
                     }}
                     variant="outline"
                     className="gap-2"
+                    disabled={!!analysing}
                   >
                     <BarChart3 className="h-4 w-4" />
-                    Analyse Game
+                    {analysing
+                      ? `Analysing… ${analysing.done}/${analysing.total}`
+                      : "Analyse Game"}
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
                     <Button onClick={rematch} variant="outline" className="gap-2">
