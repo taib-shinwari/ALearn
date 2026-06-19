@@ -1,22 +1,31 @@
 // In-app Lessons flow driven by browsePath segments:
-//   ["language", lang, "lessons"]                       → sections list (Beginner/Intermediate/Advanced)
-//   ["language", lang, "lessons", sectionId]            → lessons grid for that section
-//   ["language", lang, "lessons", sectionId, unitId]    → multiple-choice lesson runner
-//
-// No dedicated routes — back/breadcrumbs use the existing browse stack.
+//   ["language", lang, "lessons"]                                 → sections (Beginner/Intermediate/Advanced)
+//   ["language", lang, "lessons", sectionId]                      → folder list (one per subcategory)
+//   ["language", lang, "lessons", sectionId, folderId]            → numbered round lesson buttons
+//   ["language", lang, "lessons", sectionId, folderId, unitId]    → multiple-choice runner
 import { useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { Lock, Star } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
-import { categories, getWordText, type Lang, type WordLang, type WordDetail } from "@/data/courseData";
+import {
+  categories,
+  getWordText,
+  localizedName,
+  type Lang,
+  type WordLang,
+  type WordDetail,
+} from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
 
 export interface Unit {
   id: string;
   title: string;
+  catId: string;
+  subId: string;
+  partIndex: number; // 1-based part number within the subcategory
   words: WordDetail[];
 }
 
@@ -33,6 +42,9 @@ export function buildAllUnits(): Unit[] {
         units.push({
           id: `${cat.id}:${sub.id}:${i}`,
           title: `${sub.name.en}${showPart ? ` (${partNum})` : ""}`,
+          catId: cat.id,
+          subId: sub.id,
+          partIndex: partNum,
           words: sub.words.slice(i, i + UNIT_SIZE),
         });
       }
@@ -69,6 +81,31 @@ export function findUnit(id: string): Unit | undefined {
   return buildAllUnits().find(u => u.id === id);
 }
 
+interface Folder {
+  id: string;        // `${catId}:${subId}`
+  title: string;
+  units: Unit[];
+}
+
+function groupByFolder(units: Unit[], lang: Lang): Folder[] {
+  const map = new Map<string, Folder>();
+  for (const u of units) {
+    const key = `${u.catId}:${u.subId}`;
+    let f = map.get(key);
+    if (!f) {
+      const cat = categories.find(c => c.id === u.catId);
+      const sub = cat?.subcategories.find(s => s.id === u.subId);
+      const title = sub ? localizedName(sub.name, lang) : key;
+      f = { id: key, title, units: [] };
+      map.set(key, f);
+    }
+    f.units.push(u);
+  }
+  // Preserve original ordering within each folder by partIndex
+  for (const f of map.values()) f.units.sort((a, b) => a.partIndex - b.partIndex);
+  return Array.from(map.values());
+}
+
 function progressKey(lang: string) { return `lessons:${lang}`; }
 function loadProgress(lang: string): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(progressKey(lang)) || "{}"); }
@@ -85,39 +122,94 @@ function saveStars(lang: string, unitId: string, stars: number) {
 interface Props { lang: Lang }
 
 export function LessonsView({ lang }: Props) {
+  const { uiLang } = useCourseLanguage();
   const { browsePath, pushBrowse, popBrowse } = useApp();
+  // Hooks must be unconditional — call them all up front, then branch.
   const sections = useMemo(buildSections, []);
 
   const sectionId = browsePath[3];
-  const unitId = browsePath[4];
+  const folderId = browsePath[4];
+  const unitId = browsePath[5];
+
+  const section = useMemo(
+    () => (sectionId ? sections.find(s => s.id === sectionId) : undefined),
+    [sectionId, sections],
+  );
+  const folders = useMemo(
+    () => (section ? groupByFolder(section.units, uiLang) : []),
+    [section, uiLang],
+  );
+  const folder = useMemo(
+    () => (folderId ? folders.find(f => f.id === folderId) : undefined),
+    [folderId, folders],
+  );
+  const unit = useMemo(
+    () => (unitId ? findUnit(unitId) : undefined),
+    [unitId],
+  );
 
   // Runner
-  if (sectionId && unitId) {
-    const unit = useMemo(() => findUnit(unitId), [unitId]);
-    return <LessonRunner lang={lang} unit={unit} onDone={() => popBrowse()} />;
+  if (sectionId && folderId && unitId) {
+    return <LessonRunner lang={lang} unit={unit} onDone={popBrowse} />;
   }
 
-  // Section detail
-  if (sectionId) {
-    const sec = sections.find(s => s.id === sectionId);
-    if (!sec) return <div className="px-4 text-sm">Section not found.</div>;
+  // Folder detail — numbered round lesson buttons (with lock gating)
+  if (sectionId && folderId) {
+    if (!folder) return <div className="px-4 text-sm">Folder not found.</div>;
     const progress = loadProgress(lang);
     return (
       <div className="px-4 w-full max-w-3xl mx-auto">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {sec.units.map((u, i) => {
+        <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
+          {folder.units.map((u, i) => {
             const stars = progress[u.id] ?? 0;
+            const prevStars = i === 0 ? 1 : (progress[folder.units[i - 1].id] ?? 0);
+            const locked = prevStars <= 0;
             return (
-              <CardButton
+              <button
                 key={u.id}
-                onClick={() => pushBrowse(u.id)}
-                className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
+                onClick={() => !locked && pushBrowse(u.id)}
+                disabled={locked}
+                aria-label={`Lesson ${i + 1}${locked ? " (locked)" : ""}`}
+                className={cn(
+                  "relative h-20 w-20 rounded-full border-2 font-bold text-2xl transition-all",
+                  "flex items-center justify-center select-none",
+                  locked
+                    ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                    : stars > 0
+                      ? "border-emerald-500 bg-emerald-500/15 text-foreground hover:scale-105"
+                      : "border-border bg-background text-foreground hover:bg-muted hover:scale-105",
+                )}
               >
-                <span className="font-semibold text-sm">#{i + 1} · {u.title}</span>
-                {stars > 0 && <span className="text-xs opacity-70 whitespace-nowrap">✓</span>}
-              </CardButton>
+                {locked ? <Lock className="h-6 w-6" /> : i + 1}
+                {!locked && stars > 0 && (
+                  <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-background border-2 border-border rounded-full px-1.5 py-0.5 text-[10px] font-mono">
+                    <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> {stars}
+                  </span>
+                )}
+              </button>
             );
           })}
+        </div>
+      </div>
+    );
+  }
+
+  // Section detail — folders (one per subcategory)
+  if (sectionId) {
+    if (!section) return <div className="px-4 text-sm">Section not found.</div>;
+    return (
+      <div className="px-4 w-full max-w-3xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {folders.map(f => (
+            <CardButton
+              key={f.id}
+              onClick={() => pushBrowse(f.id)}
+              className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
+            >
+              <span className="font-semibold text-sm">{f.title}</span>
+              <span className="text-xs opacity-70 whitespace-nowrap">{f.units.length}</span>
+            </CardButton>
+          ))}
         </div>
       </div>
     );
