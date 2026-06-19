@@ -1,7 +1,7 @@
 // Move-classification logic for the post-game analysis view.
-// Lightweight, deterministic: uses the in-app engine (no Stockfish).
+// Powered by Stockfish.wasm (UCI) for accurate centipawn loss + best move.
 import { Chess } from "chess.js";
-import { findBestMove, evaluate } from "@/lib/chessEngine";
+import { sfEvaluate } from "@/lib/stockfish";
 
 export type ClassKind =
   | "brilliant" | "great" | "book" | "best" | "excellent"
@@ -82,27 +82,35 @@ function classifyByCpl(cpl: number): ClassKind {
   return "blunder";
 }
 
-/** Analyse a whole game (light: depth-2 engine). */
-export function analyseGame(fens: string[], sans: string[]): PerMove[] {
+/** Analyse a whole game using Stockfish.wasm. */
+export async function analyseGame(
+  fens: string[],
+  sans: string[],
+  opts: { depth?: number; onProgress?: (done: number, total: number) => void } = {},
+): Promise<PerMove[]> {
+  const depth = opts.depth ?? 12;
   const out: PerMove[] = [];
   const sansSoFar: string[] = [];
   for (let i = 0; i < sans.length; i++) {
     const before = new Chess(fens[i]);
-    const after = new Chess(fens[i + 1]);
     const mover: "w" | "b" = before.turn();
-    const moverSign = mover === "w" ? 1 : -1;
 
-    // Eval after the played move, from mover POV.
-    const playedEval = evaluate(after) * moverSign;
-
-    // Best move + its eval from mover POV.
-    let bestEval = playedEval;
+    // Best eval at position BEFORE move, from mover POV (Stockfish returns STM POV).
+    let bestCp = 0;
     try {
-      const best = findBestMove(before, 2);
-      bestEval = best.score * moverSign;
-    } catch { /* keep playedEval */ }
+      const evalBefore = await sfEvaluate(fens[i], depth);
+      bestCp = evalBefore.scoreCp;
+    } catch { /* keep 0 */ }
 
-    const cpl = Math.max(0, bestEval - playedEval);
+    // Eval AFTER the played move; Stockfish returns POV of the new side-to-move
+    // (= the opponent). Negate to get back to mover POV.
+    let playedCp = bestCp;
+    try {
+      const evalAfter = await sfEvaluate(fens[i + 1], Math.max(6, depth - 4));
+      playedCp = -evalAfter.scoreCp;
+    } catch { /* keep bestCp */ }
+
+    const cpl = Math.max(0, bestCp - playedCp);
     let kind: ClassKind = classifyByCpl(cpl);
 
     sansSoFar.push(sans[i]);
@@ -115,6 +123,7 @@ export function analyseGame(fens: string[], sans: string[]): PerMove[] {
       accuracy: accuracyFromCpl(cpl),
       color: mover,
     });
+    opts.onProgress?.(i + 1, sans.length);
   }
   return out;
 }
