@@ -15,6 +15,7 @@ import { AICallButton } from "@/components/AICallButton";
 import { ALPHABET_SEGMENT } from "@/lib/navigation";
 import { useTopDialog } from "@/lib/dialog-stack";
 import { useChessSettings } from "@/lib/chessSettings";
+import { lessonProgress, type LessonProgressState } from "@/lib/lessonProgress";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
@@ -167,27 +168,35 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
       {!focusMode && (
       <div className="flex items-center justify-between gap-2 p-4">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {showBack && (
             <Button size="icon" onClick={handleBack} aria-label={t("back")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          {!searchOpen && topDialog?.title && (
+          {inLesson && lessonState && (
+            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden ml-1 max-w-md" aria-label="Lesson progress">
+              <div
+                className="h-full bg-emerald-500 transition-all"
+                style={{ width: `${(lessonState.current / Math.max(1, lessonState.total)) * 100}%` }}
+              />
+            </div>
+          )}
+          {!inLesson && !searchOpen && topDialog?.title && (
             <TitleBar className="font-semibold">{topDialog.title}</TitleBar>
           )}
-          {!searchOpen && !topDialog && isSettings && (
+          {!inLesson && !searchOpen && !topDialog && isSettings && (
             <TitleBar className="font-semibold">{t("settings") || "Settings"}</TitleBar>
           )}
-          {!searchOpen && !topDialog && isRecall && (
+          {!inLesson && !searchOpen && !topDialog && isRecall && (
             <TitleBar className="font-semibold">{t("recall") || "Recall"}</TitleBar>
           )}
-          {!searchOpen && !topDialog && isSign && (
+          {!inLesson && !searchOpen && !topDialog && isSign && (
             <TitleBar className="font-semibold">Sign</TitleBar>
           )}
         </div>
 
-        {searchOpen ? (
+        {!inLesson && (searchOpen ? (
           <HeaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
         ) : (
           <div className="flex items-center gap-2">
@@ -209,7 +218,7 @@ export default function Layout({ children }: LayoutProps) {
               </Button>
             )}
           </div>
-        )}
+        ))}
       </div>
       )}
 
