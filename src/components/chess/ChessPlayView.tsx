@@ -8,6 +8,7 @@ import { MovesList, type MoveVariation, type VariationCursor } from "./MovesList
 import { MoveDetailPanel } from "./MoveDetailPanel";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
+import { sfEvaluate } from "@/lib/stockfish";
 import { random960Fen } from "@/lib/chess960";
 import { useChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
@@ -308,13 +309,29 @@ export function ChessPlayView() {
     } catch { setPremoves([]); }
   };
 
-  const runEngine = () => {
+  const runEngine = async () => {
     const s = stateRef.current;
     if (!s || s.game.isGameOver()) return;
     if (s.game.turn() === s.playerColor) return;
-    const m = pickEngineMove(s.game, s.cfg.elo);
-    if (!m) return;
-    const mv = s.game.move({ from: m.from, to: m.to, promotion: m.promotion ?? "q" });
+    const fenBefore = s.game.fen();
+    // Map ELO → search depth (Stockfish). Weak players → shallow.
+    const depth = Math.max(1, Math.min(18, Math.round(s.cfg.elo / 220)));
+    let from: string | undefined, to: string | undefined, promotion: string | undefined;
+    try {
+      const { bestMove } = await sfEvaluate(fenBefore, depth);
+      if (!bestMove) throw new Error("no bestmove");
+      from = bestMove.slice(0, 2);
+      to = bestMove.slice(2, 4);
+      promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+    } catch {
+      const m = pickEngineMove(s.game, s.cfg.elo);
+      if (!m) return;
+      from = m.from; to = m.to; promotion = m.promotion;
+    }
+    // Position may have changed (player undo, new game, etc.) — bail out.
+    if (s.game.fen() !== fenBefore) return;
+    let mv: any;
+    try { mv = s.game.move({ from, to, promotion: promotion ?? "q" }); } catch { return; }
     if (!mv) return;
     recordMainlineMove(mv);
     force(n => n + 1);
@@ -350,10 +367,10 @@ export function ChessPlayView() {
       try { g = new Chess(view.fen); } catch { return; }
       const piece = g.get(sq as any);
       if (selected) {
-        if (sq === selected) { setSelected(null); return; }
+        if (sq === selected) return; // selection persists; only right-click clears
         const moves = g.moves({ square: selected as any, verbose: true }) as any[];
         if (moves.some(m => m.to === sq)) { tryVariationMove(selected, sq); return; }
-        if (piece) setSelected(sq); else setSelected(null);
+        if (piece) setSelected(sq);
         return;
       }
       if (piece) setSelected(sq);
@@ -363,12 +380,11 @@ export function ChessPlayView() {
     const myTurn = s.game.turn() === s.playerColor;
     const piece = s.game.get(sq as any);
     if (selected) {
-      if (sq === selected) { setSelected(null); return; }
+      if (sq === selected) return; // selection persists; only right-click clears
       if (myTurn) {
         const moves = s.game.moves({ square: selected as any, verbose: true }) as any[];
         if (moves.some(m => m.to === sq)) { onMove(selected, sq, false); return; }
         if (piece && piece.color === s.playerColor) setSelected(sq);
-        else setSelected(null);
         return;
       }
       // Opponent's turn → queue premove if click target is reasonable
@@ -377,13 +393,14 @@ export function ChessPlayView() {
         queuePremove(selected, sq);
         return;
       }
-      setSelected(null);
       return;
     }
     if (piece && piece.color === s.playerColor) {
       setSelected(sq);
     }
   };
+
+  const clearSelection = useCallback(() => setSelected(null), []);
 
   const resetToSetup = () => {
     stateRef.current = null;
