@@ -600,6 +600,7 @@ export function ChessPlayView() {
                 moveBadge={reviewBadge}
                 premoveSquares={live ? premoves.flatMap(pm => [pm.from, pm.to]) : []}
                 onCancelPremoves={cancelPremoves}
+                onClearSelection={clearSelection}
               />
             </Container>
           </div>
@@ -641,19 +642,21 @@ export function ChessPlayView() {
             </div>
           ) : (
             <>
-              <MoveDetailPanel
-                sans={s.sans}
-                fens={s.fenHistory}
-                currentIndex={currentPly}
-                perMove={analysisView === "review" ? perMove ?? undefined : undefined}
-                showBestLine={analysisView === "review"}
-                orientation={orientation}
-                onSelect={(i) => {
-                  setVarCursor(null);
-                  setNoAnimateOnce(true);
-                  setViewIndex(i >= s.sans.length - 1 ? -1 : i);
-                }}
-              />
+              {(cfg.moveFeedback || analysisView === "review") && (
+                <MoveDetailPanel
+                  sans={s.sans}
+                  fens={s.fenHistory}
+                  currentIndex={currentPly}
+                  perMove={analysisView === "review" ? perMove ?? undefined : undefined}
+                  showBestLine={analysisView === "review"}
+                  orientation={orientation}
+                  onSelect={(i) => {
+                    setVarCursor(null);
+                    setNoAnimateOnce(true);
+                    setViewIndex(i >= s.sans.length - 1 ? -1 : i);
+                  }}
+                />
+              )}
 
               <div className="min-h-0 flex-1 overflow-hidden">
                 <MovesList
