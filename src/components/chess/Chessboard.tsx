@@ -51,6 +51,8 @@ interface Props {
   premoveSquares?: string[];
   /** Called when user right-clicks a premove square to cancel the queue. */
   onCancelPremoves?: () => void;
+  /** Called on any right-click — used to clear current selection. */
+  onClearSelection?: () => void;
 }
 
 function squareToXY(sq: string, orientation: "white" | "black") {
@@ -90,6 +92,7 @@ function ChessboardImpl({
   moveBadge = null,
   premoveSquares = [],
   onCancelPremoves,
+  onClearSelection,
 }: Props) {
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
   const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
@@ -171,16 +174,14 @@ function ChessboardImpl({
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
     const target = sqAt(e.clientX, e.clientY);
     setDrag(null);
-    if (!target) {
-      if (!d.isDragging && clickEnabled) onSquareClick?.(d.fromSquare);
-      return;
-    }
+    if (!target) return;
     if (!d.isDragging) {
-      // Click: select the square.
-      if (clickEnabled) onSquareClick?.(target === d.fromSquare ? d.fromSquare : target);
+      // Click-up on same square: piece was already selected via onDragBegin.
+      // Clicking a different square: treat as click on that target.
+      if (target !== d.fromSquare && clickEnabled) onSquareClick?.(target);
       return;
     }
-    // Drag release: attempt move; if released on origin, treat as no-op.
+    // Drag release: attempt move; if released on origin, keep selection.
     if (target === d.fromSquare) return;
     if (dragEnabled) onPieceDrop?.(d.fromSquare, target);
     else if (clickEnabled) onSquareClick?.(target);
@@ -193,6 +194,8 @@ function ChessboardImpl({
     if (e.button === 2) {
       const sq = sqAt(e.clientX, e.clientY);
       rightDown.current = sq;
+      // Right-click anywhere always clears the active selection.
+      onClearSelection?.();
       if (sq && premoveSquares.includes(sq)) onCancelPremoves?.();
       return;
     }
@@ -269,6 +272,8 @@ function ChessboardImpl({
   }, [arrows, userArrows, arrowLengthScale, size, orientation]);
 
   // Compute ghost (dragged piece) screen position relative to board.
+  // Shown from the very first pointerdown so the piece centres on the cursor
+  // immediately, before the drag threshold is exceeded.
   const ghost = useMemo(() => {
     if (!drag || size === 0 || !boardRef.current) return null;
     const r = boardRef.current.getBoundingClientRect();
@@ -377,7 +382,7 @@ function ChessboardImpl({
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
         const pieceInteractive = clickEnabled || dragEnabled;
-        const isBeingDragged = drag?.isDragging && drag.fromSquare === p.square;
+        const isBeingHeld = !!drag && drag.fromSquare === p.square;
         return (
           <img
             key={key}
@@ -397,8 +402,8 @@ function ChessboardImpl({
               padding: "0%",
               pointerEvents: pieceInteractive ? "auto" : "none",
               cursor: pieceInteractive ? (drag ? "grabbing" : "grab") : "default",
-              opacity: isBeingDragged ? 0 : 1,
-              transition: animate && !isBeingDragged
+              opacity: isBeingHeld ? 0 : 1,
+              transition: animate && !isBeingHeld
                 ? `left ${animationMs}ms ease, top ${animationMs}ms ease`
                 : undefined,
               touchAction: "none",
@@ -408,8 +413,8 @@ function ChessboardImpl({
         );
       })}
 
-      {/* Ghost piece — centered at cursor while dragging. */}
-      {drag?.isDragging && ghost && (() => {
+      {/* Ghost piece — centered at cursor from the first pointerdown. */}
+      {drag && ghost && (() => {
         const piece = pieces.find(p => p.square === drag.fromSquare);
         if (!piece) return null;
         const color = pieceColor(piece, dark);

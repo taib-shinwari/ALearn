@@ -3,7 +3,7 @@
 //   ["language", lang, "lessons", sectionId]                      → folder list (one per subcategory)
 //   ["language", lang, "lessons", sectionId, folderId]            → numbered round lesson buttons
 //   ["language", lang, "lessons", sectionId, folderId, unitId]    → multiple-choice runner
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Lock, Star } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 } from "@/data/courseData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
+import { lessonProgress } from "@/lib/lessonProgress";
 
 export interface Unit {
   id: string;
@@ -268,6 +269,13 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [correct, setCorrect] = useState(0);
+
+  // Publish progress to the global header bar.
+  useEffect(() => {
+    if (!unit || !questions.length) return;
+    lessonProgress.set({ current: Math.min(i, questions.length), total: questions.length });
+    return () => lessonProgress.set(null);
+  }, [unit, questions.length, i]);
 
   if (!unit || !questions.length) {
     return (
