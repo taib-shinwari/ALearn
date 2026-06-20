@@ -129,10 +129,14 @@ export default function Layout({ children }: LayoutProps) {
   const inChess = isHomeRoute && browsePath[0] === "chess";
   const focusMode = inChess && chessSettings.focusMode;
 
+  const [lessonState, setLessonState] = useState<LessonProgressState>(lessonProgress.get());
+  useEffect(() => lessonProgress.subscribe(() => setLessonState(lessonProgress.get())), []);
+  const inLesson = !!lessonState;
+
   const showBack = !isSign && (!!topDialog || !isHomeRoute || browsePath.length > 0);
 
   // When in a language folder, show Call in the header.
-  const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2;
+  const showCall = isHomeRoute && browsePath[0] === "language" && browsePath.length >= 2 && !inLesson;
 
   const restoreFromRecall = () => {
     if (recallReturnPath) {
@@ -148,7 +152,7 @@ export default function Layout({ children }: LayoutProps) {
     if (browsePath.length > 0) popBrowse();
   };
 
-  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen && !topDialog && !focusMode;
+  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen && !topDialog && !focusMode && !inLesson;
 
   if (useSettingsBar) {
     return (
