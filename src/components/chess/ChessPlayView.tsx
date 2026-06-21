@@ -601,6 +601,8 @@ export function ChessPlayView() {
                 premoveSquares={live ? premoves.flatMap(pm => [pm.from, pm.to]) : []}
                 onCancelPremoves={cancelPremoves}
                 onClearSelection={clearSelection}
+                interactiveColor={live ? s.playerColor : undefined}
+
               />
             </Container>
           </div>

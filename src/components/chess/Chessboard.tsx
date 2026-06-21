@@ -53,7 +53,10 @@ interface Props {
   onCancelPremoves?: () => void;
   /** Called on any right-click — used to clear current selection. */
   onClearSelection?: () => void;
+  /** When set, only pieces of this color can be picked up/dragged. */
+  interactiveColor?: PieceColor;
 }
+
 
 function squareToXY(sq: string, orientation: "white" | "black") {
   const file = sq.charCodeAt(0) - "a".charCodeAt(0);
@@ -93,7 +96,9 @@ function ChessboardImpl({
   premoveSquares = [],
   onCancelPremoves,
   onClearSelection,
+  interactiveColor,
 }: Props) {
+
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
   const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -145,6 +150,11 @@ function ChessboardImpl({
   const beginPieceDrag = (e: React.PointerEvent, square: string) => {
     if (e.button !== 0) return;
     if (!clickEnabled && !dragEnabled) return;
+    // Ownership gate: only pieces of interactiveColor (if set) can be lifted.
+    if (interactiveColor) {
+      const p = pieces.find(pp => pp.square === square);
+      if (!p || p.color !== interactiveColor) return;
+    }
     // Clear ephemeral right-click overlays on any left interaction.
     if (userArrows.length) setUserArrows([]);
     if (highlights.size) setHighlights(new Set());
@@ -158,6 +168,7 @@ function ChessboardImpl({
     });
     onDragBegin?.(square);
   };
+
 
   const movePieceDrag = (e: React.PointerEvent) => {
     setDrag(d => {
@@ -193,10 +204,16 @@ function ChessboardImpl({
   const onBoardPointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) {
       const sq = sqAt(e.clientX, e.clientY);
-      rightDown.current = sq;
+      const hadSelection = !!selected;
       // Right-click anywhere always clears the active selection.
       onClearSelection?.();
-      if (sq && premoveSquares.includes(sq)) onCancelPremoves?.();
+      if (sq && premoveSquares.includes(sq)) {
+        onCancelPremoves?.();
+        rightDown.current = null;
+        return;
+      }
+      // If we just cleared a selection, suppress red-tint / arrow on this gesture.
+      rightDown.current = hadSelection ? null : sq;
       return;
     }
     if (e.button !== 0) return;
@@ -204,6 +221,7 @@ function ChessboardImpl({
     if (userArrows.length) setUserArrows([]);
     if (highlights.size) setHighlights(new Set());
   };
+
   const onBoardPointerUp = (e: React.PointerEvent) => {
     if (e.button !== 2) return;
     const from = rightDown.current;
@@ -440,6 +458,7 @@ function ChessboardImpl({
       {size > 0 && (
         <svg
           className="absolute inset-0 pointer-events-none"
+          style={{ zIndex: 6 }}
           viewBox={`0 0 ${size} ${size}`}
           width={size}
           height={size}
@@ -447,6 +466,7 @@ function ChessboardImpl({
           {renderedArrows}
         </svg>
       )}
+
 
       {size > 0 && moveBadge && (() => {
         const { col, row } = squareToXY(moveBadge.square, orientation);
