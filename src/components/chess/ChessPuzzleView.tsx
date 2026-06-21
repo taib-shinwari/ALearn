@@ -80,9 +80,9 @@ export function ChessPuzzleView({ puzzle, onSolved }: Props) {
       return;
     }
     if (sq === selected) return; // persists; only right-click clears
-    const own = game.get(selected as any);
     const legal = legalSquares.includes(sq);
     if (legal) { tryMove(selected, sq); return; }
+
     const p = game.get(sq as any);
     if (p && p.color === puzzle.userColor) setSelected(sq);
   };
