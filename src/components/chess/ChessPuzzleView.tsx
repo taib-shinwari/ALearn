@@ -18,40 +18,44 @@ export function ChessPuzzleView({ puzzle, onSolved }: Props) {
   const [step, setStep] = useState(0); // index into solution
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"ok" | "bad" | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [, force] = useState(0);
 
   useEffect(() => {
     setGame(new Chess(puzzle.fen));
-    setStep(0); setSelected(null); setFeedback(null);
+    setStep(0); setSelected(null); setFeedback(null); setLastMove(null);
   }, [puzzle.id]);
 
   const pieces = useMemo(() => fenToPieces(game), [game, game.fen()]);
   const solved = step >= puzzle.solution.length;
 
-  const expectIdx = step % 2 === 0 ? step : step; // we tick step on both sides
+  const legalSquares = useMemo(() => {
+    if (!selected) return [];
+    try {
+      return (game.moves({ square: selected as any, verbose: true }) as any[]).map(m => m.to);
+    } catch { return []; }
+  }, [selected, game, game.fen()]);
 
-  const handleSquare = (sq: string) => {
+  const tryMove = (from: string, to: string) => {
     if (solved) return;
     if (game.turn() !== puzzle.userColor) return;
-    if (!selected) {
-      const p = game.get(sq as any);
-      if (p && p.color === puzzle.userColor) setSelected(sq);
-      return;
-    }
-    if (sq === selected) { setSelected(null); return; }
-    const attempt = `${selected}${sq}`;
+    const piece = game.get(from as any);
+    if (!piece || piece.color !== puzzle.userColor) return;
+    const attempt = `${from}${to}`;
     const expected = puzzle.solution[step];
     if (expected && attempt === expected.slice(0, 4)) {
-      try { game.move({ from: selected, to: sq, promotion: "q" }); } catch {}
+      try { game.move({ from, to, promotion: "q" }); } catch {}
       setSelected(null);
       setFeedback("ok");
+      setLastMove({ from, to });
       const nextStep = step + 1;
       force(n => n + 1);
-      // play opponent reply if scripted
       setTimeout(() => {
         const reply = puzzle.solution[nextStep];
         if (reply) {
-          try { game.move({ from: reply.slice(0, 2), to: reply.slice(2, 4), promotion: reply[4] }); } catch {}
+          const rFrom = reply.slice(0, 2), rTo = reply.slice(2, 4);
+          try { game.move({ from: rFrom, to: rTo, promotion: reply[4] }); } catch {}
+          setLastMove({ from: rFrom, to: rTo });
           setStep(nextStep + 1);
           force(n => n + 1);
         } else {
@@ -67,10 +71,27 @@ export function ChessPuzzleView({ puzzle, onSolved }: Props) {
     }
   };
 
+  const handleSquare = (sq: string) => {
+    if (solved) return;
+    if (game.turn() !== puzzle.userColor) return;
+    if (!selected) {
+      const p = game.get(sq as any);
+      if (p && p.color === puzzle.userColor) setSelected(sq);
+      return;
+    }
+    if (sq === selected) return; // persists; only right-click clears
+    const legal = legalSquares.includes(sq);
+    if (legal) { tryMove(selected, sq); return; }
+
+    const p = game.get(sq as any);
+    if (p && p.color === puzzle.userColor) setSelected(sq);
+  };
+
   const reset = () => {
     setGame(new Chess(puzzle.fen));
-    setStep(0); setSelected(null); setFeedback(null);
+    setStep(0); setSelected(null); setFeedback(null); setLastMove(null);
   };
+
 
   return (
     <div className="px-4 w-full">
@@ -82,10 +103,21 @@ export function ChessPuzzleView({ puzzle, onSolved }: Props) {
                 pieces={pieces}
                 orientation={puzzle.userColor === "w" ? "white" : "black"}
                 selected={selected}
+                legalSquares={legalSquares}
+                lastMove={lastMove}
                 onSquareClick={handleSquare}
+                onPieceDrop={(from, to) => tryMove(from, to)}
+                onDragBegin={(sq) => {
+                  const p = game.get(sq as any);
+                  if (p && p.color === puzzle.userColor) setSelected(sq);
+                }}
+                onClearSelection={() => setSelected(null)}
+                interactiveColor={puzzle.userColor}
+                inputMode={settings.inputMode}
                 animate={settings.animatePieces}
                 animationMs={settings.animationSpeed}
               />
+
               {feedback && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className={`rounded-full p-4 ${feedback === "ok" ? "bg-green-500/80" : "bg-red-500/80"} animate-scale-in`}>

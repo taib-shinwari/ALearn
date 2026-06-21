@@ -20,6 +20,8 @@ import {
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useApp } from "@/context/AppContext";
 import { lessonProgress } from "@/lib/lessonProgress";
+import { useMarkedWords } from "@/hooks/useMarkedWords";
+
 
 export interface Unit {
   id: string;
@@ -261,6 +263,7 @@ function buildQuestions(unit: Unit, courseLang: WordLang, uiLang: Lang): Questio
 
 function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone: () => void }) {
   const { uiLang } = useCourseLanguage();
+  const { isMarked, toggle } = useMarkedWords();
   const questions = useMemo(
     () => unit ? buildQuestions(unit, lang as WordLang, uiLang) : [],
     [unit, lang, uiLang],
@@ -269,6 +272,27 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [correct, setCorrect] = useState(0);
+
+  // Track which words were NEW for this session (not in dict at start)
+  // and auto-add them to the dictionary.
+  const [newIds] = useState<Set<string>>(() => {
+    const out = new Set<string>();
+    if (!unit) return out;
+    for (const w of unit.words) {
+      if (!isMarked(lang, w.id)) {
+        out.add(w.id);
+        toggle(lang, w.id);
+      }
+    }
+    return out;
+  });
+
+  // Map answer text → wordId so we can color options.
+  const textToId = useMemo(() => {
+    const m = new Map<string, string>();
+    if (unit) for (const w of unit.words) m.set(getWordText(w, lang as WordLang), w.id);
+    return m;
+  }, [unit, lang]);
 
   // Publish progress to the global header bar.
   useEffect(() => {
@@ -319,31 +343,33 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
 
   return (
     <div className="px-4 max-w-md mx-auto w-full space-y-6 py-4">
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(i / questions.length) * 100}%` }} />
-      </div>
       <div className="text-center">
         <p className="text-xs uppercase tracking-wider opacity-60 mb-2">Translate</p>
         <p className="text-2xl font-bold">{q.prompt}</p>
       </div>
       <div className="grid gap-2">
-        {q.options.map(opt => (
-          <button
-            key={opt}
-            onClick={() => setPicked(opt)}
-            disabled={picked !== null}
-            className={cn(
-              "px-4 py-3 rounded-[14px] border-2 text-left font-semibold transition-colors",
-              picked === null && "border-border hover:bg-muted",
-              picked === opt && opt === q.answer && "border-emerald-500 bg-emerald-500/15",
-              picked === opt && opt !== q.answer && "border-rose-500 bg-rose-500/15",
-              picked !== null && picked !== opt && opt === q.answer && "border-emerald-500 bg-emerald-500/10",
-              picked !== null && picked !== opt && opt !== q.answer && "opacity-50 border-border",
-            )}
-          >
-            {opt}
-          </button>
-        ))}
+        {q.options.map(opt => {
+          const id = textToId.get(opt);
+          const isNew = id ? newIds.has(id) : false;
+          return (
+            <button
+              key={opt}
+              onClick={() => setPicked(opt)}
+              disabled={picked !== null}
+              className={cn(
+                "px-4 py-3 rounded-[14px] border-2 text-left font-semibold transition-colors",
+                picked === null && "border-border hover:bg-muted",
+                picked === null && isNew && "text-emerald-600 dark:text-emerald-400",
+                picked === opt && opt === q.answer && "border-emerald-500 bg-emerald-500/15",
+                picked === opt && opt !== q.answer && "border-rose-500 bg-rose-500/15",
+                picked !== null && picked !== opt && opt === q.answer && "border-emerald-500 bg-emerald-500/10",
+                picked !== null && picked !== opt && opt !== q.answer && "opacity-50 border-border",
+              )}
+            >
+              {opt}
+            </button>
+          );
+        })}
       </div>
 
       <Button active disabled={picked === null} className="w-full" onClick={next}>
@@ -352,3 +378,4 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
     </div>
   );
 }
+

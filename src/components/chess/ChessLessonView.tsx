@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ChevronRight, Star, Trophy } from "lucide-react";
 import type { ChessLesson, PlacedPiece, Arrow } from "@/data/chessData";
-import { cName, isLegalMove, reachableSquares } from "@/data/chessData";
+import { cName, isLegalMove, reachableSquares, type PieceColor } from "@/data/chessData";
 import { useCourseLanguage } from "@/hooks/useCourseLanguage";
 import { useChessSettings } from "@/lib/chessSettings";
 
@@ -21,8 +21,10 @@ export function ChessLessonView({ lesson, onNext }: Props) {
   const [stars, setStars] = useState<string[]>([]);
   const [captured, setCaptured] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [canAdvance, setCanAdvance] = useState(false);
   const [pulse, setPulse] = useState(1);
+
 
   // Reset on lesson switch
   useEffect(() => {
@@ -31,7 +33,9 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     setExtras((lesson.extras ?? []).map(p => ({ ...p })));
     setCaptured(new Set());
     setSelected(null);
+    setLastMove(null);
     setCanAdvance(false);
+
 
     // Compute stars now so they are stable for the lesson session.
     if (lesson.randomStars && lesson.randomStars > 0) {
@@ -120,45 +124,60 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     else if (phase === "done") onNext?.();
   };
 
-  const handleSquare = (sq: string) => {
+  const tryMove = (from: string, to: string) => {
     if (phase !== "play") return;
-    if (!selected) { if (piece.square === sq) setSelected(sq); return; }
-    if (sq === selected) { setSelected(null); return; }
-
-    const targetExtra = extras.find(e => e.square === sq);
-    const wouldCapture = !!targetExtra || stars.includes(sq);
+    if (from !== piece.square) return;
+    if (from === to) return;
+    const targetExtra = extras.find(e => e.square === to);
+    const wouldCapture = !!targetExtra || stars.includes(to);
 
     // Castling shortcut: King e1 -> g1 or c1 when rook present.
-    if (piece.type === "K" && selected === "e1" && (sq === "g1" || sq === "c1")) {
-      const rookFrom = sq === "g1" ? "h1" : "a1";
-      const rookTo = sq === "g1" ? "f1" : "d1";
+    if (piece.type === "K" && from === "e1" && (to === "g1" || to === "c1")) {
+      const rookFrom = to === "g1" ? "h1" : "a1";
+      const rookTo = to === "g1" ? "f1" : "d1";
       const rook = extras.find(e => e.square === rookFrom && e.type === "R");
       if (rook) {
-        setPiece(p => ({ ...p, square: sq }));
+        setPiece(p => ({ ...p, square: to }));
         setExtras(es => es.map(e => e === rook ? { ...e, square: rookTo } : e));
-        setSelected(null);
-        if (stars.includes(sq)) {
-          const next = new Set(captured); next.add(sq); setCaptured(next);
+        setLastMove({ from, to });
+        if (stars.includes(to)) {
+          const next = new Set(captured); next.add(to); setCaptured(next);
           if (stars.every(s => next.has(s))) window.setTimeout(() => setPhase("done"), 350);
         }
         return;
       }
     }
 
-    if (!isLegalMove(piece.type, selected, sq, wouldCapture)) { setSelected(null); return; }
-
-    setPiece(p => ({ ...p, square: sq }));
+    if (!isLegalMove(piece.type, from, to, wouldCapture)) return;
+    setPiece(p => ({ ...p, square: to }));
     if (targetExtra) setExtras(es => es.filter(e => e !== targetExtra));
-    setSelected(null);
+    setLastMove({ from, to });
 
-    if (stars.includes(sq)) {
-      const next = new Set(captured); next.add(sq);
+    if (stars.includes(to)) {
+      const next = new Set(captured); next.add(to);
       setCaptured(next);
       if (stars.every(s => next.has(s))) window.setTimeout(() => setPhase("done"), 350);
-    } else if (!lesson.freeOrder) {
-      // Sequential: optional partial-credit reset (not needed)
     }
   };
+
+  const handleSquare = (sq: string) => {
+    if (phase !== "play") return;
+    if (!selected) { if (piece.square === sq) setSelected(sq); return; }
+    if (sq === selected) return; // persists; right-click clears
+    tryMove(selected, sq);
+    setSelected(null);
+  };
+
+  // Legal squares for highlighting (dots).
+  const legalSquares = useMemo(() => {
+    if (phase !== "play" || !selected || selected !== piece.square) return [];
+    return reachableSquares(piece.type, piece.square).filter(to => {
+      const targetExtra = extras.find(e => e.square === to);
+      const wouldCapture = !!targetExtra || stars.includes(to);
+      return isLegalMove(piece.type, piece.square, to, wouldCapture);
+    });
+  }, [phase, selected, piece, extras, stars]);
+
 
   const continueLabel = phase === "intro"
     ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
@@ -183,12 +202,20 @@ export function ChessLessonView({ lesson, onNext }: Props) {
                 stars={activeStars}
                 orientation={lesson.orientation ?? "white"}
                 selected={selected}
+                legalSquares={legalSquares}
+                lastMove={lastMove}
                 arrows={introArrows}
                 arrowLengthScale={phase === "intro" ? pulse : 1}
                 onSquareClick={handleSquare}
+                onPieceDrop={(from, to) => tryMove(from, to)}
+                onDragBegin={(sq) => { if (sq === piece.square) setSelected(sq); }}
+                onClearSelection={() => setSelected(null)}
+                interactiveColor={piece.color as PieceColor}
+                inputMode={settings.inputMode}
                 animate={settings.animatePieces}
                 animationMs={settings.animationSpeed}
               />
+
               {phase === "done" && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="bg-background/95 border-2 border-border rounded-[20px] px-6 py-4 flex flex-col items-center gap-2 animate-scale-in shadow-2xl">
