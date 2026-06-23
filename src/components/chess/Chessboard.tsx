@@ -399,7 +399,12 @@ function ChessboardImpl({
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
-        const pieceInteractive = clickEnabled || dragEnabled;
+        // A piece is only interactive if the board is interactive AND
+        // (no ownership filter, or it matches interactiveColor).
+        // Non-interactive pieces let pointer events fall through to the
+        // square button beneath, so click-to-capture works.
+        const ownershipOk = !interactiveColor || p.color === interactiveColor;
+        const pieceInteractive = (clickEnabled || dragEnabled) && ownershipOk;
         const isBeingHeld = !!drag && drag.fromSquare === p.square;
         return (
           <img
@@ -407,10 +412,10 @@ function ChessboardImpl({
             src={url}
             alt=""
             draggable={false}
-            onPointerDown={(e) => beginPieceDrag(e, p.square)}
-            onPointerMove={movePieceDrag}
-            onPointerUp={endPieceDrag}
-            onPointerCancel={cancelPieceDrag}
+            onPointerDown={pieceInteractive ? (e) => beginPieceDrag(e, p.square) : undefined}
+            onPointerMove={pieceInteractive ? movePieceDrag : undefined}
+            onPointerUp={pieceInteractive ? endPieceDrag : undefined}
+            onPointerCancel={pieceInteractive ? cancelPieceDrag : undefined}
             style={{
               position: "absolute",
               left: `${(col / 8) * 100}%`,
