@@ -152,7 +152,11 @@ export function summarisePlayer(perMove: PerMove[], color: "w" | "b"): PlayerSum
   own.forEach(m => { counts[m.kind] += 1; });
 
   const accuracy = avg(own.map(m => m.accuracy)) ?? 0;
-  const estimatedRating = Math.max(100, Math.min(2800, Math.round(200 + accuracy * 22)));
+  const blunders = counts.blunder ?? 0;
+  const mistakes = counts.mistake ?? 0;
+  const inacc = counts.inaccuracy ?? 0;
+  const rawRating = 400 + accuracy * 28 - blunders * 80 - mistakes * 30 - inacc * 8;
+  const estimatedRating = Math.max(100, Math.min(3200, Math.round(rawRating)));
 
   return {
     accuracy,
