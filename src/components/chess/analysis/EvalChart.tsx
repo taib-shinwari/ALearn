@@ -109,11 +109,13 @@ export function EvalChart({ fens, perMove, currentIndex, onSelect }: Props) {
   // Force a redraw when current index changes (plotLine update path).
   useEffect(() => {
     const c = chartRef.current?.chart;
-    if (!c) return;
-    c.xAxis[0].removePlotLine?.("cur");
-    if (currentIndex >= 0) {
-      c.xAxis[0].addPlotLine({ id: "cur", value: currentIndex + 1, color: "#22c55e", width: 2, zIndex: 5 });
-    }
+    if (!c || !c.xAxis || !c.xAxis[0]) return;
+    try {
+      c.xAxis[0].removePlotLine?.("cur");
+      if (currentIndex >= 0) {
+        c.xAxis[0].addPlotLine?.({ id: "cur", value: currentIndex + 1, color: "#22c55e", width: 2, zIndex: 5 });
+      }
+    } catch { /* chart torn down — ignore */ }
   }, [currentIndex]);
 
   return (
