@@ -356,7 +356,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
       <div className="grid gap-2">
         {q.options.map(opt => {
           const id = textToId.get(opt);
-          const isNew = id ? newIds.has(id) : false;
+          const isNew = id ? (!alreadyMarked.has(id) && !seenIds.has(id)) : false;
           return (
             <button
               key={opt}
