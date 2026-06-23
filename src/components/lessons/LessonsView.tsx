@@ -273,19 +273,19 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   const [picked, setPicked] = useState<string | null>(null);
   const [correct, setCorrect] = useState(0);
 
-  // Track which words were NEW for this session (not in dict at start)
-  // and auto-add them to the dictionary.
-  const [newIds] = useState<Set<string>>(() => {
+  // Snapshot which word ids were ALREADY in the dictionary at lesson start.
+  // A word is shown green only while we're on the FIRST question that
+  // introduces it; on the next question it's no longer "new".
+  const [alreadyMarked] = useState<Set<string>>(() => {
     const out = new Set<string>();
     if (!unit) return out;
     for (const w of unit.words) {
-      if (!isMarked(lang, w.id)) {
-        out.add(w.id);
-        toggle(lang, w.id);
-      }
+      if (isMarked(lang, w.id)) out.add(w.id);
     }
     return out;
   });
+  // Word ids that have been "seen" (auto-added to dict) so we stop colouring them.
+  const [seenIds, setSeenIds] = useState<Set<string>>(() => new Set(alreadyMarked));
 
   // Map answer text → wordId so we can color options.
   const textToId = useMemo(() => {
@@ -337,6 +337,12 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   const next = () => {
     if (picked === null) return;
     if (isCorrect) setCorrect(c => c + 1);
+    // Mark the answer word as seen + add to dictionary if new.
+    const answerId = textToId.get(q.answer);
+    if (answerId && !alreadyMarked.has(answerId) && !seenIds.has(answerId)) {
+      toggle(lang, answerId);
+      setSeenIds(prev => { const n = new Set(prev); n.add(answerId); return n; });
+    }
     setPicked(null);
     setI(n => n + 1);
   };
@@ -350,7 +356,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
       <div className="grid gap-2">
         {q.options.map(opt => {
           const id = textToId.get(opt);
-          const isNew = id ? newIds.has(id) : false;
+          const isNew = id ? (!alreadyMarked.has(id) && !seenIds.has(id)) : false;
           return (
             <button
               key={opt}

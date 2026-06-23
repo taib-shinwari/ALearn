@@ -8,7 +8,7 @@ import { MovesList, type MoveVariation, type VariationCursor } from "./MovesList
 import { MoveDetailPanel } from "./MoveDetailPanel";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "@/lib/chessEngine";
-import { sfEvaluate } from "@/lib/stockfish";
+import { sfBestMove } from "@/lib/stockfish";
 import { random960Fen } from "@/lib/chess960";
 import { useChessSettings } from "@/lib/chessSettings";
 import { Button } from "@/components/ui/button";
@@ -314,15 +314,38 @@ export function ChessPlayView() {
     if (!s || s.game.isGameOver()) return;
     if (s.game.turn() === s.playerColor) return;
     const fenBefore = s.game.fen();
-    // Map ELO → search depth (Stockfish). Weak players → shallow.
-    const depth = Math.max(1, Math.min(18, Math.round(s.cfg.elo / 220)));
+    const elo = s.cfg.elo;
+    // Strength mapping: true beginner < 800; Stockfish UCI_Elo only from 1320.
+    let sfOpts: { depth?: number; movetimeMs?: number; skill?: number; uciElo?: number };
+    let randomChance = 0;
+    if (elo <= 400) {
+      sfOpts = { skill: 0, movetimeMs: 50, depth: 1 };
+      randomChance = elo <= 150 ? 0.55 : elo <= 250 ? 0.35 : 0.18;
+    } else if (elo < 800) {
+      sfOpts = { skill: Math.max(0, Math.round((elo - 400) / 80)), movetimeMs: 80 };
+      randomChance = 0.08;
+    } else if (elo < 1320) {
+      sfOpts = { skill: Math.round((elo - 800) / 60), movetimeMs: 150 };
+    } else {
+      sfOpts = { uciElo: Math.min(3190, elo), movetimeMs: Math.min(1500, 200 + (elo - 1320) * 0.6) };
+    }
     let from: string | undefined, to: string | undefined, promotion: string | undefined;
     try {
-      const { bestMove } = await sfEvaluate(fenBefore, depth);
-      if (!bestMove) throw new Error("no bestmove");
-      from = bestMove.slice(0, 2);
-      to = bestMove.slice(2, 4);
-      promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+      // Beginner randomness: sometimes play a random legal move.
+      if (randomChance > 0 && Math.random() < randomChance) {
+        const moves = s.game.moves({ verbose: true }) as Array<{ from: string; to: string; promotion?: string }>;
+        if (moves.length) {
+          const m = moves[Math.floor(Math.random() * moves.length)];
+          from = m.from; to = m.to; promotion = m.promotion;
+        }
+      }
+      if (!from) {
+        const { bestMove } = await sfBestMove(fenBefore, sfOpts);
+        if (!bestMove) throw new Error("no bestmove");
+        from = bestMove.slice(0, 2);
+        to = bestMove.slice(2, 4);
+        promotion = bestMove.length > 4 ? bestMove[4] : undefined;
+      }
     } catch {
       const m = pickEngineMove(s.game, s.cfg.elo);
       if (!m) return;
@@ -336,7 +359,19 @@ export function ChessPlayView() {
     recordMainlineMove(mv);
     force(n => n + 1);
     // Attempt to execute queued premove right after engine's response.
-    setTimeout(() => tryPlayPremove(), 30);
+    // If it's now illegal, clear the whole queue.
+    setTimeout(() => {
+      const st = stateRef.current;
+      if (!st) return;
+      if (premoves.length === 0) return;
+      const head = premoves[0];
+      try {
+        const test = new Chess(st.game.fen());
+        const probe = test.move({ from: head.from, to: head.to, promotion: head.promotion ?? "q" });
+        if (!probe) { setPremoves([]); return; }
+      } catch { setPremoves([]); return; }
+      tryPlayPremove();
+    }, 30);
   };
 
   // Compute current viewing position.
@@ -578,7 +613,20 @@ export function ChessPlayView() {
             {evalScore !== null && analysisView !== "analysis" && <EvalBar score={evalScore} />}
             <Container className="p-2 rounded-[20px] flex-1 min-w-0">
               <Chessboard
-                pieces={pieces}
+                pieces={(() => {
+                  // When premoves are queued on the live board, render the
+                  // projected board so captured opponent pieces visually
+                  // disappear on the player's screen immediately.
+                  if (live && premoves.length > 0) {
+                    const proj = projectedBoard();
+                    if (proj) {
+                      const t = new PieceTracker();
+                      t.reset(proj);
+                      return t.withIds(proj);
+                    }
+                  }
+                  return pieces;
+                })()}
                 orientation={orientation}
                 selected={selected}
                 legalSquares={legal}

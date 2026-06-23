@@ -1,5 +1,7 @@
 // Stockfish.wasm UCI wrapper. Single-threaded build → no SharedArrayBuffer needed.
 // Files are served from /public/stockfish/.
+// Single persistent worker + serialized request queue so we don't tear down /
+// recreate the engine per call (huge perf win for analysis + opponent moves).
 
 const ENGINE_URL = "/stockfish/stockfish-18-lite-single.js";
 
@@ -21,6 +23,8 @@ function getWorker(): Promise<Worker> {
           isReady = true;
           w.removeEventListener("message", onMsg);
           workerSingleton = w;
+          // eslint-disable-next-line no-console
+          console.info("[sf] ready");
           resolve(w);
         }
       };
@@ -40,15 +44,27 @@ export interface SFEval {
   bestMove: string | null; // long algebraic, e.g. "e2e4"
 }
 
-/** Evaluate a position. Resolves when bestmove is sent. */
-export async function sfEvaluate(fen: string, depth = 12): Promise<SFEval> {
+export interface SFOptions {
+  /** Search depth (used when no movetime). */
+  depth?: number;
+  /** Hard time cap in ms (overrides depth-only search if set). */
+  movetimeMs?: number;
+  /** 0..20 — lower = weaker. Mutually exclusive with uciElo. */
+  skill?: number;
+  /** Use UCI_LimitStrength + UCI_Elo. Stockfish range ≈ 1320–3190. */
+  uciElo?: number;
+}
+
+// Serialize calls so concurrent requests don't garble UCI state.
+let chain: Promise<unknown> = Promise.resolve();
+
+async function runUci(fen: string, opts: SFOptions): Promise<SFEval> {
   const w = await getWorker();
   return new Promise<SFEval>((resolve) => {
     let lastCp = 0;
     const onMsg = (e: MessageEvent) => {
       const line = typeof e.data === "string" ? e.data : "";
       if (line.startsWith("info ")) {
-        // parse score
         const mCp = line.match(/score cp (-?\d+)/);
         const mMate = line.match(/score mate (-?\d+)/);
         if (mMate) {
@@ -65,10 +81,45 @@ export async function sfEvaluate(fen: string, depth = 12): Promise<SFEval> {
       }
     };
     w.addEventListener("message", onMsg);
-    w.postMessage("ucinewgame");
+    // Apply strength options.
+    if (typeof opts.uciElo === "number") {
+      w.postMessage("setoption name UCI_LimitStrength value true");
+      const elo = Math.max(1320, Math.min(3190, Math.round(opts.uciElo)));
+      w.postMessage(`setoption name UCI_Elo value ${elo}`);
+    } else {
+      w.postMessage("setoption name UCI_LimitStrength value false");
+    }
+    if (typeof opts.skill === "number") {
+      const sk = Math.max(0, Math.min(20, Math.round(opts.skill)));
+      w.postMessage(`setoption name Skill Level value ${sk}`);
+    } else {
+      w.postMessage("setoption name Skill Level value 20");
+    }
     w.postMessage(`position fen ${fen}`);
-    w.postMessage(`go depth ${depth}`);
+    if (opts.movetimeMs && opts.movetimeMs > 0) {
+      w.postMessage(`go movetime ${Math.round(opts.movetimeMs)}`);
+    } else {
+      const d = Math.max(1, Math.min(22, opts.depth ?? 12));
+      w.postMessage(`go depth ${d}`);
+    }
   });
+}
+
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  const next = chain.then(fn, fn);
+  // Keep chain rejection-safe.
+  chain = next.catch(() => undefined);
+  return next;
+}
+
+/** Evaluate a position with full strength. */
+export function sfEvaluate(fen: string, depth = 12): Promise<SFEval> {
+  return enqueue(() => runUci(fen, { depth }));
+}
+
+/** Evaluate / pick a move with strength controls. */
+export function sfBestMove(fen: string, opts: SFOptions = {}): Promise<SFEval> {
+  return enqueue(() => runUci(fen, opts));
 }
 
 /** Stop and discard the engine (frees memory). */
@@ -78,5 +129,12 @@ export function sfTerminate() {
     try { workerSingleton.terminate(); } catch { /* */ }
     workerSingleton = null;
     readyPromise = null;
+    chain = Promise.resolve();
   }
+}
+
+// Expose tiny ping for manual verification in the browser console.
+if (typeof window !== "undefined") {
+  (window as unknown as { __sfPing?: () => Promise<SFEval> }).__sfPing =
+    () => sfEvaluate("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6);
 }

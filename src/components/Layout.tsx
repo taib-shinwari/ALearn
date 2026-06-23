@@ -179,7 +179,10 @@ export default function Layout({ children }: LayoutProps) {
             </Button>
           )}
           {inLesson && lessonState && (
-            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden ml-1 max-w-md" aria-label="Lesson progress">
+            <div
+              className="flex-1 h-3 bg-muted rounded-full overflow-hidden mx-2 min-w-[200px] max-w-[640px] border border-border"
+              aria-label="Lesson progress"
+            >
               <div
                 className="h-full bg-emerald-500 transition-all"
                 style={{ width: `${(lessonState.current / Math.max(1, lessonState.total)) * 100}%` }}

@@ -1,96 +1,64 @@
-## 1. Lesson & Dictionary Theme Unification
+# Combined Fixes Plan
 
-Goal: make the Lesson and Dictionary folder views look like the root home view — same background, padding, typography, no black panel.
+## Part 1 — Chess
 
-- `src/components/lessons/LessonsView.tsx`: remove its own `bg-*`/dark wrapper, drop hardcoded `bg-black`/`bg-zinc-950`, inherit `bg-background text-foreground` from `Layout`. Use the same outer container spacing (`px-4 md:px-6 py-6`) as `HomePage` root grid.
-- Dictionary folder view (rendered via `HomePage` path `["language", lang, "dictionary"]`): same change — remove dark wrapper, reuse the home grid spacing and `CardButton` rounded-full grid styling.
-- Both views render their folder grids inside the existing `HomePage` shell so the navbar/breadcrumb sits on the same background, no nested theme.
-- Verify against `src/index.css` tokens; no new colors introduced.
+### 1. Engine & Elo
+- **`src/lib/stockfish.ts`**: Add `sfEvaluateAt(fen, { depth, skill, movetime, multiPV })` and `sfBestMove(fen, { skill, depth, movetime })` helpers that send `setoption name Skill Level value N` and `setoption name UCI_LimitStrength value true` + `UCI_Elo` to the worker before `go`. Cap UCI_Elo at Stockfish's supported range (1320–3190) and use Skill Level 0 + very short movetime for sub-1320 "true beginner" play.
+- **`ChessPlayView.tsx`**: Map slider Elo to engine params:
+  - `elo <= 400`: Skill 0, movetime 50ms, depth 1, inject random legal move 40% of time at 100 Elo, 20% at 200, 10% at 400.
+  - `400 < elo < 1320`: Skill `round((elo-400)/100)` (0–9), movetime 80–200ms.
+  - `elo >= 1320`: UCI_LimitStrength true, UCI_Elo = elo, depth scales with elo.
+  - Hard cap slider/setup max at **3200**.
+- **Estimated Rating & Classification mismatch** (`analysis/classification.ts`): Re-derive rating from accuracy curve (`rating = clamp(400 + accuracy*28 - blunders*40 - mistakes*15, 100, 3200)`) and ensure classification uses post-move eval from the *mover's* perspective (sign flip bug). Fix CPL sign so White and Black are evaluated symmetrically.
 
-## 2. Chess Engine Rewrite (bitboard + NNUE-flavored eval)
+### 2. Performance & Stability
+- **Report Card hide crash**: In `ChessPlayView.tsx`, the analyse effect likely keeps a Stockfish worker alive / re-runs on unmount. Add `sfTerminate()` on unmount + guard `setState` after unmount with `mounted` ref. Wrap `AnalysisReport` toggle in conditional render that doesn't unmount `EvalChart` mid-calculation (use `hidden` class or memoize).
+- **Verify Stockfish**: Add a one-time `console.info("[sf] ready", id)` in `stockfish.ts` worker init; expose `window.__sfPing()` for quick check. Ensure single worker reused per session, not spawned per move (current code spawns per `sfEvaluate` call — switch to a pooled persistent worker with a request queue).
 
-File: `src/lib/chessEngine.ts` (full rewrite, keep the existing `getEngineMove(fen, elo)` and `evaluatePosition(fen)` exports so callers don't change).
+### 3. Piece Interaction & Premoves
+- **Click-to-move**: In `Chessboard.tsx` `handleSquare`, when a piece is already selected and target is a legal square, execute the move. Currently selection works but second click doesn't commit — fix the legal-squares lookup so click path uses the same `legalSquares` set as the drag path.
+- **Premove visuals**:
+  - Add `premoveHighlight` (red) distinct from `lastMove` (light blue) in `Chessboard.tsx`.
+  - Allow `beginPieceDrag` / `handleSquare` to accept player moves during opponent's turn when `allowPremoves` setting is on; route through a new `onPremove(from,to,promotion)` prop instead of `onMove`.
+  - **Optimistic capture**: In `ChessPlayView.tsx`, maintain `premoveOverlay` state — a shadow board derived from current FEN with the premove applied locally for rendering only. Pass to `Chessboard` via a new `displayFenOverride` prop.
+  - **Premove queue**: Store `pendingPremoves: Array<{from,to,promo}>`. After each opponent move, try `chess.move(premove[0])`; if illegal, clear entire queue + overlay + red highlight, restoring captured piece naturally because overlay is dropped.
 
-Core architecture:
-- **Bitboard representation** — 12 `BigInt` boards (one per piece type/color) plus occupancy boards. Move generation built on bit-twiddling (precomputed knight/king attack tables, magic-style ray lookups for sliders implemented as classical ray scans for simplicity).
-- **Search**: negamax with alpha-beta, iterative deepening from depth 1 up to the ELO-mapped cap.
-- **Transposition table**: Zobrist hashing (random 64-bit keys per piece/square + side + castling + ep), 1M-entry array keyed by `key & mask`, storing `{key, depth, score, flag, bestMove}`.
-- **PVS** (principal variation search) — first move searched full window, rest with null window then re-search on fail-high.
-- **Null-move pruning** — R=2, disabled in endgame / when in check.
-- **Late Move Reductions** — reduce depth for quiet moves after the first 3 at depth ≥ 3.
-- **Quiescence search** — captures + promotions + checks, stand-pat with delta pruning.
-- **Move ordering**: TT move → MVV-LVA captures → killer moves (2 per ply) → history heuristic.
-- **NNUE-flavored eval** at top strength: small handcrafted "accumulator" — piece-square tables + tapered eval (mg/eg) + mobility + king safety (pawn shield, attacker count) + bishop pair + passed/doubled/isolated pawns + rook on open file. Wrapped in `evaluateNNUE(board)` so it can be swapped for a real NNUE blob later without touching search. We do not ship real NNUE weights (binary asset); the function name and layered API matches an NNUE pipeline so the eval bar/arrows consume one source of truth.
-- **ELO scaling (100–2000)**: maps to `(maxDepth, randomness, blunderChance, useQS, useNullMove)`. Below 800 we inject blunders by picking from top-N with weighted noise; at 2000 full search, no noise.
+## Part 2 — Dictionary & Lessons
 
-Engine exports used by UI:
-- `getEngineMove(fen, elo) → {from,to,promotion?}`
-- `evaluatePosition(fen) → centipawnsFromWhitePOV` (used by eval bar + chart)
-- `getBestLine(fen, depth) → Move[]` (used by analysis arrows + "next optimal lines")
+### 1. Empty by default
+- **`src/data/courseData.ts` / dictionary source**: Stop seeding default words/categories. Only the **Alphabet** category remains. Replace any "default words" array with `[]` and update `DictionarySection.tsx` empty-state copy.
+- Reset existing localStorage on first load via a versioned key (`dict.v2.initialized`) so existing users get the empty state.
 
-All synchronous, but search is time-bounded (`softTime` derived from ELO) so the UI doesn't freeze. Wrap top-level call in `requestIdleCallback` fallback in `ChessPlayView` when starting engine think.
+### 2. New-word tracking
+- **`LessonsView.tsx`**: Today every render of a question marks all words green. Change `newIds` to be computed **per question step**: a word is green only if `!markedWords.has(id)` *at the moment the question first mounts*. After advancing to the next question, that word is already in `markedWords` so it renders normal. Add it to dictionary on question advance/complete, not on render.
 
-## 3. Analysis Feedback Panel
+### 3. Intelligent category routing
+- New helper `src/lib/dictionaryRouting.ts`:
+  - `routeWord(word, defaultPath, customCategories)`:
+    1. Determine default path from word metadata (e.g., `Noun/Fruit`).
+    2. Scan user's custom categories; for each, compute a theme signature (set of POS + semantic tag of contained words).
+    3. If a custom category's signature matches the new word's `{pos, semanticTag}`, route there instead of creating the default.
+    4. Otherwise create/use default path.
+- Wire into the auto-add flow in `LessonsView.tsx` (replace direct `addWord` call).
 
-Files: `src/components/chess/MoveDetailPanel.tsx`, `src/components/chess/analysis/AnalysisReport.tsx`.
+### 4. Header progress bar
+- **`Layout.tsx`**: Increase the in-header `<Progress>` width from current size to `min-w-[280px] max-w-[480px] flex-1` with `h-2.5` for taller bar.
 
-When analysis mode is active AND feedback toggle is on, the panel above the moves list shows for the currently selected move:
-1. **Header row**: piece glyph + SAN + classification badge (`*`, `!!`, `!`, `?!`, `?`, `??`, `x`) colored per `CLASS_META`.
-2. **Explanation line**: short generated string based on classification + eval delta + tactical hints (e.g. "Best — develops the knight and contests the center", "Blunder — drops the rook to Nxe5", "Miss — missed Qxh7# mate in 1"). Generator is a pure function `explainMove(prevEval, newEval, bestLine, playedMove, board)` in `analysis/classification.ts`.
-3. **Next optimal lines**: top 2 engine lines from the position before the move, rendered as SAN sequences (3–4 plies each), hover shows mini-board preview via `HoverCard` (already wired).
+## Technical Notes
 
-Eval bar + suggestion arrows on the board both read from the same `evaluatePosition` / `getBestLine` calls so they stay in sync with what the panel shows.
+- Stockfish worker pooling: keep one global `Worker` in `stockfish.ts`, with a message-id queue, instead of `new Worker()` per call. This alone removes most of the lag.
+- All premove rendering is local-only; never mutate the authoritative `chess.js` instance until the opponent has actually moved.
+- Sign convention for CPL: always `cpl = max(0, bestEvalForMover - playedEvalForMover)` where evals are converted to mover's POV before subtraction.
 
-## 4. Chess.com-Style Pointer Drag
-
-File: `src/components/chess/Chessboard.tsx`.
-
-Replace current mouse/touch handlers with unified **Pointer Events**:
-- `onPointerDown` on a piece: `setPointerCapture`, record `{startX, startY, square, pointerId}`, immediately render the piece centered on the cursor (translate by `cursor - squareCenter`) and show move dots. No scale animation.
-- `onPointerMove`: if total movement < `DRAG_THRESHOLD` (6px), treat as potential click (piece stays "lifted" at cursor but we don't mark as dragging yet). Past threshold, set `isDragging=true` and follow cursor.
-- `onPointerUp`:
-  - If never crossed threshold AND released on the same square → click-select (keep selection + dots).
-  - If released on a legal target square → play move.
-  - If released elsewhere → snap back, keep selection if click-mode, clear if drag-mode.
-- `onPointerCancel` / loss of capture → snap back.
-- Drag image is the piece SVG with its square background tint preserved (already the case via the piece div); no native HTML5 drag.
-- Right-click (`onContextMenu`) reserved for arrows / premove cancel (section 5).
-
-This removes the dual click+HTML5-drag code paths and fixes corner-grab offset.
-
-## 5. Multi-Premove FIFO Queue
-
-File: `src/components/chess/ChessPlayView.tsx` (state) + `Chessboard.tsx` (rendering/input).
-
-State: `premoves: Array<{from, to, promotion?}>` as FIFO queue.
-
-Behavior:
-- When it's not the user's turn, attempting a move pushes onto `premoves` if it's pseudo-legal in the projected board (apply queued premoves in sequence on a scratch `Chess` instance to validate the next one).
-- Affected squares (every `from` and `to` across the queue) are tinted **red** (`bg-red-500/35`) on the board overlay. Last queued destination gets a brighter red border.
-- On engine move completion → `tryFlushPremoves`: pop head, attempt to play; if legal, play it and trigger the engine again (so chained premoves work); if illegal, clear the entire queue.
-- **Right-click on any premove square** → cancel entire queue (Chess.com behavior). Right-drag still draws arrows when no premove exists on that square.
-- Passive interactions (arrow drawing, square highlight via right-click on empty squares, shift-click highlight) remain available at all times regardless of turn.
-
-## Technical Details
-
-- New helper module `src/lib/bitboard.ts` for board representation + move generation so `chessEngine.ts` stays focused on search/eval.
-- Zobrist keys initialized once at module load with a seeded PRNG (deterministic across reloads for reproducible TT behavior in tests).
-- `evaluatePosition` memoized per-FEN with an LRU of 512 entries to avoid re-evaluating during analysis chart rendering.
-- Premove validation uses `chess.js` `Chess` clones (cheap enough for queue length ≤ 5; cap queue at 5).
-- Drag threshold and tint colors exposed as constants at the top of `Chessboard.tsx` for easy tuning.
-- No new dependencies.
-
-## Files
-
-Created:
-- `src/lib/bitboard.ts`
-
-Edited:
-- `src/lib/chessEngine.ts` (rewrite)
-- `src/components/chess/Chessboard.tsx` (pointer drag, premove rendering)
-- `src/components/chess/ChessPlayView.tsx` (premove FIFO, engine think scheduling)
-- `src/components/chess/MoveDetailPanel.tsx` (richer feedback)
-- `src/components/chess/analysis/classification.ts` (`explainMove`)
-- `src/components/chess/analysis/AnalysisReport.tsx` (consume `getBestLine`)
-- `src/components/lessons/LessonsView.tsx` (theme unification)
-- `src/pages/HomePage.tsx` (dictionary view wrapper cleanup, shared container)
+## Files to Edit
+- `src/lib/stockfish.ts` (pool + strength options)
+- `src/components/chess/ChessPlayView.tsx` (elo map, premove queue + overlay, unmount safety)
+- `src/components/chess/Chessboard.tsx` (click-to-move fix, premove red highlight, opponent-turn interaction gating, display-FEN override)
+- `src/components/chess/ChessSetupPanel.tsx` (cap 3200)
+- `src/components/chess/analysis/classification.ts` (CPL sign + rating formula)
+- `src/components/chess/analysis/AnalysisReport.tsx` (mount safety / hidden toggle)
+- `src/components/lessons/LessonsView.tsx` (new-word per-step + routing call)
+- `src/lib/dictionaryRouting.ts` (new)
+- `src/components/settings/sections/DictionarySection.tsx` (empty state)
+- `src/data/courseData.ts` (strip seed words)
+- `src/components/Layout.tsx` (header progress width)
