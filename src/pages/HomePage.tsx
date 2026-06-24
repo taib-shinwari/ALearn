@@ -134,11 +134,14 @@ export default function HomePage() {
     return <LessonsView lang={targetLang} />;
   }
 
-  // ── dictionary word detail: ["language", lang, "_marked", catId, subId, wordId]
+  // ── dictionary marked branch: ["language", lang, "_marked", catId, subId, wordId?]
   if (browsePath[2] === "_marked") {
     const cat = categories.find(c => c.id === browsePath[3]);
     const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
     if (!cat || !sub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    if (browsePath.length === 5) {
+      return <MarkedSubcategoryWordsView cat={cat} sub={sub} targetLang={targetLang} />;
+    }
     return (
       <WordDetailResolver
         categoryId={cat.id}
@@ -215,6 +218,35 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
       word={word}
       isCustom={isCustom}
     />
+  );
+}
+
+/* ──────────── Marked words within a subcategory (dictionary detail) ──────────── */
+function MarkedSubcategoryWordsView({ cat, sub, targetLang }: {
+  cat: typeof categories[number];
+  sub: typeof categories[number]["subcategories"][number];
+  targetLang: Lang;
+}) {
+  const { uiLang } = useCourseLanguage();
+  const { setBrowsePath } = useApp();
+  const { map } = useMarkedWords();
+  const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
+  const words = sub.words.filter(w => markedIds.has(w.id));
+  return (
+    <div className="px-4 w-full space-y-3">
+      <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
+      <div className="grid grid-cols-2 gap-3">
+        {words.map(w => (
+          <CardButton
+            key={w.id}
+            onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
+            className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
+          >
+            <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
+          </CardButton>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -340,22 +372,16 @@ function DictionaryBrowseView({
           </p>
         </Container>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           {groups.map(({ cat, sub, words }) => (
-            <div key={`${cat.id}-${sub.id}`} className="space-y-2">
-              <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
-              <div className="grid grid-cols-2 gap-3">
-                {words.map(w => (
-                  <CardButton
-                    key={w.id}
-                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
-                    className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
-                  >
-                    <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
-                  </CardButton>
-                ))}
-              </div>
-            </div>
+            <CardButton
+              key={`${cat.id}-${sub.id}`}
+              onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
+              className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
+            >
+              <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
+              <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
+            </CardButton>
           ))}
           {collections.map(col => (
             <div key={col.id} className="space-y-2">
