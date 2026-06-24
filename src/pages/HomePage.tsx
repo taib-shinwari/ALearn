@@ -134,6 +134,21 @@ export default function HomePage() {
     return <LessonsView lang={targetLang} />;
   }
 
+  // ── dictionary word detail: ["language", lang, "_marked", catId, subId, wordId]
+  if (browsePath[2] === "_marked") {
+    const cat = categories.find(c => c.id === browsePath[3]);
+    const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
+    if (!cat || !sub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <WordDetailResolver
+        categoryId={cat.id}
+        subcategoryId={sub.id}
+        wordId={browsePath[5]}
+        builtIn={sub.words}
+      />
+    );
+  }
+
   // ── subcategories ──────────────────────────────────────────────────
   const category = categories.find(c => c.id === browsePath[2]);
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
