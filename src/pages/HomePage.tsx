@@ -280,7 +280,7 @@ function DictionaryBrowseView({
   setName: (v: string) => void;
 }) {
   const { uiLang, t } = useCourseLanguage();
-  const { pushBrowse } = useApp();
+  const { pushBrowse, setBrowsePath } = useApp();
   const { map } = useMarkedWords();
   const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
 
