@@ -134,11 +134,14 @@ export default function HomePage() {
     return <LessonsView lang={targetLang} />;
   }
 
-  // ── dictionary word detail: ["language", lang, "_marked", catId, subId, wordId]
+  // ── dictionary marked branch: ["language", lang, "_marked", catId, subId, wordId?]
   if (browsePath[2] === "_marked") {
     const cat = categories.find(c => c.id === browsePath[3]);
     const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
     if (!cat || !sub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    if (browsePath.length === 5) {
+      return <MarkedSubcategoryWordsView cat={cat} sub={sub} targetLang={targetLang} />;
+    }
     return (
       <WordDetailResolver
         categoryId={cat.id}
