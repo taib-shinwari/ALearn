@@ -340,22 +340,16 @@ function DictionaryBrowseView({
           </p>
         </Container>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           {groups.map(({ cat, sub, words }) => (
-            <div key={`${cat.id}-${sub.id}`} className="space-y-2">
-              <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
-              <div className="grid grid-cols-2 gap-3">
-                {words.map(w => (
-                  <CardButton
-                    key={w.id}
-                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
-                    className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
-                  >
-                    <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
-                  </CardButton>
-                ))}
-              </div>
-            </div>
+            <CardButton
+              key={`${cat.id}-${sub.id}`}
+              onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
+              className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
+            >
+              <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
+              <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
+            </CardButton>
           ))}
           {collections.map(col => (
             <div key={col.id} className="space-y-2">
