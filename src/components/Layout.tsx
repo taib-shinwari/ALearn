@@ -89,12 +89,14 @@ export default function Layout({ children }: LayoutProps) {
           crumbs.push({ label: "Lesson", idx: 4 });
         }
       } else if (seg === "_marked") {
-        // Dictionary detail: ["language", lang, "_marked", catId, subId, wordId]
-        const wordId = browsePath[5];
+        // Dictionary: ["language", lang, "_marked", catId, subId, wordId?]
         const cat = categories.find(c => c.id === browsePath[3]);
         const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
-        const word = sub?.words.find(w => w.id === wordId);
-        if (word) crumbs.push({ label: word[uiLang === "ar" ? "en" : uiLang].word, idx: 5 });
+        if (sub) crumbs.push({ label: localizedName(sub.name, uiLang), idx: 4 });
+        if (browsePath.length >= 6) {
+          const word = sub?.words.find(w => w.id === browsePath[5]);
+          if (word) crumbs.push({ label: word[uiLang === "ar" ? "en" : uiLang].word, idx: 5 });
+        }
       } else {
         const cat = categories.find(c => c.id === seg);
         if (cat) crumbs.push({ label: localizedName(cat.name, uiLang), idx: 2 });
