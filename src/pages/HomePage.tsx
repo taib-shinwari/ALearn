@@ -221,6 +221,35 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
   );
 }
 
+/* ──────────── Marked words within a subcategory (dictionary detail) ──────────── */
+function MarkedSubcategoryWordsView({ cat, sub, targetLang }: {
+  cat: typeof categories[number];
+  sub: typeof categories[number]["subcategories"][number];
+  targetLang: Lang;
+}) {
+  const { uiLang } = useCourseLanguage();
+  const { setBrowsePath } = useApp();
+  const { map } = useMarkedWords();
+  const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
+  const words = sub.words.filter(w => markedIds.has(w.id));
+  return (
+    <div className="px-4 w-full space-y-3">
+      <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
+      <div className="grid grid-cols-2 gap-3">
+        {words.map(w => (
+          <CardButton
+            key={w.id}
+            onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
+            className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
+          >
+            <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
+          </CardButton>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ──────────────────── Language root view ──────────────────── */
 
 function LanguageRootView({
