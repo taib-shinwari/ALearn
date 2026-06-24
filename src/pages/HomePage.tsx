@@ -243,9 +243,61 @@ function LanguageRootView({
   }
 
   return (
+    <DictionaryBrowseView
+      targetLang={targetLang}
+      rootKey={rootKey}
+      collections={collections}
+      addCollection={addCollection}
+      removeCollection={removeCollection}
+      onBack={() => setView("menu")}
+      menuOpen={menuOpen}
+      setMenuOpen={setMenuOpen}
+      addOpen={addOpen}
+      setAddOpen={setAddOpen}
+      name={name}
+      setName={setName}
+    />
+  );
+}
+
+/* ──────────────────── Dictionary (marked words) view ──────────────────── */
+
+function DictionaryBrowseView({
+  targetLang, rootKey, collections, addCollection, removeCollection,
+  onBack, menuOpen, setMenuOpen, addOpen, setAddOpen, name, setName,
+}: {
+  targetLang: Lang;
+  rootKey: string;
+  collections: { id: string; name: { nl: string; en: string; ar?: string } }[];
+  addCollection: (rootKey: string, name: string) => void;
+  removeCollection: (rootKey: string, id: string) => void;
+  onBack: () => void;
+  menuOpen: boolean;
+  setMenuOpen: (v: boolean) => void;
+  addOpen: boolean;
+  setAddOpen: (v: boolean) => void;
+  name: string;
+  setName: (v: string) => void;
+}) {
+  const { uiLang, t } = useCourseLanguage();
+  const { pushBrowse } = useApp();
+  const { map } = useMarkedWords();
+  const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
+
+  // Group marked words by category (only categories that have at least one marked word).
+  const groups = useMemo(() => {
+    return categories
+      .map(cat => {
+        const words = getWordsForCategory(cat.id).filter(w => markedIds.has(w.id));
+        return { cat, words };
+      })
+      .filter(g => g.words.length > 0);
+  }, [markedIds]);
+
+  return (
     <div className="px-4 w-full space-y-3">
       <div className="flex justify-end relative">
-        <Button onClick={() => setMenuOpen(o => !o)} aria-label="Add">
+        <Button onClick={() => setMenuOpen(!menuOpen)} aria-label="Add">
           <Plus className="h-4 w-4 mr-1" /> {t("add") || "Add"}
         </Button>
         {menuOpen && (
@@ -259,46 +311,62 @@ function LanguageRootView({
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <CardButton
-          onClick={onOpenAlphabet}
-          className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-        >
-          <span className="font-semibold text-sm">{ALPHABET_LABEL[uiLang]}</span>
-          <span className="text-xs opacity-70 whitespace-nowrap">{alphabetCount} {t("words")}</span>
-        </CardButton>
-        {categories.map(cat => {
-          const total = getWordsForCategory(cat.id).length;
-          return (
-            <CardButton
-              key={cat.id}
-              onClick={() => onOpenCategory(cat.id)}
-              className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-            >
-              <span className="font-semibold text-sm">{localizedName(cat.name, uiLang)}</span>
-              <span className="text-xs opacity-70 whitespace-nowrap">{total} {t("words")}</span>
-            </CardButton>
-          );
-        })}
-        {collections.map(col => (
-          <CardButton
-            key={col.id}
-            onClick={() => pushBrowse(col.id)}
-            className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3 relative"
-          >
-            <span className="font-semibold text-sm">{localizedName(col.name, uiLang)}</span>
-            <span className="text-xs opacity-70 whitespace-nowrap">0 {t("words")}</span>
-            <span
-              role="button"
-              onClick={(e) => { e.stopPropagation(); if (confirm("Remove collection?")) removeCollection(rootKey, col.id); }}
-              className="absolute top-1 right-1 p-1 opacity-60 hover:opacity-100"
-              aria-label="Remove"
-            >
-              <X className="h-3 w-3" />
-            </span>
-          </CardButton>
-        ))}
-      </div>
+
+      {groups.length === 0 && collections.length === 0 ? (
+        <Container>
+          <p className="text-sm text-center opacity-70">
+            {uiLang === "nl"
+              ? "Je woordenboek is leeg. Voltooi lessen om woorden toe te voegen."
+              : uiLang === "ar"
+              ? "قاموسك فارغ. أكمل الدروس لإضافة الكلمات."
+              : "Your dictionary is empty. Complete lessons to add words."}
+          </p>
+        </Container>
+      ) : (
+        <div className="space-y-4">
+          {groups.map(({ cat, words }) => (
+            <div key={cat.id} className="space-y-2">
+              <TitleBar>{localizedName(cat.name, uiLang)}</TitleBar>
+              <div className="grid grid-cols-2 gap-3">
+                {words.map(w => (
+                  <CardButton
+                    key={w.id}
+                    onClick={() => {
+                      const sub = cat.subcategories.find(s => s.words.some(x => x.id === w.id));
+                      if (sub) pushBrowse(cat.id, sub.id, w.id);
+                    }}
+                    className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
+                  >
+                    <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
+                  </CardButton>
+                ))}
+              </div>
+            </div>
+          ))}
+          {collections.map(col => (
+            <div key={col.id} className="space-y-2">
+              <TitleBar>
+                <span className="flex items-center justify-between w-full">
+                  <span>{localizedName(col.name, uiLang)}</span>
+                  <button
+                    onClick={() => { if (confirm("Remove collection?")) removeCollection(rootKey, col.id); }}
+                    className="opacity-60 hover:opacity-100"
+                    aria-label="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              </TitleBar>
+              <CardButton
+                onClick={() => pushBrowse(col.id)}
+                className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
+              >
+                <span className="text-xs opacity-70">0 {t("words")}</span>
+              </CardButton>
+            </div>
+          ))}
+        </div>
+      )}
 
       <FullPageDialog open={addOpen} onOpenChange={setAddOpen} title={t("addCollection") || "Add Collection"}>
         <div className="space-y-3">
