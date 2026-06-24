@@ -333,7 +333,7 @@ function DictionaryBrowseView({
                     key={w.id}
                     onClick={() => {
                       const sub = cat.subcategories.find(s => s.words.some(x => x.id === w.id));
-                      if (sub) pushBrowse(cat.id, sub.id, w.id);
+                      if (sub) setBrowsePath(["language", targetLang, cat.id, sub.id, w.id]);
                     }}
                     className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
                   >
