@@ -134,6 +134,21 @@ export default function HomePage() {
     return <LessonsView lang={targetLang} />;
   }
 
+  // ── dictionary word detail: ["language", lang, "_marked", catId, subId, wordId]
+  if (browsePath[2] === "_marked") {
+    const cat = categories.find(c => c.id === browsePath[3]);
+    const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
+    if (!cat || !sub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    return (
+      <WordDetailResolver
+        categoryId={cat.id}
+        subcategoryId={sub.id}
+        wordId={browsePath[5]}
+        builtIn={sub.words}
+      />
+    );
+  }
+
   // ── subcategories ──────────────────────────────────────────────────
   const category = categories.find(c => c.id === browsePath[2]);
   if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
@@ -284,14 +299,16 @@ function DictionaryBrowseView({
   const { map } = useMarkedWords();
   const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
 
-  // Group marked words by category (only categories that have at least one marked word).
+  // Group marked words by SUBCATEGORY (theme), not by part-of-speech category.
   const groups = useMemo(() => {
-    return categories
-      .map(cat => {
-        const words = getWordsForCategory(cat.id).filter(w => markedIds.has(w.id));
-        return { cat, words };
-      })
-      .filter(g => g.words.length > 0);
+    const result: { cat: typeof categories[number]; sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[] = [];
+    for (const cat of categories) {
+      for (const sub of cat.subcategories) {
+        const words = sub.words.filter(w => markedIds.has(w.id));
+        if (words.length > 0) result.push({ cat, sub, words });
+      }
+    }
+    return result;
   }, [markedIds]);
 
   return (
@@ -324,17 +341,14 @@ function DictionaryBrowseView({
         </Container>
       ) : (
         <div className="space-y-4">
-          {groups.map(({ cat, words }) => (
-            <div key={cat.id} className="space-y-2">
-              <TitleBar>{localizedName(cat.name, uiLang)}</TitleBar>
+          {groups.map(({ cat, sub, words }) => (
+            <div key={`${cat.id}-${sub.id}`} className="space-y-2">
+              <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
               <div className="grid grid-cols-2 gap-3">
                 {words.map(w => (
                   <CardButton
                     key={w.id}
-                    onClick={() => {
-                      const sub = cat.subcategories.find(s => s.words.some(x => x.id === w.id));
-                      if (sub) setBrowsePath(["language", targetLang, cat.id, sub.id, w.id]);
-                    }}
+                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
                     className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
                   >
                     <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
