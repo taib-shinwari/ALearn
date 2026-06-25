@@ -552,9 +552,25 @@ export function ChessPlayView() {
     ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
     : s.tracker.withIds(s.game);
 
-  const legal: string[] = selected
-    ? (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to)
-    : [];
+  // Legal squares for the selected piece. During the opponent's turn we
+  // compute on the projected (post-premove) board with the side-to-move
+  // forced to the player's color, so premove dots show normally.
+  const legal: string[] = (() => {
+    if (!selected) return [];
+    if (live && s.game.turn() !== s.playerColor) {
+      const proj = projectedBoard();
+      if (!proj) return [];
+      const parts = proj.fen().split(" ");
+      parts[1] = s.playerColor;
+      // Clear en-passant square — irrelevant once we force the side to move.
+      parts[3] = "-";
+      try {
+        const g = new Chess(parts.join(" "));
+        return (g.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+      } catch { return []; }
+    }
+    return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+  })();
 
   const lastMove = view.lastMove;
 
