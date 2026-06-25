@@ -74,7 +74,7 @@ function playMoveSound(kind: "move" | "capture" = "move") {
 export function ChessPlayView() {
   const [settings] = useChessSettings();
   const [cfg, setCfg] = useState<GameConfig | null>(null);
-  const [, force] = useState(0);
+  const [refreshCounter, force] = useState(0);
   const stateRef = useRef<PlayState | null>(null);
   const lastTickRef = useRef<number>(0);
   const [selected, setSelected] = useState<string | null>(null);
