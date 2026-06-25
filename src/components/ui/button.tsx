@@ -69,8 +69,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           "relative rounded-[40px] transition-colors duration-200 inline-flex items-center justify-center gap-2",
-          !isGhost && "bg-background border border-border text-foreground hover:bg-muted/60",
-          isGhost && "bg-transparent border border-transparent text-foreground hover:bg-muted/60",
+          !isGhost && "bg-background border border-border text-foreground",
+          isGhost && "bg-transparent border border-transparent text-foreground",
+          !active && "hover:bg-muted/60",
           sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
           variant === "destructive" && "border-destructive text-destructive hover:bg-destructive/10",

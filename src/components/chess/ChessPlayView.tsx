@@ -422,11 +422,24 @@ export function ChessPlayView() {
         if (piece && piece.color === s.playerColor) setSelected(sq);
         return;
       }
-      // Opponent's turn → queue premove if click target is reasonable
+      // Opponent's turn → either queue a premove, or reselect another own piece.
       const own = s.game.get(selected as any);
       if (own && own.color === s.playerColor && sq !== selected) {
-        queuePremove(selected, sq);
-        return;
+        // Determine if `sq` is a legal premove destination on the projected board.
+        const proj = projectedBoard();
+        let legalPremove = false;
+        if (proj) {
+          const parts = proj.fen().split(" ");
+          parts[1] = s.playerColor;
+          parts[3] = "-";
+          try {
+            const g = new Chess(parts.join(" "));
+            const moves = g.moves({ square: selected as any, verbose: true }) as any[];
+            legalPremove = moves.some(m => m.to === sq);
+          } catch { /* noop */ }
+        }
+        if (legalPremove) { queuePremove(selected, sq); return; }
+        if (piece && piece.color === s.playerColor) { setSelected(sq); return; }
       }
       return;
     }
@@ -552,9 +565,25 @@ export function ChessPlayView() {
     ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
     : s.tracker.withIds(s.game);
 
-  const legal: string[] = selected
-    ? (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to)
-    : [];
+  // Legal squares for the selected piece. During the opponent's turn we
+  // compute on the projected (post-premove) board with the side-to-move
+  // forced to the player's color, so premove dots show normally.
+  const legal: string[] = (() => {
+    if (!selected) return [];
+    if (live && s.game.turn() !== s.playerColor) {
+      const proj = projectedBoard();
+      if (!proj) return [];
+      const parts = proj.fen().split(" ");
+      parts[1] = s.playerColor;
+      // Clear en-passant square — irrelevant once we force the side to move.
+      parts[3] = "-";
+      try {
+        const g = new Chess(parts.join(" "));
+        return (g.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+      } catch { return []; }
+    }
+    return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+  })();
 
   const lastMove = view.lastMove;
 

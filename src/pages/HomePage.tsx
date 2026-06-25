@@ -234,7 +234,6 @@ function MarkedSubcategoryWordsView({ cat, sub, targetLang }: {
   const words = sub.words.filter(w => markedIds.has(w.id));
   return (
     <div className="px-4 w-full space-y-3">
-      <TitleBar>{localizedName(sub.name, uiLang)}</TitleBar>
       <div className="grid grid-cols-2 gap-3">
         {words.map(w => (
           <CardButton
