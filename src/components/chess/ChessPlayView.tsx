@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "@/components/chess/Chessboard";
 import { Container } from "@/components/ui/container";
@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyseGame, summarisePlayer, type PerMove } from "./analysis/classification";
-import { AnalysisReport } from "./analysis/AnalysisReport";
+// Lazy-load the heavy Highcharts-powered report so it doesn't bloat the
+// initial play-view bundle or re-render on every clock tick.
+const AnalysisReport = lazy(() => import("./analysis/AnalysisReport").then(m => ({ default: m.AnalysisReport })));
 
 // Tiny single-slot caches keyed by FEN so expensive engine calls don't
 // re-run on every render (e.g. clock ticks).
@@ -72,7 +74,7 @@ function playMoveSound(kind: "move" | "capture" = "move") {
 export function ChessPlayView() {
   const [settings] = useChessSettings();
   const [cfg, setCfg] = useState<GameConfig | null>(null);
-  const [, force] = useState(0);
+  const [refreshCounter, force] = useState(0);
   const stateRef = useRef<PlayState | null>(null);
   const lastTickRef = useRef<number>(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -559,23 +561,34 @@ export function ChessPlayView() {
   const reviewing = !live;
 
   const view = computeView();
-  let viewGame: Chess = s.game;
-  try { viewGame = new Chess(view.fen); } catch { /* keep live */ }
-  const pieces = reviewing
-    ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
-    : s.tracker.withIds(s.game);
+  // Memoize the parsed view board by FEN so clock ticks don't re-parse it.
+  const viewGame: Chess = useMemo(() => {
+    try { return new Chess(view.fen); } catch { return s.game; }
+  }, [view.fen, s.game]);
+
+  const liveFenForPieces = s.game.fen();
+  const pieces = useMemo(() => {
+    if (reviewing) {
+      const t = new PieceTracker();
+      t.reset(viewGame);
+      return t.withIds(viewGame);
+    }
+    return s.tracker.withIds(s.game);
+    // s.tracker is mutated in place; key on liveFenForPieces so we recompute
+    // whenever the live position actually changes (not every clock tick).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewing, viewGame, liveFenForPieces, refreshCounter]);
 
   // Legal squares for the selected piece. During the opponent's turn we
   // compute on the projected (post-premove) board with the side-to-move
   // forced to the player's color, so premove dots show normally.
-  const legal: string[] = (() => {
+  const legal: string[] = useMemo(() => {
     if (!selected) return [];
     if (live && s.game.turn() !== s.playerColor) {
       const proj = projectedBoard();
       if (!proj) return [];
       const parts = proj.fen().split(" ");
       parts[1] = s.playerColor;
-      // Clear en-passant square — irrelevant once we force the side to move.
       parts[3] = "-";
       try {
         const g = new Chess(parts.join(" "));
@@ -583,9 +596,10 @@ export function ChessPlayView() {
       } catch { return []; }
     }
     return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
-  })();
+  }, [selected, live, viewGame, projectedBoard, s.game, s.playerColor]);
 
   const lastMove = view.lastMove;
+
 
   const topClockColor: "w" | "b" = orientation === "white" ? "b" : "w";
   const bottomClockColor: "w" | "b" = orientation === "white" ? "w" : "b";
@@ -705,19 +719,21 @@ export function ChessPlayView() {
 
           {analysisView === "analysis" && isGameOver && perMove ? (
             <div className="min-h-0 flex-1 overflow-hidden">
-              <AnalysisReport
-                perMove={perMove}
-                fens={s.fenHistory}
-                white={summarisePlayer(perMove, "w")}
-                black={summarisePlayer(perMove, "b")}
-                currentIndex={currentPly}
-                onSelect={(i) => {
-                  setVarCursor(null);
-                  setNoAnimateOnce(true);
-                  setViewIndex(i >= s.sans.length - 1 ? -1 : i);
-                }}
-                onReview={() => setAnalysisView("review")}
-              />
+              <Suspense fallback={<div className="p-4 text-sm opacity-70">Loading report…</div>}>
+                <AnalysisReport
+                  perMove={perMove}
+                  fens={s.fenHistory}
+                  white={summarisePlayer(perMove, "w")}
+                  black={summarisePlayer(perMove, "b")}
+                  currentIndex={currentPly}
+                  onSelect={(i) => {
+                    setVarCursor(null);
+                    setNoAnimateOnce(true);
+                    setViewIndex(i >= s.sans.length - 1 ? -1 : i);
+                  }}
+                  onReview={() => setAnalysisView("review")}
+                />
+              </Suspense>
             </div>
           ) : (
             <>
