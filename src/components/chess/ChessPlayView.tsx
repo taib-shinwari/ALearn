@@ -561,23 +561,34 @@ export function ChessPlayView() {
   const reviewing = !live;
 
   const view = computeView();
-  let viewGame: Chess = s.game;
-  try { viewGame = new Chess(view.fen); } catch { /* keep live */ }
-  const pieces = reviewing
-    ? (() => { const t = new PieceTracker(); t.reset(viewGame); return t.withIds(viewGame); })()
-    : s.tracker.withIds(s.game);
+  // Memoize the parsed view board by FEN so clock ticks don't re-parse it.
+  const viewGame: Chess = useMemo(() => {
+    try { return new Chess(view.fen); } catch { return s.game; }
+  }, [view.fen, s.game]);
+
+  const liveFenForPieces = s.game.fen();
+  const pieces = useMemo(() => {
+    if (reviewing) {
+      const t = new PieceTracker();
+      t.reset(viewGame);
+      return t.withIds(viewGame);
+    }
+    return s.tracker.withIds(s.game);
+    // s.tracker is mutated in place; key on liveFenForPieces so we recompute
+    // whenever the live position actually changes (not every clock tick).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewing, viewGame, liveFenForPieces, refreshCounter]);
 
   // Legal squares for the selected piece. During the opponent's turn we
   // compute on the projected (post-premove) board with the side-to-move
   // forced to the player's color, so premove dots show normally.
-  const legal: string[] = (() => {
+  const legal: string[] = useMemo(() => {
     if (!selected) return [];
     if (live && s.game.turn() !== s.playerColor) {
       const proj = projectedBoard();
       if (!proj) return [];
       const parts = proj.fen().split(" ");
       parts[1] = s.playerColor;
-      // Clear en-passant square — irrelevant once we force the side to move.
       parts[3] = "-";
       try {
         const g = new Chess(parts.join(" "));
@@ -585,9 +596,10 @@ export function ChessPlayView() {
       } catch { return []; }
     }
     return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
-  })();
+  }, [selected, live, viewGame, projectedBoard, s.game, s.playerColor]);
 
   const lastMove = view.lastMove;
+
 
   const topClockColor: "w" | "b" = orientation === "white" ? "b" : "w";
   const bottomClockColor: "w" | "b" = orientation === "white" ? "w" : "b";
