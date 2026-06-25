@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "@/components/chess/Chessboard";
 import { Container } from "@/components/ui/container";
@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyseGame, summarisePlayer, type PerMove } from "./analysis/classification";
-import { AnalysisReport } from "./analysis/AnalysisReport";
+// Lazy-load the heavy Highcharts-powered report so it doesn't bloat the
+// initial play-view bundle or re-render on every clock tick.
+const AnalysisReport = lazy(() => import("./analysis/AnalysisReport").then(m => ({ default: m.AnalysisReport })));
 
 // Tiny single-slot caches keyed by FEN so expensive engine calls don't
 // re-run on every render (e.g. clock ticks).
