@@ -422,11 +422,24 @@ export function ChessPlayView() {
         if (piece && piece.color === s.playerColor) setSelected(sq);
         return;
       }
-      // Opponent's turn → queue premove if click target is reasonable
+      // Opponent's turn → either queue a premove, or reselect another own piece.
       const own = s.game.get(selected as any);
       if (own && own.color === s.playerColor && sq !== selected) {
-        queuePremove(selected, sq);
-        return;
+        // Determine if `sq` is a legal premove destination on the projected board.
+        const proj = projectedBoard();
+        let legalPremove = false;
+        if (proj) {
+          const parts = proj.fen().split(" ");
+          parts[1] = s.playerColor;
+          parts[3] = "-";
+          try {
+            const g = new Chess(parts.join(" "));
+            const moves = g.moves({ square: selected as any, verbose: true }) as any[];
+            legalPremove = moves.some(m => m.to === sq);
+          } catch { /* noop */ }
+        }
+        if (legalPremove) { queuePremove(selected, sq); return; }
+        if (piece && piece.color === s.playerColor) { setSelected(sq); return; }
       }
       return;
     }
