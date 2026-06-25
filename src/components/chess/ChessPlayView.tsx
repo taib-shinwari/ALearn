@@ -707,19 +707,21 @@ export function ChessPlayView() {
 
           {analysisView === "analysis" && isGameOver && perMove ? (
             <div className="min-h-0 flex-1 overflow-hidden">
-              <AnalysisReport
-                perMove={perMove}
-                fens={s.fenHistory}
-                white={summarisePlayer(perMove, "w")}
-                black={summarisePlayer(perMove, "b")}
-                currentIndex={currentPly}
-                onSelect={(i) => {
-                  setVarCursor(null);
-                  setNoAnimateOnce(true);
-                  setViewIndex(i >= s.sans.length - 1 ? -1 : i);
-                }}
-                onReview={() => setAnalysisView("review")}
-              />
+              <Suspense fallback={<div className="p-4 text-sm opacity-70">Loading report…</div>}>
+                <AnalysisReport
+                  perMove={perMove}
+                  fens={s.fenHistory}
+                  white={summarisePlayer(perMove, "w")}
+                  black={summarisePlayer(perMove, "b")}
+                  currentIndex={currentPly}
+                  onSelect={(i) => {
+                    setVarCursor(null);
+                    setNoAnimateOnce(true);
+                    setViewIndex(i >= s.sans.length - 1 ? -1 : i);
+                  }}
+                  onReview={() => setAnalysisView("review")}
+                />
+              </Suspense>
             </div>
           ) : (
             <>
