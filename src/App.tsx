@@ -20,6 +20,10 @@ const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/Sign" element={withLayout(<AuthPage />)} />
+      <Route path="/Settings" element={withLayout(<SettingsPage />)} />
+      <Route path="/Recall" element={withLayout(<FlashcardsPage />)} />
+      {/* Legacy lowercase aliases */}
       <Route path="/sign" element={withLayout(<AuthPage />)} />
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
       <Route path="/recall" element={withLayout(<FlashcardsPage />)} />

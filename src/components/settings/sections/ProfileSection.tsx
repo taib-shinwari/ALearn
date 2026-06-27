@@ -44,7 +44,7 @@ export function ProfileSection({ activeSubcategory }: Props) {
             </div>
           </div>
         </Container>
-        <Button fullWidth active onClick={() => navigate("/sign")}>
+        <Button fullWidth active onClick={() => navigate("/Sign")}>
           <LogIn className="h-4 w-4 mr-2" /> {t("signIn") || "Sign In"}
         </Button>
       </div>

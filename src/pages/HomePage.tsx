@@ -185,7 +185,7 @@ export default function HomePage() {
             subcategoryId: resolvedSub.id,
             wordIds,
           });
-          navigate("/recall");
+          navigate("/Recall");
         }}
       />
     );

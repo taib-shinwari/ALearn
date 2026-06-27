@@ -42,9 +42,10 @@ export default function Layout({ children }: LayoutProps) {
   } = useApp();
 
 
-  const isSettings = location.pathname.startsWith("/settings");
-  const isRecall = location.pathname.startsWith("/recall");
-  const isSign = location.pathname.startsWith("/sign");
+  const lowerPath = location.pathname.toLowerCase();
+  const isSettings = lowerPath.startsWith("/settings");
+  const isRecall = lowerPath.startsWith("/recall");
+  const isSign = lowerPath.startsWith("/sign");
   const isHomeRoute = location.pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -221,14 +222,14 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
-            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
+            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/Settings")}>
               <Settings className="h-5 w-5" />
             </Button>
             {!isAuthenticated && !isSign && (
               <Button
                 size="icon"
                 aria-label="Sign in"
-                onClick={() => navigate("/sign")}
+                onClick={() => navigate("/Sign")}
               >
                 <LogIn className="h-5 w-5" />
               </Button>
