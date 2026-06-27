@@ -265,14 +265,26 @@ function buildQuestions(unit: Unit, courseLang: WordLang, uiLang: Lang): Questio
 function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone: () => void }) {
   const { uiLang } = useCourseLanguage();
   const { isMarked, toggle } = useMarkedWords();
-  const questions = useMemo(
+  const initialQuestions = useMemo(
     () => unit ? buildQuestions(unit, lang as WordLang, uiLang) : [],
     [unit, lang, uiLang],
   );
 
-  const [i, setI] = useState(0);
+  const totalRounds = initialQuestions.length;
+  // Queue allows pushing missed questions to the end.
+  const [queue, setQueue] = useState<Question[]>(initialQuestions);
+  const [completed, setCompleted] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
   const [correct, setCorrect] = useState(0);
+
+  useEffect(() => {
+    setQueue(initialQuestions);
+    setCompleted(0);
+    setPicked(null);
+    setChecked(false);
+    setCorrect(0);
+  }, [unit?.id, totalRounds]);
 
   // Snapshot which word ids were ALREADY in the dictionary at lesson start.
   // A word is shown green only while we're on the FIRST question that
