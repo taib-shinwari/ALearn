@@ -1,64 +1,74 @@
-# Combined Fixes Plan
+A big batch of changes spread across lessons, alphabet, dictionary, chess, and routing. Grouped below so we can confirm scope before I start.
 
-## Part 1 — Chess
+## 1. Alphabet (English + others)
 
-### 1. Engine & Elo
-- **`src/lib/stockfish.ts`**: Add `sfEvaluateAt(fen, { depth, skill, movetime, multiPV })` and `sfBestMove(fen, { skill, depth, movetime })` helpers that send `setoption name Skill Level value N` and `setoption name UCI_LimitStrength value true` + `UCI_Elo` to the worker before `go`. Cap UCI_Elo at Stockfish's supported range (1320–3190) and use Skill Level 0 + very short movetime for sub-1320 "true beginner" play.
-- **`ChessPlayView.tsx`**: Map slider Elo to engine params:
-  - `elo <= 400`: Skill 0, movetime 50ms, depth 1, inject random legal move 40% of time at 100 Elo, 20% at 200, 10% at 400.
-  - `400 < elo < 1320`: Skill `round((elo-400)/100)` (0–9), movetime 80–200ms.
-  - `elo >= 1320`: UCI_LimitStrength true, UCI_Elo = elo, depth scales with elo.
-  - Hard cap slider/setup max at **3200**.
-- **Estimated Rating & Classification mismatch** (`analysis/classification.ts`): Re-derive rating from accuracy curve (`rating = clamp(400 + accuracy*28 - blunders*40 - mistakes*15, 100, 3200)`) and ensure classification uses post-move eval from the *mover's* perspective (sign flip bug). Fix CPL sign so White and Black are evaluated symmetrically.
+Replace the current static alphabet table with interactive activities:
 
-### 2. Performance & Stability
-- **Report Card hide crash**: In `ChessPlayView.tsx`, the analyse effect likely keeps a Stockfish worker alive / re-runs on unmount. Add `sfTerminate()` on unmount + guard `setState` after unmount with `mounted` ref. Wrap `AnalysisReport` toggle in conditional render that doesn't unmount `EvalChart` mid-calculation (use `hidden` class or memoize).
-- **Verify Stockfish**: Add a one-time `console.info("[sf] ready", id)` in `stockfish.ts` worker init; expose `window.__sfPing()` for quick check. Ensure single worker reused per session, not spawned per move (current code spawns per `sfEvaluate` call — switch to a pooled persistent worker with a request queue).
+- **Listen & Write** (English): TTS speaks a letter, user types it. Validate case-insensitively, show ✓ / ✗, advance.
+- **Match Pairs** (memory cards): grid of face-down cards; flip two at a time to match uppercase ↔ lowercase of the same letter. Round ends when all pairs matched.
+- A small picker at the top of the alphabet screen lets the user choose which activity to run; default rotates between them per session.
+- Arabic alphabet stays as a viewer for now (letters don't have upper/lowercase); we can add a "listen & tap the letter you heard" variant in a follow-up.
 
-### 3. Piece Interaction & Premoves
-- **Click-to-move**: In `Chessboard.tsx` `handleSquare`, when a piece is already selected and target is a legal square, execute the move. Currently selection works but second click doesn't commit — fix the legal-squares lookup so click path uses the same `legalSquares` set as the drag path.
-- **Premove visuals**:
-  - Add `premoveHighlight` (red) distinct from `lastMove` (light blue) in `Chessboard.tsx`.
-  - Allow `beginPieceDrag` / `handleSquare` to accept player moves during opponent's turn when `allowPremoves` setting is on; route through a new `onPremove(from,to,promotion)` prop instead of `onMove`.
-  - **Optimistic capture**: In `ChessPlayView.tsx`, maintain `premoveOverlay` state — a shadow board derived from current FEN with the premove applied locally for rendering only. Pass to `Chessboard` via a new `displayFenOverride` prop.
-  - **Premove queue**: Store `pendingPremoves: Array<{from,to,promo}>`. After each opponent move, try `chess.move(premove[0])`; if illegal, clear entire queue + overlay + red highlight, restoring captured piece naturally because overlay is dropped.
+## 2. Lessons flow
 
-## Part 2 — Dictionary & Lessons
+### Breadcrumbs
+`Beginner > Greetings` instead of `Beginner > Lesson`. Pull the actual lesson title from the data instead of the literal string `"Lesson"` in `Layout.tsx`'s crumb builder.
 
-### 1. Empty by default
-- **`src/data/courseData.ts` / dictionary source**: Stop seeding default words/categories. Only the **Alphabet** category remains. Replace any "default words" array with `[]` and update `DictionarySection.tsx` empty-state copy.
-- Reset existing localStorage on first load via a versioned key (`dict.v2.initialized`) so existing users get the empty state.
+### Lesson UI
+Add proper question types and a footer action bar:
 
-### 2. New-word tracking
-- **`LessonsView.tsx`**: Today every render of a question marks all words green. Change `newIds` to be computed **per question step**: a word is green only if `!markedWords.has(id)` *at the moment the question first mounts*. After advancing to the next question, that word is already in `markedWords` so it renders normal. Add it to dictionary on question advance/complete, not on render.
+- **Multiple Choice Questions** as a new lesson step type alongside whatever exists today. Options are tappable; selecting one highlights it. `Check` stays disabled until an option is selected.
+- **Footer buttons**
+  - Mobile: stacked, `Check` on top, `Skip` below.
+  - Desktop: side-by-side, `Skip` left, `Check` right.
+  - `Check` starts disabled (muted), enables once an answer is chosen.
+- **Wrong answer state**
+  - Hide `Skip`.
+  - Show the correct answer inline ("Correct answer: …").
+  - Show a `Report` icon button (flag icon) for users to report bad questions.
+  - `Check` becomes `Continue`.
+  - Re-queue the missed question to reappear at the end of the lesson.
+- **Correct answer**: `Check` becomes `Continue`, advance to next step.
 
-### 3. Intelligent category routing
-- New helper `src/lib/dictionaryRouting.ts`:
-  - `routeWord(word, defaultPath, customCategories)`:
-    1. Determine default path from word metadata (e.g., `Noun/Fruit`).
-    2. Scan user's custom categories; for each, compute a theme signature (set of POS + semantic tag of contained words).
-    3. If a custom category's signature matches the new word's `{pos, semanticTag}`, route there instead of creating the default.
-    4. Otherwise create/use default path.
-- Wire into the auto-add flow in `LessonsView.tsx` (replace direct `addWord` call).
+## 3. Dictionary categorization
 
-### 4. Header progress bar
-- **`Layout.tsx`**: Increase the in-header `<Progress>` width from current size to `min-w-[280px] max-w-[480px] flex-1` with `h-2.5` for taller bar.
+Today the dictionary lands directly on subcategories like "Greetings". Insert a part-of-speech layer above it:
 
-## Technical Notes
+`Dictionary > Vocabulary > Noun / Adjective / Verb / Phrase / … > Greetings > word`
 
-- Stockfish worker pooling: keep one global `Worker` in `stockfish.ts`, with a message-id queue, instead of `new Worker()` per call. This alone removes most of the lag.
-- All premove rendering is local-only; never mutate the authoritative `chess.js` instance until the opponent has actually moved.
-- Sign convention for CPL: always `cpl = max(0, bestEvalForMover - playedEvalForMover)` where evals are converted to mover's POV before subtraction.
+We'll tag each existing subcategory in `courseData.ts` with a `partOfSpeech` field, then group the subcategory list under those headings. Untagged items fall under "Other" until tagged.
 
-## Files to Edit
-- `src/lib/stockfish.ts` (pool + strength options)
-- `src/components/chess/ChessPlayView.tsx` (elo map, premove queue + overlay, unmount safety)
-- `src/components/chess/Chessboard.tsx` (click-to-move fix, premove red highlight, opponent-turn interaction gating, display-FEN override)
-- `src/components/chess/ChessSetupPanel.tsx` (cap 3200)
-- `src/components/chess/analysis/classification.ts` (CPL sign + rating formula)
-- `src/components/chess/analysis/AnalysisReport.tsx` (mount safety / hidden toggle)
-- `src/components/lessons/LessonsView.tsx` (new-word per-step + routing call)
-- `src/lib/dictionaryRouting.ts` (new)
-- `src/components/settings/sections/DictionarySection.tsx` (empty state)
-- `src/data/courseData.ts` (strip seed words)
-- `src/components/Layout.tsx` (header progress width)
+## 4. Arabic (MSA) lessons
+
+Add a parallel set of beginner-level lessons for Arabic (Modern Standard Arabic) mirroring the structure of the English ones (greetings, numbers, basic phrases), with Arabic script + transliteration + audio. Scope for v1: the Beginner section only; Intermediate/Advanced come later.
+
+## 5. Add Language (with Pashto)
+
+In the language picker, add a **+** button that opens a sheet listing additional languages a user can enable. Include **Pashto** marked as "Preview — limited content". Selecting it adds it to the user's active languages and routes into a stub language home that explains content is still being added.
+
+## 6. Chess lessons — one star at a time
+
+In `ChessLessonView`, force sequential stars regardless of `freeOrder`: only the next uncollected star is rendered. Total per lesson stays at 3 (update `randomStars`/`stars` defaults so each lesson resolves to exactly 3 stars).
+
+## 7. Route casing — partial
+
+I want to push back on part of this one:
+
+- **Route paths** (`/settings` → `/Settings`, `/recall` → `/Recall`, `/sign` → `/Sign`): doable. I'll update the router, `navigate(...)` calls, and the `startsWith` checks in `Layout.tsx`. URLs become capitalized.
+- **Folder and file names** (`src/` → `Src/`, `components/` → `Components/`, etc.): I'd recommend **against** this. React/Vite/Tailwind/shadcn all assume lowercase `src`, and case-sensitive Linux deploys (including Lovable's) will break on mixed casing. Convention across the entire JS ecosystem is lowercase folders.
+
+  If you still want it after seeing that, say so and I'll do it — but I'd like to skip it by default.
+
+## Technical notes
+
+- Lesson question-queue logic lives in whatever lesson runner powers `lessonProgress`; I'll extend it to support a `requeueOnWrong` flag and an MCQ step type.
+- Dictionary grouping is pure data + a render pass in the dictionary view — no schema changes.
+- Pashto/Arabic content will be seeded with a small starter set; not full coverage.
+- Chess single-star: just change the `activeStars` memo to always take `[stars[nextIdx]]` and seed 3 stars per lesson.
+- Route renames touch `App.tsx` routes, every `navigate("/settings"|"/recall"|"/sign")`, and the `location.pathname.startsWith(...)` guards in `Layout.tsx`.
+
+## Confirm before I build
+
+1. OK to **skip** renaming `src/` and component folders, and only capitalize the URL routes?
+2. For the Add-Language `+`, is a simple in-app toggle list fine, or do you want it persisted to your Cloud account?
+3. Arabic + Pashto starter content: I'll seed ~10 beginner phrases each. Want more?
