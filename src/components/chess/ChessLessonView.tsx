@@ -109,10 +109,10 @@ export function ChessLessonView({ lesson, onNext }: Props) {
   // Active stars on the board
   const activeStars = useMemo(() => {
     if (phase !== "play") return [];
-    if (lesson.freeOrder) return stars.filter(s => !captured.has(s));
+    // Always show one star at a time, in order — regardless of freeOrder.
     const nextIdx = stars.findIndex(s => !captured.has(s));
     return nextIdx === -1 ? [] : [stars[nextIdx]];
-  }, [phase, stars, captured, lesson.freeOrder]);
+  }, [phase, stars, captured]);
 
   const introArrows: Arrow[] = useMemo(() => {
     if (phase !== "intro") return [];

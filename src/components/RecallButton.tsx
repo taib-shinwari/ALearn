@@ -31,7 +31,7 @@ export function RecallButton({ scope, categoryId, subcategoryId, wordId, classNa
     if (cooling) return;
     setRecallReturnPath(browsePath);
     setActiveRecall({ scope, categoryId, subcategoryId, wordId });
-    navigate("/recall");
+    navigate("/Recall");
   };
 
   if (cooling) {

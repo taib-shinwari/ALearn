@@ -16,6 +16,7 @@ import { ALPHABET_SEGMENT } from "@/lib/navigation";
 import { useTopDialog } from "@/lib/dialog-stack";
 import { useChessSettings } from "@/lib/chessSettings";
 import { lessonProgress, type LessonProgressState } from "@/lib/lessonProgress";
+import { findUnit } from "@/components/lessons/LessonsView";
 
 const langLabels: Record<string, string> = {
   nl: "Nederlands",
@@ -42,9 +43,10 @@ export default function Layout({ children }: LayoutProps) {
   } = useApp();
 
 
-  const isSettings = location.pathname.startsWith("/settings");
-  const isRecall = location.pathname.startsWith("/recall");
-  const isSign = location.pathname.startsWith("/sign");
+  const lowerPath = location.pathname.toLowerCase();
+  const isSettings = lowerPath.startsWith("/settings");
+  const isRecall = lowerPath.startsWith("/recall");
+  const isSign = lowerPath.startsWith("/sign");
   const isHomeRoute = location.pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -81,12 +83,20 @@ export default function Layout({ children }: LayoutProps) {
       } else if (seg === "lessons") {
         crumbs.push({ label: uiLang === "nl" ? "Lessen" : uiLang === "ar" ? "دروس" : "Lessons", idx: 2 });
         if (browsePath.length >= 4) {
-          // section
           const secLabels: Record<string, string> = { "sec-0": "Beginner", "sec-1": "Intermediate", "sec-2": "Advanced" };
           crumbs.push({ label: secLabels[browsePath[3]] || browsePath[3], idx: 3 });
         }
         if (browsePath.length >= 5) {
-          crumbs.push({ label: "Lesson", idx: 4 });
+          // Folder is "${catId}:${subId}" — derive subcategory name.
+          const [catId, subId] = browsePath[4].split(":");
+          const cat = categories.find(c => c.id === catId);
+          const sub = cat?.subcategories.find(s => s.id === subId);
+          if (sub) crumbs.push({ label: localizedName(sub.name, uiLang), idx: 4 });
+          else crumbs.push({ label: browsePath[4], idx: 4 });
+        }
+        if (browsePath.length >= 6) {
+          const unit = findUnit(browsePath[5]);
+          crumbs.push({ label: unit ? unit.title : "Lesson", idx: 5 });
         }
       } else if (seg === "_marked") {
         // Dictionary: ["language", lang, "_marked", catId, subId, wordId?]
@@ -221,14 +231,14 @@ export default function Layout({ children }: LayoutProps) {
             <Button size="icon" aria-label={t("search")} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </Button>
-            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/settings")}>
+            <Button size="icon" aria-label={t("settings")} onClick={() => navigate("/Settings")}>
               <Settings className="h-5 w-5" />
             </Button>
             {!isAuthenticated && !isSign && (
               <Button
                 size="icon"
                 aria-label="Sign in"
-                onClick={() => navigate("/sign")}
+                onClick={() => navigate("/Sign")}
               >
                 <LogIn className="h-5 w-5" />
               </Button>

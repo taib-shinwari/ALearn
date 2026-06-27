@@ -30,11 +30,19 @@ import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WordEditDialog } from "@/components/word/WordEditDialog";
 import { LessonsView } from "@/components/lessons/LessonsView";
+import {
+  AlphabetActivityPicker, ListenAndWrite, MatchPairs, type AlphabetMode,
+} from "@/components/alphabet/AlphabetActivities";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
   { code: "en", label: "English" },
   { code: "ar", label: "العربية" },
+];
+
+// Extra languages selectable via the "+" picker. Pashto is preview-only.
+const EXTRA_LANGS: { code: string; label: string; preview?: boolean }[] = [
+  { code: "ps", label: "پښتو (Pashto)", preview: true },
 ];
 
 const ALPHABET_LABEL: Record<Lang, string> = {
@@ -86,23 +94,24 @@ export default function HomePage() {
 
   // ── pick a target language ─────────────────────────────────────────
   if (browsePath[0] === "language" && browsePath.length === 1) {
-    const available = TARGET_LANGS.filter(l => l.code !== interfaceLanguage);
     return (
-      <div className="grid grid-cols-2 gap-3 w-full px-4">
-        {available.map(l => (
-          <CardButton
-            key={l.code}
-            onClick={() => {
-              setLearningLanguage(l.code);
-              setBrowsePath(["language", l.code]);
-            }}
-            className="min-h-[64px] py-3 flex items-center justify-center text-center"
-          >
-            <span className="font-semibold">{l.label}</span>
-          </CardButton>
-        ))}
-      </div>
+      <LanguagePicker
+        interfaceLanguage={interfaceLanguage}
+        onPick={(code) => {
+          if (code === "ps") {
+            setBrowsePath(["language", "ps"]);
+            return;
+          }
+          setLearningLanguage(code);
+          setBrowsePath(["language", code]);
+        }}
+      />
     );
+  }
+
+  // ── Pashto (preview language) ─────────────────────────────────────
+  if (browsePath[0] === "language" && browsePath[1] === "ps") {
+    return <PashtoComingSoon />;
   }
 
 
@@ -185,7 +194,7 @@ export default function HomePage() {
             subcategoryId: resolvedSub.id,
             wordIds,
           });
-          navigate("/recall");
+          navigate("/Recall");
         }}
       />
     );
@@ -330,17 +339,23 @@ function DictionaryBrowseView({
   const { map } = useMarkedWords();
   const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
 
-  // Group marked words by SUBCATEGORY (theme), not by part-of-speech category.
-  const groups = useMemo(() => {
-    const result: { cat: typeof categories[number]; sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[] = [];
+  // Group marked words first by part-of-speech (category), then list subcategories within.
+  const grouped = useMemo(() => {
+    const result: {
+      cat: typeof categories[number];
+      subs: { sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[];
+    }[] = [];
     for (const cat of categories) {
+      const subs: { sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[] = [];
       for (const sub of cat.subcategories) {
         const words = sub.words.filter(w => markedIds.has(w.id));
-        if (words.length > 0) result.push({ cat, sub, words });
+        if (words.length > 0) subs.push({ sub, words });
       }
+      if (subs.length) result.push({ cat, subs });
     }
     return result;
   }, [markedIds]);
+  const hasAny = grouped.length > 0;
 
   return (
     <div className="px-4 w-full space-y-3">
@@ -360,7 +375,7 @@ function DictionaryBrowseView({
         )}
       </div>
 
-      {groups.length === 0 && collections.length === 0 ? (
+      {!hasAny && collections.length === 0 ? (
         <Container>
           <p className="text-sm text-center opacity-70">
             {uiLang === "nl"
@@ -371,17 +386,28 @@ function DictionaryBrowseView({
           </p>
         </Container>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {groups.map(({ cat, sub, words }) => (
-            <CardButton
-              key={`${cat.id}-${sub.id}`}
-              onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
-              className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
-            >
-              <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
-              <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
-            </CardButton>
+        <div className="space-y-5">
+          {grouped.map(({ cat, subs }) => (
+            <section key={cat.id} className="space-y-2">
+              <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
+              <div className="grid grid-cols-2 gap-3">
+                {subs.map(({ sub, words }) => (
+                  <CardButton
+                    key={`${cat.id}-${sub.id}`}
+                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
+                    className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
+                  >
+                    <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
+                    <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
+                  </CardButton>
+                ))}
+              </div>
+            </section>
           ))}
+          {collections.length > 0 && (
+            <section className="space-y-2">
+              <TitleBar className="font-semibold">{uiLang === "nl" ? "Collecties" : uiLang === "ar" ? "المجموعات" : "Collections"}</TitleBar>
+              <div className="grid grid-cols-2 gap-3">
           {collections.map(col => (
             <div key={col.id} className="space-y-2">
               <TitleBar>
@@ -404,6 +430,9 @@ function DictionaryBrowseView({
               </CardButton>
             </div>
           ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
@@ -714,20 +743,41 @@ const ALPHABET_TABLES: Record<Lang, AlphabetTable> = {
 
 function AlphabetView({ targetLang, uiLang }: { targetLang: Lang; uiLang: Lang }) {
   const table = ALPHABET_TABLES[targetLang] ?? ALPHABET_TABLES.en;
+  // Latin-script languages get interactive Listen & Write + Memory Match.
+  // Arabic stays as viewer for now (no upper/lower case).
+  const showInteractive = targetLang === "en" || targetLang === "nl";
+  const [mode, setMode] = useState<AlphabetMode>("viewer");
   return (
-    <div className="space-y-6 w-full px-4">
-      <section className="space-y-3">
-        <TitleBar className="font-semibold">{table.vowelsLabel[uiLang]}</TitleBar>
-        <div className="grid grid-cols-6 gap-2">
-          {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
+    <div className="w-full">
+      <AlphabetActivityPicker
+        targetLang={targetLang}
+        uiLang={uiLang}
+        mode={mode}
+        setMode={setMode}
+        showInteractive={showInteractive}
+      />
+      {mode === "listen" && showInteractive && (
+        <ListenAndWrite targetLang={targetLang} uiLang={uiLang} />
+      )}
+      {mode === "match" && showInteractive && (
+        <MatchPairs targetLang={targetLang} uiLang={uiLang} />
+      )}
+      {mode === "viewer" && (
+        <div className="space-y-6 w-full px-4">
+          <section className="space-y-3">
+            <TitleBar className="font-semibold">{table.vowelsLabel[uiLang]}</TitleBar>
+            <div className="grid grid-cols-6 gap-2">
+              {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
+            </div>
+          </section>
+          <section className="space-y-3">
+            <TitleBar className="font-semibold">{table.consonantsLabel[uiLang]}</TitleBar>
+            <div className="grid grid-cols-6 gap-2">
+              {table.consonants.map(c => <LetterCard key={c.letter} {...c} lang={targetLang} />)}
+            </div>
+          </section>
         </div>
-      </section>
-      <section className="space-y-3">
-        <TitleBar className="font-semibold">{table.consonantsLabel[uiLang]}</TitleBar>
-        <div className="grid grid-cols-6 gap-2">
-          {table.consonants.map(c => <LetterCard key={c.letter} {...c} lang={targetLang} />)}
-        </div>
-      </section>
+      )}
     </div>
   );
 }
@@ -1149,5 +1199,99 @@ function ChessBranch() {
   }
 
   return <div className="px-4 text-sm">{t("notFound")}</div>;
+}
+
+/* ──────────────────────── Language picker ──────────────────────── */
+
+function LanguagePicker({
+  interfaceLanguage,
+  onPick,
+}: {
+  interfaceLanguage: string | null;
+  onPick: (code: string) => void;
+}) {
+  const { uiLang, t } = useCourseLanguage();
+  const [pickOpen, setPickOpen] = useState(false);
+  const available = TARGET_LANGS.filter(l => l.code !== interfaceLanguage);
+  return (
+    <div className="px-4 space-y-3 w-full">
+      <div className="flex justify-end">
+        <Button onClick={() => setPickOpen(true)} aria-label="Add language">
+          <Plus className="h-4 w-4 mr-1" />
+          {uiLang === "nl" ? "Taal" : uiLang === "ar" ? "لغة" : "Language"}
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {available.map(l => (
+          <CardButton
+            key={l.code}
+            onClick={() => onPick(l.code)}
+            className="min-h-[64px] py-3 flex items-center justify-center text-center"
+          >
+            <span className="font-semibold">{l.label}</span>
+          </CardButton>
+        ))}
+      </div>
+
+      <FullPageDialog
+        open={pickOpen}
+        onOpenChange={setPickOpen}
+        title={uiLang === "nl" ? "Taal toevoegen" : uiLang === "ar" ? "إضافة لغة" : "Add language"}
+      >
+        <div className="space-y-3">
+          <p className="text-xs opacity-70">
+            {uiLang === "nl"
+              ? "Kies een extra taal om te verkennen."
+              : uiLang === "ar"
+              ? "اختر لغة إضافية لاستكشافها."
+              : "Pick another language to explore."}
+          </p>
+          <div className="grid gap-2">
+            {EXTRA_LANGS.map(l => (
+              <CardButton
+                key={l.code}
+                onClick={() => { setPickOpen(false); onPick(l.code); }}
+                className="min-h-[56px] py-2 px-3 flex items-center justify-between gap-3"
+              >
+                <span className="font-semibold">{l.label}</span>
+                {l.preview && (
+                  <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border opacity-70">
+                    Preview
+                  </span>
+                )}
+              </CardButton>
+            ))}
+          </div>
+        </div>
+      </FullPageDialog>
+    </div>
+  );
+}
+
+/* ──────────────────────── Pashto preview stub ──────────────────────── */
+
+function PashtoComingSoon() {
+  const { uiLang } = useCourseLanguage();
+  return (
+    <div className="px-4 max-w-md mx-auto py-8">
+      <Container className="p-6 text-center space-y-3">
+        <h2 className="text-2xl font-bold">پښتو</h2>
+        <p className="text-sm opacity-70">
+          {uiLang === "nl"
+            ? "Pashto is in voorbeeld. Inhoud wordt nog toegevoegd."
+            : uiLang === "ar"
+            ? "البشتو في وضع المعاينة. المحتوى لا يزال قيد الإضافة."
+            : "Pashto is in preview — content is still being added."}
+        </p>
+        <p className="text-xs opacity-60">
+          {uiLang === "nl"
+            ? "Alfabet, lessen en woordenboek volgen binnenkort."
+            : uiLang === "ar"
+            ? "الأبجدية والدروس والقاموس قادمة قريبًا."
+            : "Alphabet, lessons, and dictionary coming soon."}
+        </p>
+      </Container>
+    </div>
+  );
 }
 

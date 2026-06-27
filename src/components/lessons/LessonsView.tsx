@@ -4,11 +4,12 @@
 //   ["language", lang, "lessons", sectionId, folderId]            → numbered round lesson buttons
 //   ["language", lang, "lessons", sectionId, folderId, unitId]    → multiple-choice runner
 import { useEffect, useMemo, useState } from "react";
-import { Lock, Star } from "lucide-react";
+import { Lock, Star, Flag } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/use-toast";
 import {
   categories,
   getWordText,
@@ -264,14 +265,26 @@ function buildQuestions(unit: Unit, courseLang: WordLang, uiLang: Lang): Questio
 function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone: () => void }) {
   const { uiLang } = useCourseLanguage();
   const { isMarked, toggle } = useMarkedWords();
-  const questions = useMemo(
+  const initialQuestions = useMemo(
     () => unit ? buildQuestions(unit, lang as WordLang, uiLang) : [],
     [unit, lang, uiLang],
   );
 
-  const [i, setI] = useState(0);
+  const totalRounds = initialQuestions.length;
+  // Queue allows pushing missed questions to the end.
+  const [queue, setQueue] = useState<Question[]>(initialQuestions);
+  const [completed, setCompleted] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
   const [correct, setCorrect] = useState(0);
+
+  useEffect(() => {
+    setQueue(initialQuestions);
+    setCompleted(0);
+    setPicked(null);
+    setChecked(false);
+    setCorrect(0);
+  }, [unit?.id, totalRounds]);
 
   // Snapshot which word ids were ALREADY in the dictionary at lesson start.
   // A word is shown green only while we're on the FIRST question that
@@ -296,12 +309,12 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
 
   // Publish progress to the global header bar.
   useEffect(() => {
-    if (!unit || !questions.length) return;
-    lessonProgress.set({ current: Math.min(i, questions.length), total: questions.length });
+    if (!unit || !totalRounds) return;
+    lessonProgress.set({ current: Math.min(completed, totalRounds), total: totalRounds });
     return () => lessonProgress.set(null);
-  }, [unit, questions.length, i]);
+  }, [unit, totalRounds, completed]);
 
-  if (!unit || !questions.length) {
+  if (!unit || !totalRounds) {
     return (
       <div className="px-4 max-w-md mx-auto text-center space-y-3 py-10">
         <p className="text-sm opacity-70">Lesson not available.</p>
@@ -310,11 +323,11 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
     );
   }
 
-  const q = questions[i];
-  const done = i >= questions.length;
+  const q = queue[0];
+  const done = !q;
 
   if (done) {
-    const pct = correct / questions.length;
+    const pct = correct / Math.max(1, totalRounds);
     const stars = pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1;
     saveStars(lang, unit.id, stars);
     return (
@@ -326,7 +339,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
               <Star key={n} className={cn("h-8 w-8", n <= stars ? "fill-amber-400 text-amber-400" : "opacity-30")} />
             ))}
           </div>
-          <p className="text-sm opacity-70">{correct} / {questions.length} correct</p>
+          <p className="text-sm opacity-70">{correct} / {totalRounds} correct</p>
           <Button active className="w-full" onClick={onDone}>Continue</Button>
         </Container>
       </div>
@@ -334,42 +347,80 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   }
 
   const isCorrect = picked === q.answer;
-  const next = () => {
+
+  const L = {
+    check: uiLang === "nl" ? "Controleren" : uiLang === "ar" ? "تحقق" : "Check",
+    skip: uiLang === "nl" ? "Overslaan" : uiLang === "ar" ? "تخطي" : "Skip",
+    cont: uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue",
+    correctAns: uiLang === "nl" ? "Juiste antwoord" : uiLang === "ar" ? "الإجابة الصحيحة" : "Correct answer",
+    nice: uiLang === "nl" ? "Goed gedaan!" : uiLang === "ar" ? "أحسنت!" : "Nice!",
+    notQuite: uiLang === "nl" ? "Niet helemaal" : uiLang === "ar" ? "ليس تمامًا" : "Not quite",
+    translate: uiLang === "nl" ? "Vertaal" : uiLang === "ar" ? "ترجم" : "Translate",
+    reported: uiLang === "nl" ? "Bedankt voor de melding" : uiLang === "ar" ? "شكرًا للإبلاغ" : "Thanks for the report",
+  };
+
+  const handleCheck = () => {
     if (picked === null) return;
-    if (isCorrect) setCorrect(c => c + 1);
-    // Mark the answer word as seen + add to dictionary if new.
-    const answerId = textToId.get(q.answer);
-    if (answerId && !alreadyMarked.has(answerId) && !seenIds.has(answerId)) {
-      toggle(lang, answerId);
-      setSeenIds(prev => { const n = new Set(prev); n.add(answerId); return n; });
+    setChecked(true);
+    if (isCorrect) {
+      setCorrect(c => c + 1);
+      const answerId = textToId.get(q.answer);
+      if (answerId && !alreadyMarked.has(answerId) && !seenIds.has(answerId)) {
+        toggle(lang, answerId);
+        setSeenIds(prev => { const n = new Set(prev); n.add(answerId); return n; });
+      }
     }
+  };
+
+  const advance = (opts?: { requeue?: boolean }) => {
+    setQueue(prev => {
+      const [head, ...rest] = prev;
+      if (!head) return prev;
+      return opts?.requeue ? [...rest, head] : rest;
+    });
+    if (!opts?.requeue) setCompleted(c => c + 1);
     setPicked(null);
-    setI(n => n + 1);
+    setChecked(false);
+  };
+
+  const handleContinue = () => {
+    if (!checked) return;
+    advance({ requeue: !isCorrect });
+  };
+
+  const handleSkip = () => {
+    if (checked) return;
+    advance();
+  };
+
+  const handleReport = () => {
+    toast({ description: L.reported });
   };
 
   return (
-    <div className="px-4 max-w-md mx-auto w-full space-y-6 py-4">
+    <div className="px-4 max-w-md mx-auto w-full space-y-6 py-4 pb-40">
       <div className="text-center">
-        <p className="text-xs uppercase tracking-wider opacity-60 mb-2">Translate</p>
+        <p className="text-xs uppercase tracking-wider opacity-60 mb-2">{L.translate}</p>
         <p className="text-2xl font-bold">{q.prompt}</p>
       </div>
       <div className="grid gap-2">
         {q.options.map(opt => {
           const id = textToId.get(opt);
           const isNew = id ? (!alreadyMarked.has(id) && !seenIds.has(id)) : false;
+          const isPicked = picked === opt;
           return (
             <button
               key={opt}
-              onClick={() => setPicked(opt)}
-              disabled={picked !== null}
+              onClick={() => { if (!checked) setPicked(opt); }}
+              disabled={checked}
               className={cn(
                 "px-4 py-3 rounded-[14px] border-2 text-left font-semibold transition-colors",
-                picked === null && "border-border hover:bg-muted",
-                picked === null && isNew && "text-emerald-600 dark:text-emerald-400",
-                picked === opt && opt === q.answer && "border-emerald-500 bg-emerald-500/15",
-                picked === opt && opt !== q.answer && "border-rose-500 bg-rose-500/15",
-                picked !== null && picked !== opt && opt === q.answer && "border-emerald-500 bg-emerald-500/10",
-                picked !== null && picked !== opt && opt !== q.answer && "opacity-50 border-border",
+                !checked && !isPicked && "border-border hover:bg-muted",
+                !checked && !isPicked && isNew && "text-emerald-600 dark:text-emerald-400",
+                !checked && isPicked && "border-foreground bg-muted",
+                checked && opt === q.answer && "border-emerald-500 bg-emerald-500/15",
+                checked && isPicked && opt !== q.answer && "border-rose-500 bg-rose-500/15",
+                checked && !isPicked && opt !== q.answer && "opacity-50 border-border",
               )}
             >
               {opt}
@@ -378,9 +429,60 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
         })}
       </div>
 
-      <Button active disabled={picked === null} className="w-full" onClick={next}>
-        {picked === null ? "Pick an answer" : isCorrect ? "Correct — continue" : "Continue"}
-      </Button>
+      {checked && (
+        <Container
+          className={cn(
+            "p-3 flex items-start gap-3",
+            isCorrect ? "border-emerald-500/60 bg-emerald-500/5" : "border-rose-500/60 bg-rose-500/5",
+          )}
+        >
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className={cn("text-sm font-semibold", isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+              {isCorrect ? L.nice : L.notQuite}
+            </p>
+            {!isCorrect && (
+              <p className="text-sm">
+                <span className="opacity-60">{L.correctAns}: </span>
+                <span className="font-semibold">{q.answer}</span>
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleReport}
+            aria-label="Report"
+            title="Report a problem"
+            className="p-2 rounded-md opacity-60 hover:opacity-100 hover:bg-muted"
+          >
+            <Flag className="h-4 w-4" />
+          </button>
+        </Container>
+      )}
+
+      {/* Footer: mobile stacked (Check top, Skip below), desktop side-by-side (Skip left, Check right). */}
+      <div className="fixed left-0 right-0 bottom-0 z-40 border-t-2 border-border bg-background/95 backdrop-blur px-4 py-3">
+        <div className="max-w-md mx-auto flex flex-col-reverse sm:flex-row gap-2">
+          {!checked && (
+            <Button onClick={handleSkip} fullWidth className="sm:flex-1">
+              {L.skip}
+            </Button>
+          )}
+          {!checked ? (
+            <Button
+              active={picked !== null}
+              disabled={picked === null}
+              onClick={handleCheck}
+              fullWidth
+              className="sm:flex-1"
+            >
+              {L.check}
+            </Button>
+          ) : (
+            <Button active onClick={handleContinue} fullWidth>
+              {L.cont}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

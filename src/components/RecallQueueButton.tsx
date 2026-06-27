@@ -41,7 +41,7 @@ export function RecallQueueButton() {
       subcategoryId: item.subcategoryId,
       wordId: item.wordId,
     });
-    navigate("/recall");
+    navigate("/Recall");
   };
 
   return (
