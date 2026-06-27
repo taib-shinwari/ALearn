@@ -30,6 +30,9 @@ import { findArabicForms } from "@/data/arabicForms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WordEditDialog } from "@/components/word/WordEditDialog";
 import { LessonsView } from "@/components/lessons/LessonsView";
+import {
+  AlphabetActivityPicker, ListenAndWrite, MatchPairs, type AlphabetMode,
+} from "@/components/alphabet/AlphabetActivities";
 
 const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "nl", label: "Nederlands" },
