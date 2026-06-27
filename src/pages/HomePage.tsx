@@ -89,23 +89,24 @@ export default function HomePage() {
 
   // ── pick a target language ─────────────────────────────────────────
   if (browsePath[0] === "language" && browsePath.length === 1) {
-    const available = TARGET_LANGS.filter(l => l.code !== interfaceLanguage);
     return (
-      <div className="grid grid-cols-2 gap-3 w-full px-4">
-        {available.map(l => (
-          <CardButton
-            key={l.code}
-            onClick={() => {
-              setLearningLanguage(l.code);
-              setBrowsePath(["language", l.code]);
-            }}
-            className="min-h-[64px] py-3 flex items-center justify-center text-center"
-          >
-            <span className="font-semibold">{l.label}</span>
-          </CardButton>
-        ))}
-      </div>
+      <LanguagePicker
+        interfaceLanguage={interfaceLanguage}
+        onPick={(code) => {
+          if (code === "ps") {
+            setBrowsePath(["language", "ps"]);
+            return;
+          }
+          setLearningLanguage(code);
+          setBrowsePath(["language", code]);
+        }}
+      />
     );
+  }
+
+  // ── Pashto (preview language) ─────────────────────────────────────
+  if (browsePath[0] === "language" && browsePath[1] === "ps") {
+    return <PashtoComingSoon />;
   }
 
 
