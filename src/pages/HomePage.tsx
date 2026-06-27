@@ -330,17 +330,23 @@ function DictionaryBrowseView({
   const { map } = useMarkedWords();
   const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
 
-  // Group marked words by SUBCATEGORY (theme), not by part-of-speech category.
-  const groups = useMemo(() => {
-    const result: { cat: typeof categories[number]; sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[] = [];
+  // Group marked words first by part-of-speech (category), then list subcategories within.
+  const grouped = useMemo(() => {
+    const result: {
+      cat: typeof categories[number];
+      subs: { sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[];
+    }[] = [];
     for (const cat of categories) {
+      const subs: { sub: typeof categories[number]["subcategories"][number]; words: typeof categories[number]["subcategories"][number]["words"] }[] = [];
       for (const sub of cat.subcategories) {
         const words = sub.words.filter(w => markedIds.has(w.id));
-        if (words.length > 0) result.push({ cat, sub, words });
+        if (words.length > 0) subs.push({ sub, words });
       }
+      if (subs.length) result.push({ cat, subs });
     }
     return result;
   }, [markedIds]);
+  const hasAny = grouped.length > 0;
 
   return (
     <div className="px-4 w-full space-y-3">
@@ -360,7 +366,7 @@ function DictionaryBrowseView({
         )}
       </div>
 
-      {groups.length === 0 && collections.length === 0 ? (
+      {!hasAny && collections.length === 0 ? (
         <Container>
           <p className="text-sm text-center opacity-70">
             {uiLang === "nl"
@@ -371,17 +377,28 @@ function DictionaryBrowseView({
           </p>
         </Container>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {groups.map(({ cat, sub, words }) => (
-            <CardButton
-              key={`${cat.id}-${sub.id}`}
-              onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
-              className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
-            >
-              <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
-              <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
-            </CardButton>
+        <div className="space-y-5">
+          {grouped.map(({ cat, subs }) => (
+            <section key={cat.id} className="space-y-2">
+              <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
+              <div className="grid grid-cols-2 gap-3">
+                {subs.map(({ sub, words }) => (
+                  <CardButton
+                    key={`${cat.id}-${sub.id}`}
+                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
+                    className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
+                  >
+                    <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
+                    <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
+                  </CardButton>
+                ))}
+              </div>
+            </section>
           ))}
+          {collections.length > 0 && (
+            <section className="space-y-2">
+              <TitleBar className="font-semibold">{uiLang === "nl" ? "Collecties" : uiLang === "ar" ? "المجموعات" : "Collections"}</TitleBar>
+              <div className="grid grid-cols-2 gap-3">
           {collections.map(col => (
             <div key={col.id} className="space-y-2">
               <TitleBar>
@@ -404,6 +421,9 @@ function DictionaryBrowseView({
               </CardButton>
             </div>
           ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
