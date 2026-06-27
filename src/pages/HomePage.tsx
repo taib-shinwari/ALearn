@@ -40,6 +40,11 @@ const TARGET_LANGS: { code: Lang; label: string }[] = [
   { code: "ar", label: "العربية" },
 ];
 
+// Extra languages selectable via the "+" picker. Pashto is preview-only.
+const EXTRA_LANGS: { code: string; label: string; preview?: boolean }[] = [
+  { code: "ps", label: "پښتو (Pashto)", preview: true },
+];
+
 const ALPHABET_LABEL: Record<Lang, string> = {
   nl: "Alfabet", en: "Alphabet", ar: "الحروف",
 };
