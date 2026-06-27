@@ -737,20 +737,41 @@ const ALPHABET_TABLES: Record<Lang, AlphabetTable> = {
 
 function AlphabetView({ targetLang, uiLang }: { targetLang: Lang; uiLang: Lang }) {
   const table = ALPHABET_TABLES[targetLang] ?? ALPHABET_TABLES.en;
+  // Latin-script languages get interactive Listen & Write + Memory Match.
+  // Arabic stays as viewer for now (no upper/lower case).
+  const showInteractive = targetLang === "en" || targetLang === "nl";
+  const [mode, setMode] = useState<AlphabetMode>("viewer");
   return (
-    <div className="space-y-6 w-full px-4">
-      <section className="space-y-3">
-        <TitleBar className="font-semibold">{table.vowelsLabel[uiLang]}</TitleBar>
-        <div className="grid grid-cols-6 gap-2">
-          {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
+    <div className="w-full">
+      <AlphabetActivityPicker
+        targetLang={targetLang}
+        uiLang={uiLang}
+        mode={mode}
+        setMode={setMode}
+        showInteractive={showInteractive}
+      />
+      {mode === "listen" && showInteractive && (
+        <ListenAndWrite targetLang={targetLang} uiLang={uiLang} />
+      )}
+      {mode === "match" && showInteractive && (
+        <MatchPairs targetLang={targetLang} uiLang={uiLang} />
+      )}
+      {mode === "viewer" && (
+        <div className="space-y-6 w-full px-4">
+          <section className="space-y-3">
+            <TitleBar className="font-semibold">{table.vowelsLabel[uiLang]}</TitleBar>
+            <div className="grid grid-cols-6 gap-2">
+              {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
+            </div>
+          </section>
+          <section className="space-y-3">
+            <TitleBar className="font-semibold">{table.consonantsLabel[uiLang]}</TitleBar>
+            <div className="grid grid-cols-6 gap-2">
+              {table.consonants.map(c => <LetterCard key={c.letter} {...c} lang={targetLang} />)}
+            </div>
+          </section>
         </div>
-      </section>
-      <section className="space-y-3">
-        <TitleBar className="font-semibold">{table.consonantsLabel[uiLang]}</TitleBar>
-        <div className="grid grid-cols-6 gap-2">
-          {table.consonants.map(c => <LetterCard key={c.letter} {...c} lang={targetLang} />)}
-        </div>
-      </section>
+      )}
     </div>
   );
 }
