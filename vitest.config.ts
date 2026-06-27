@@ -4,13 +4,18 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // Redirects Vite to serve asset files out of Client/Public instead of the root folder folder
+  publicDir: "Client/Public", 
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    setupFiles: ["./Client/test/setup.ts"],
+    include: ["Client/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { 
+      "Client": path.resolve(__dirname, "./Client"),
+      "Server": path.resolve(__dirname, "./Server"),
+    },
   },
 });

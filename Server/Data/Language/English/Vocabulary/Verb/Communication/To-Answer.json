@@ -1,0 +1,12 @@
+[
+  "To Answer",
+  "To respond to a question.",
+  {
+    "I": "answer",
+    "you": "answer",
+    "he/she": "answers",
+    "we": "answer",
+    "they": "answer"
+  },
+  "Can you answer?"
+]

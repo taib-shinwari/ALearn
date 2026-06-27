@@ -1,0 +1,13 @@
+[
+  "Zwemmen",
+  "Bewegen door water.",
+  {
+    "ik": "zwem",
+    "jij": "zwemt",
+    "hij/zij": "zwemt",
+    "wij": "zwemmen",
+    "jullie": "zwemmen",
+    "zij (mv)": "zwemmen"
+  },
+  "Ik zwem in het zwembad."
+]

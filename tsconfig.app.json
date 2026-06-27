@@ -17,19 +17,17 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "Client/*": ["./Client/*"],
+      "Server/*": ["./Server/*"]
     },
     "skipLibCheck": true,
     "strict": false,
     "target": "ES2020",
-    "types": [
-      "vitest/globals"
-    ],
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "Client",
+    "Server",
+    "vite-env.d.ts"
   ]
 }

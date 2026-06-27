@@ -1,0 +1,50 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster as Sonner } from "Client/Component/UI/sonner";
+import { Toaster } from "Client/Component/UI/toaster";
+import { TooltipProvider } from "Client/Component/UI/tooltip";
+import { AppProvider } from "Client/Context/App";
+import Layout from "Client/Component/Layout";
+import AuthPage from "./Page/AuthPage";
+
+import HomePage from "./Page/Navigation";
+import SettingsPage from "./Page/SettingsPage";
+import FlashcardsPage from "./Page/FlashcardsPage";
+import NotFound from "./Page/NotFound";
+import { ReactNode } from "react";
+
+const queryClient = new QueryClient();
+
+const withLayout = (el: ReactNode) => <Layout>{el}</Layout>;
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/Sign" element={withLayout(<AuthPage />)} />
+      <Route path="/Settings" element={withLayout(<SettingsPage />)} />
+      <Route path="/Recall" element={withLayout(<FlashcardsPage />)} />
+      {/* Legacy lowercase aliases */}
+      <Route path="/sign" element={withLayout(<AuthPage />)} />
+      <Route path="/settings" element={withLayout(<SettingsPage />)} />
+      <Route path="/recall" element={withLayout(<FlashcardsPage />)} />
+      <Route path="/" element={withLayout(<HomePage />)} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppProvider>
+  </QueryClientProvider>
+);
+
+export default App;

@@ -1,0 +1,12 @@
+[
+  "To Read",
+  "To interpret text.",
+  {
+    "I": "read",
+    "you": "read",
+    "he/she": "reads",
+    "we": "read",
+    "they": "read"
+  },
+  "She reads a book."
+]

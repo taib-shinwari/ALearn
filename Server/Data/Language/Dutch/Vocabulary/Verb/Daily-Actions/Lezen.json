@@ -1,0 +1,13 @@
+[
+  "Lezen",
+  "Tekst interpreteren.",
+  {
+    "ik": "lees",
+    "jij": "leest",
+    "hij/zij": "leest",
+    "wij": "lezen",
+    "jullie": "lezen",
+    "zij (mv)": "lezen"
+  },
+  "Zij leest een boek."
+]
