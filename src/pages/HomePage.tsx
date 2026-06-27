@@ -1201,3 +1201,97 @@ function ChessBranch() {
   return <div className="px-4 text-sm">{t("notFound")}</div>;
 }
 
+/* ──────────────────────── Language picker ──────────────────────── */
+
+function LanguagePicker({
+  interfaceLanguage,
+  onPick,
+}: {
+  interfaceLanguage: string | null;
+  onPick: (code: string) => void;
+}) {
+  const { uiLang, t } = useCourseLanguage();
+  const [pickOpen, setPickOpen] = useState(false);
+  const available = TARGET_LANGS.filter(l => l.code !== interfaceLanguage);
+  return (
+    <div className="px-4 space-y-3 w-full">
+      <div className="flex justify-end">
+        <Button onClick={() => setPickOpen(true)} aria-label="Add language">
+          <Plus className="h-4 w-4 mr-1" />
+          {uiLang === "nl" ? "Taal" : uiLang === "ar" ? "لغة" : "Language"}
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {available.map(l => (
+          <CardButton
+            key={l.code}
+            onClick={() => onPick(l.code)}
+            className="min-h-[64px] py-3 flex items-center justify-center text-center"
+          >
+            <span className="font-semibold">{l.label}</span>
+          </CardButton>
+        ))}
+      </div>
+
+      <FullPageDialog
+        open={pickOpen}
+        onOpenChange={setPickOpen}
+        title={uiLang === "nl" ? "Taal toevoegen" : uiLang === "ar" ? "إضافة لغة" : "Add language"}
+      >
+        <div className="space-y-3">
+          <p className="text-xs opacity-70">
+            {uiLang === "nl"
+              ? "Kies een extra taal om te verkennen."
+              : uiLang === "ar"
+              ? "اختر لغة إضافية لاستكشافها."
+              : "Pick another language to explore."}
+          </p>
+          <div className="grid gap-2">
+            {EXTRA_LANGS.map(l => (
+              <CardButton
+                key={l.code}
+                onClick={() => { setPickOpen(false); onPick(l.code); }}
+                className="min-h-[56px] py-2 px-3 flex items-center justify-between gap-3"
+              >
+                <span className="font-semibold">{l.label}</span>
+                {l.preview && (
+                  <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border-2 border-border opacity-70">
+                    Preview
+                  </span>
+                )}
+              </CardButton>
+            ))}
+          </div>
+        </div>
+      </FullPageDialog>
+    </div>
+  );
+}
+
+/* ──────────────────────── Pashto preview stub ──────────────────────── */
+
+function PashtoComingSoon() {
+  const { uiLang } = useCourseLanguage();
+  return (
+    <div className="px-4 max-w-md mx-auto py-8">
+      <Container className="p-6 text-center space-y-3">
+        <h2 className="text-2xl font-bold">پښتو</h2>
+        <p className="text-sm opacity-70">
+          {uiLang === "nl"
+            ? "Pashto is in voorbeeld. Inhoud wordt nog toegevoegd."
+            : uiLang === "ar"
+            ? "البشتو في وضع المعاينة. المحتوى لا يزال قيد الإضافة."
+            : "Pashto is in preview — content is still being added."}
+        </p>
+        <p className="text-xs opacity-60">
+          {uiLang === "nl"
+            ? "Alfabet, lessen en woordenboek volgen binnenkort."
+            : uiLang === "ar"
+            ? "الأبجدية والدروس والقاموس قادمة قريبًا."
+            : "Alphabet, lessons, and dictionary coming soon."}
+        </p>
+      </Container>
+    </div>
+  );
+}
+
