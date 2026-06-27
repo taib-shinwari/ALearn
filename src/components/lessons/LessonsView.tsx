@@ -4,11 +4,12 @@
 //   ["language", lang, "lessons", sectionId, folderId]            → numbered round lesson buttons
 //   ["language", lang, "lessons", sectionId, folderId, unitId]    → multiple-choice runner
 import { useEffect, useMemo, useState } from "react";
-import { Lock, Star } from "lucide-react";
+import { Lock, Star, Flag } from "lucide-react";
 import { CardButton } from "@/components/ui/card-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/use-toast";
 import {
   categories,
   getWordText,
