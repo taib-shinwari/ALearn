@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "Client/Library/spacedRepetition";
 import type { RecallItem, RecallScope } from "Client/Library/recall";
+import { browsePathToUrl, sameBrowsePath, urlToBrowsePath } from "Client/Library/navigation";
 
 export interface Course {
   fromLang: string;
@@ -103,6 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("appState");
     if (saved) {
       const parsed = JSON.parse(saved);
+      const urlPath = typeof window !== "undefined" ? urlToBrowsePath(window.location.pathname) : null;
       const {
         streak, xp, lastPracticeDate,
         practiceScope, pathProgress, exerciseStats,
@@ -111,17 +113,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const merged: AppState = { ...defaultState, ...clean, selectedConcept: "language" };
       merged.courses = (merged.courses ?? []).filter((c: Course) => c.concept === "language");
       merged.recallQueue = Array.isArray(merged.recallQueue) ? merged.recallQueue : [];
-      merged.browsePath = Array.isArray(merged.browsePath) ? merged.browsePath : [];
+      merged.browsePath = urlPath ?? (Array.isArray(merged.browsePath) ? merged.browsePath : []);
       merged.activeRecall = merged.activeRecall ?? null;
       merged.recallReturnPath = merged.recallReturnPath ?? null;
       return merged;
     }
-    return defaultState;
+    const urlPath = typeof window !== "undefined" ? urlToBrowsePath(window.location.pathname) : null;
+    return urlPath ? { ...defaultState, browsePath: urlPath } : defaultState;
   });
 
   useEffect(() => {
     localStorage.setItem("appState", JSON.stringify(state));
   }, [state]);
+
+  useEffect(() => {
+    const nextUrl = browsePathToUrl(state.browsePath);
+    if (window.location.pathname !== nextUrl) {
+      window.history.pushState(null, "", nextUrl);
+    }
+  }, [state.browsePath]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const next = urlToBrowsePath(window.location.pathname);
+      if (!next) return;
+      setState(s => sameBrowsePath(s.browsePath, next) ? s : { ...s, browsePath: next });
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     applyAppearance(state.theme, state.textSize, state.highContrast);
