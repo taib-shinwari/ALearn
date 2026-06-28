@@ -76,7 +76,7 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
               size="icon"
               variant="secondary"
               className="h-7 w-7 mt-0.5 shrink-0"
-              onClick={(e) => { e.stopPropagation(); speak(letter, lang); }}
+              onClick={(e) => { e.stopPropagation(); speak(letter, (lang === "Arabic" ? "ar" : lang === "Dutch" ? "nl" : "en")); }}
               aria-label="Play Audio Pronunciation"
             >
               <Volume2 className="h-3.5 w-3.5" />
@@ -121,21 +121,28 @@ export function AlphabetView({ targetLang, uiLang }: { targetLang: SupportedLang
   const showInteractive = ["English", "Dutch", "Arabic"].includes(targetLang);
   const [mode, setMode] = useState<AlphabetMode>("viewer");
 
+  // Short-code equivalents for activities/speech (which use WordLang).
+  const SUPPORTED_TO_SHORT: Record<string, "en" | "nl" | "ar"> = {
+    English: "en", Dutch: "nl", Arabic: "ar",
+  };
+  const shortTarget = (SUPPORTED_TO_SHORT[targetLang] ?? "en") as any;
+  const shortUi     = (SUPPORTED_TO_SHORT[uiLang]     ?? "en") as any;
+
   return (
     <div className="w-full space-y-4">
       <AlphabetActivityPicker
-        targetLang={targetLang}
-        uiLang={uiLang}
+        targetLang={shortTarget}
+        uiLang={shortUi}
         mode={mode}
         setMode={setMode}
         showInteractive={showInteractive}
       />
 
       {mode === "listen" && showInteractive && (
-        <ListenAndWrite targetLang={targetLang} uiLang={uiLang} />
+        <ListenAndWrite targetLang={shortTarget} uiLang={shortUi} />
       )}
       {mode === "match" && showInteractive && (
-        <MatchPairs targetLang={targetLang} uiLang={uiLang} />
+        <MatchPairs targetLang={shortTarget} uiLang={shortUi} />
       )}
 
       {mode === "viewer" && (
@@ -148,7 +155,7 @@ export function AlphabetView({ targetLang, uiLang }: { targetLang: SupportedLang
               {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
             </div>
           </section>
-          
+
           <section className="space-y-3">
             <TitleBar className="font-semibold text-xs uppercase tracking-wider opacity-80">
               {table.consonantsLabel[uiLang] ?? table.consonantsLabel.English}

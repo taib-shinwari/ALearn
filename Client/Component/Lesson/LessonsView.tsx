@@ -327,7 +327,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: string; unit?: Unit; onDon
   const [alreadyMarked] = useState<Set<string>>(() => {
     const out = new Set<string>();
     if (!unit) return out;
-    for (const w of unit.words) { if (isMarked(lang, w.id)) out.add(w.id); }
+    for (const w of unit.words) { if (isMarked(lang as SupportedLang, w.id)) out.add(w.id); }
     return out;
   });
 
@@ -397,7 +397,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: string; unit?: Unit; onDon
       setCorrect(c => c + 1);
       const answerId = textToId.get(q.answer);
       if (answerId && !alreadyMarked.has(answerId) && !seenIds.has(answerId)) {
-        toggle(lang, answerId);
+        toggle(lang as SupportedLang, answerId);
         setSeenIds(prev => { const n = new Set(prev); n.add(answerId); return n; });
       }
     }

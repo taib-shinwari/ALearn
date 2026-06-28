@@ -1,4 +1,4 @@
-import { WordLang } from "Server/Data/courseData";
+import type { WordLang } from "Client/Library/wordTypes";
 
 const VOICE_LOCALE: Record<WordLang, string> = {
   nl: "nl-NL",

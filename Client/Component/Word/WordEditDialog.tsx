@@ -3,7 +3,7 @@ import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { Button } from "Client/Component/UI/button";
 import { Input } from "Client/Component/UI/input";
 import { Textarea } from "Client/Component/UI/textarea";
-import type { WordDetail } from "Server/Data/courseData";
+import type { WordDetail } from "Client/Hook/useCustomWords";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 
 interface Props {

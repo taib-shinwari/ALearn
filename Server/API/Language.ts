@@ -68,14 +68,14 @@ for (const [filePath, module] of Object.entries(allLanguageFiles)) {
       const wordSlug = fileName.replace(/\.json$/, '');
       AVAILABLE_LANGS.add(lang);
 
-      if (!VOCAB_GRAMMAR_DATA[lang]) VOCAB_GRAMMAR_DATA[lang] = {};
-      if (!VOCAB_GRAMMAR_DATA[lang][section]) VOCAB_GRAMMAR_DATA[lang][section] = {};
-      if (!VOCAB_GRAMMAR_DATA[lang][section][category]) VOCAB_GRAMMAR_DATA[lang][section][category] = {};
+      if (!VOCAB_GRAMMAR_DATA[lang]) VOCAB_GRAMMAR_DATA[lang] = {} as any;
+      if (!VOCAB_GRAMMAR_DATA[lang][section]) VOCAB_GRAMMAR_DATA[lang][section] = {} as any;
+      if (!VOCAB_GRAMMAR_DATA[lang][section][category]) VOCAB_GRAMMAR_DATA[lang][section][category] = {} as any;
       if (!VOCAB_GRAMMAR_DATA[lang][section][category][subcategory]) {
-        VOCAB_GRAMMAR_DATA[lang][section][category][subcategory] = {};
+        (VOCAB_GRAMMAR_DATA[lang][section][category][subcategory] as any) = {};
       }
 
-      VOCAB_GRAMMAR_DATA[lang][section][category][subcategory][wordSlug] = data as WordEntry;
+      (VOCAB_GRAMMAR_DATA[lang][section][category][subcategory] as any)[wordSlug] = data as WordEntry;
     }
   }
 }
@@ -140,7 +140,7 @@ export function getWordsInSubcategory(
   category: string,
   subcategory: string,
 ): Record<string, WordEntry> {
-  return VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category]?.[subcategory] ?? {};
+  return (VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category]?.[subcategory] ?? {}) as Record<string, WordEntry>;
 }
 
 export function getWordsInCategory(
@@ -148,13 +148,109 @@ export function getWordsInCategory(
   section: SectionType,
   category: string,
 ): Record<string, Record<string, WordEntry>> {
-  return VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category] ?? {};
+  return (VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category] ?? {}) as unknown as Record<string, Record<string, WordEntry>>;
 }
 
 export function getAllWords(
   lang: SupportedLang,
 ): Record<SectionType, Record<string, Record<string, Record<string, WordEntry>>>> {
   return (VOCAB_GRAMMAR_DATA[lang] as any) ?? { Vocabulary: {}, Grammar: {} };
+}
+
+// ─── Path resolution ─────────────────────────────────────────────────────────
+//
+// Each leaf inside the language tree can be a **category**, **subcategory**, or
+// **word**. Because a word file is allowed to live directly under a category
+// (it lands in the synthetic "Default" subcategory), a naive lookup that only
+// inspects category-level keys can mis-route a word as a category. Callers
+// should use `resolveLanguagePath` so the "this is a word" case is detected
+// even when the URL segment sits at what would otherwise be a category slot.
+
+export type ResolvedLanguageNode =
+  | { kind: "section";     section: SectionType }
+  | { kind: "category";    section: SectionType; category: string }
+  | { kind: "subcategory"; section: SectionType; category: string; subcategory: string }
+  | {
+      kind: "word";
+      section: SectionType;
+      category: string;
+      subcategory: string;
+      word: string;
+      data: WordEntry;
+    };
+
+const DEFAULT_SUB = "Default";
+
+/**
+ * Walk a slug path beneath a language and report what each level resolves to.
+ * Segments are tried as **word slugs first** at every level so that a custom
+ * word dropped under e.g. `/Vocabulary/Noun` is rendered as a word and not
+ * mistaken for a subcategory.
+ *
+ * Accepts paths with or without a leading section segment; when omitted we
+ * default to "Vocabulary".
+ */
+export function resolveLanguagePath(
+  lang: SupportedLang,
+  segments: string[],
+): ResolvedLanguageNode | null {
+  if (segments.length === 0) return null;
+
+  // Section may be implicit — default to Vocabulary.
+  let cursor = 0;
+  let section: SectionType;
+  if (segments[0] === "Vocabulary" || segments[0] === "Grammar") {
+    section = segments[0];
+    cursor = 1;
+  } else {
+    section = "Vocabulary";
+  }
+
+  if (cursor >= segments.length) return { kind: "section", section };
+
+  const categorySeg = segments[cursor++];
+  const categories  = Object.keys(VOCAB_GRAMMAR_DATA[lang]?.[section] ?? {});
+  if (!categories.includes(categorySeg)) return null;
+  const category = categorySeg;
+
+  if (cursor >= segments.length) {
+    return { kind: "category", section, category };
+  }
+
+  // Next segment: prefer word-in-Default-subcategory over subcategory match.
+  const nextSeg = segments[cursor];
+  const defaultWords = VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category]?.[DEFAULT_SUB] ?? {};
+  if (Object.prototype.hasOwnProperty.call(defaultWords, nextSeg) && cursor === segments.length - 1) {
+    return {
+      kind: "word",
+      section, category,
+      subcategory: DEFAULT_SUB,
+      word: nextSeg,
+      data: defaultWords[nextSeg] as WordEntry,
+    };
+  }
+
+  const subs = Object.keys(VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category] ?? {});
+  if (!subs.includes(nextSeg)) return null;
+  const subcategory = nextSeg;
+  cursor++;
+
+  if (cursor >= segments.length) {
+    return { kind: "subcategory", section, category, subcategory };
+  }
+
+  // Final leaf: must be a word slug under this subcategory.
+  const wordSeg = segments[cursor++];
+  const words   = VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category]?.[subcategory] ?? {};
+  if (!Object.prototype.hasOwnProperty.call(words, wordSeg)) return null;
+  if (cursor !== segments.length) return null;
+
+  return {
+    kind: "word",
+    section, category, subcategory,
+    word: wordSeg,
+    data: words[wordSeg] as WordEntry,
+  };
 }
 
 // ─── Arabic Alphabet API ─────────────────────────────────────────────────────

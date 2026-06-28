@@ -8,14 +8,14 @@ import { getLabel, type I18nLang, type SupportedLang } from "Server/API/Language
 /* ─────────────────────────── LanguageRootView ─────────────────────────── */
 
 export function LanguageRootView({ targetLang }: { targetLang: SupportedLang }) {
-  const { uiLang } = useCourseLanguage(); // uiLang: I18nLang
+  const { uiLang, i18nLang } = useCourseLanguage(); // uiLang: short code, i18nLang: full name
   const { pushBrowse } = useApp();
   const [view, setView] = useState<"menu" | "dictionary">("menu");
 
   // Dynamically fetch labels straight from your new Language.ts i18n store
   // with safe string fallbacks if the key isn't loaded yet
-  const lessonsText    = getLabel(uiLang, "lessons") || getLabel(uiLang, "lesson") || "Lessons";
-  const dictionaryText = getLabel(uiLang, "dictionary") || "Dictionary";
+  const lessonsText    = getLabel(i18nLang, "lessons") || getLabel(i18nLang, "lesson") || "Lessons";
+  const dictionaryText = getLabel(i18nLang, "dictionary") || "Dictionary";
 
   if (view === "menu") {
     return (
