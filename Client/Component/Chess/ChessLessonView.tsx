@@ -33,8 +33,23 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
     const level = getChessLevel(category);
     const group = level?.groups.find(g => g.id === subcategory);
     const lessonEntry = group?.lessons.find(l => l.id === lessonId);
-    // steps[0] carries the full lesson config object
-    return lessonEntry?.steps[0] ?? null;
+    const raw = lessonEntry?.steps[0];
+    if (!raw) return null;
+    if (!Array.isArray(raw) && typeof raw === "object" && (raw as any).piece) return raw;
+    if (Array.isArray(raw)) {
+      const [pieceSpec, starsArr, introKey] = raw as [string, string[], string];
+      const [square, type] = String(pieceSpec).split("-");
+      const stars = (starsArr ?? []).flatMap((s: string) => String(s).split(","))
+        .map((s: string) => s.trim()).filter(Boolean);
+      return {
+        piece: { square, type: type as PieceType, color: "w" as PieceColor },
+        extras: [] as PlacedPiece[],
+        stars,
+        intro: introKey,
+        orientation: "white" as const,
+      };
+    }
+    return null;
   }, [category, subcategory, lessonId]);
 
   const [phase, setPhase] = useState<Phase>("intro");
