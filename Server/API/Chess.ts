@@ -185,7 +185,8 @@ const levelsMap: Record<string, Record<string, ChessGroup>> = {};
 LEVEL_ORDER.forEach(id => { levelsMap[id] = {}; });
 
 for (const [filePath, module] of Object.entries(allLessonFiles)) {
-  const match = filePath.match(/\/Lesson\/([^/]+)\/([^/]+)\/The-([^/]+)\.json$/i);
+  const cleanPath = filePath.replace(/\\/g, "/").split("?")[0];
+  const match = cleanPath.match(/\/Lesson\/([^/]+)\/([^/]+)\/(?:The-)?([^/]+)\.json$/i);
   if (!match) continue;
 
   const categoryId  = match[1].toLowerCase();

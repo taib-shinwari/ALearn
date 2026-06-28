@@ -8,7 +8,9 @@ import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useMarkedWords } from "Client/Hook/useMarkedWords";
+import { useCustomCollections } from "Client/Hook/useCustomCollections";
 import { useCustomWords } from "Client/Hook/useCustomWords";
+import type { WordDetail } from "Client/Hook/useCustomWords";
 import { useFavoriteWords } from "Client/Hook/useFavoriteWords";
 import { RecallButton } from "Client/Component/RecallButton";
 import { ALPHABET_SEGMENT } from "Client/Library/navigation";
@@ -19,7 +21,7 @@ import { AlphabetView } from "Client/Component/View/Alphabet";
 import { WordDetailView } from "Client/Component/View/Word";
 import { ChessBranch, EmptyState } from "Client/Component/View/Chess";
 import { SubcategoriesView } from "Client/Component/View/Subcategory";
-import { LanguageRootView } from "Client/Component/View/Language";
+import { LanguageDictionaryView, LanguageRootView } from "Client/Component/View/Language";
 
 // ── NEW API IMPORTS ───────────────────────────────────────────────────
 import {
@@ -27,10 +29,9 @@ import {
   getSubcategories,
   getWordSlugs,
   getWord,
-  getWordsInSubcategory,
   type SupportedLang,
   type SectionType,
-  type WordEntry
+  type WordEntry,
 } from "Server/API/Language";
 
 // Helper mapper to translate internal UI shorthand codes to API expected Type names
@@ -55,6 +56,36 @@ const LANGUAGE_LABEL: Record<string, string> = { nl: "Taal",      en: "Language"
 const CHESS_LABEL:    Record<string, string> = { nl: "Schaken",   en: "Chess",    ar: "الشطرنج"  };
 const DEFAULT_SECTION: SectionType = "Vocabulary";
 
+function entryText(entry: WordEntry | null | undefined, index: number): string | undefined {
+  const value = Array.isArray(entry) ? entry[index] : undefined;
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") return value.English ?? Object.values(value)[0];
+  return undefined;
+}
+
+function wordDetailFromApi(id: string, entry: WordEntry, lang: SupportedLang): WordDetail {
+  const word = entryText(entry, 0) ?? id;
+  const definition = entryText(entry, 1);
+  const example = entryText(entry, 2);
+  const base: WordDetail = {
+    id,
+    nl: { word: id },
+    en: { word: id },
+  };
+
+  if (lang === "Dutch") {
+    base.nl = { word, definitie: definition, voorbeeld: example };
+    base.en = { word: id, definition, example };
+  } else if (lang === "Arabic") {
+    base.en = { word: id, definition, example };
+    base.ar = { word, definition, example };
+  } else {
+    base.en = { word, definition, example };
+  }
+
+  return base;
+}
+
 export default function HomePage() {
   const {
     browsePath, pushBrowse, setBrowsePath,
@@ -63,6 +94,10 @@ export default function HomePage() {
   } = useApp();
   const { uiLang, i18nLang, t } = useCourseLanguage();
   const navigate = useNavigate();
+  const hookTargetLangCode = browsePath[0] === "language" ? browsePath[1] : undefined;
+  const hookApiLangName = hookTargetLangCode ? (MAP_LANG_CODE[hookTargetLangCode] || "English") : undefined;
+  const { collections: customCategories } = useCustomCollections(hookApiLangName ? `__lang_${hookApiLangName}` : undefined);
+  const { collections: customSubcategories } = useCustomCollections(browsePath[0] === "language" ? browsePath[2] : undefined);
 
   // ── ROOT ──────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
@@ -103,17 +138,17 @@ export default function HomePage() {
     );
   }
 
-  // ── PASHTO PREVIEW ────────────────────────────────────────────────────
-  if (browsePath[0] === "language" && browsePath[1] === "ps") {
-    return <PashtoComingSoon />;
-  }
-
   const targetLangCode = browsePath[1];
   const apiLangName = MAP_LANG_CODE[targetLangCode] || "English";
 
   // ── LANGUAGE HOME ─────────────────────────────────────────────────────
   if (browsePath.length === 2) {
-    return <LanguageRootView targetLang={targetLangCode as any} />;
+    return <LanguageRootView targetLang={apiLangName} targetLangCode={targetLangCode} />;
+  }
+
+  // ── DICTIONARY ROOT ───────────────────────────────────────────────────
+  if (browsePath[2] === "dictionary") {
+    return <LanguageDictionaryView targetLang={apiLangName} targetLangCode={targetLangCode} />;
   }
 
   // ── ALPHABET ──────────────────────────────────────────────────────────
@@ -123,7 +158,7 @@ export default function HomePage() {
 
   // ── LESSONS ───────────────────────────────────────────────────────────
   if (browsePath[2] === "lessons") {
-    return <LessonsView lang={targetLangCode as any} />;
+    return <LessonsView lang={apiLangName} />;
   }
 
   // ── DICTIONARY MARKED BRANCH: ["language", lang, "_marked", catId, subId, wordId?] ──
@@ -156,14 +191,21 @@ export default function HomePage() {
   // ── SUBCATEGORIES ─────────────────────────────────────────────────────
   const categoryId = browsePath[2];
   const allCategories = getCategories(apiLangName, DEFAULT_SECTION);
+  const customCategory = customCategories.find(c => c.id === categoryId);
+  const isCustomCategory = !!customCategory;
   
-  if (!allCategories.includes(categoryId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  if (!allCategories.includes(categoryId) && !isCustomCategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
-    const subIds = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+    const subIds = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
     const mockCategoryStructure = {
       id: categoryId,
-      subcategories: subIds.map(id => ({ id, name: { nl: id, en: id } }))
+      name: customCategory?.name ?? { Dutch: categoryId, English: categoryId, Arabic: categoryId },
+      subcategories: subIds.map(id => ({
+        id,
+        name: { Dutch: id, English: id, Arabic: id },
+        words: getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, id).map(wid => ({ id: wid })),
+      }))
     };
 
     return <SubcategoriesView category={mockCategoryStructure as any} onOpen={(id) => pushBrowse(id)} />;
@@ -171,14 +213,13 @@ export default function HomePage() {
 
   // ── WORDS ─────────────────────────────────────────────────────────────
   const subcategoryId = browsePath[3];
-  const availableSubs = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
-  const isValidSub = availableSubs.includes(subcategoryId);
+  const availableSubs = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+  const isCustomSub = customSubcategories.some(c => c.id === subcategoryId);
+  const isValidSub = availableSubs.includes(subcategoryId) || isCustomSub;
 
   const wordSlugs = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
 
-  if (browsePath.length === 4 && wordSlugs.length === 0 && isValidSub) {
-    return <EmptyState uiLang={i18nLang} kind="words" />;
-  }
+  if (!isValidSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 4) {
     return (
@@ -230,7 +271,7 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, apiLangName, bu
   if (builtInSlugs.includes(wordId)) {
     const apiData = getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, wordId);
     if (apiData) {
-      raw = { id: wordId, value: apiData };
+      raw = wordDetailFromApi(wordId, apiData, apiLangName);
     }
   } else {
     raw = customWords.find(w => w.id === wordId);
@@ -309,7 +350,7 @@ function WordsView({
     const apiWordsMapped = slugs.map(slug => ({
       id: slug,
       value: getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, slug)
-    }));
+    })).flatMap(({ id, value }) => value ? [wordDetailFromApi(id, value, apiLangName)] : []);
     return [...apiWordsMapped, ...customWords].map(applyOverride);
   }, [categoryId, subcategoryId, apiLangName, customWords, applyOverride]);
 

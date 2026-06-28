@@ -11,32 +11,9 @@ import { settingsStore } from "Client/Component/Settings/store";
 import { SettingsMobileBar } from "Client/Component/Settings/SettingsMobileBar";
 import { RecallQueueButton } from "Client/Component/RecallQueueButton";
 import { AICallButton } from "Client/Component/AICallButton";
-import { ALPHABET_SEGMENT } from "Client/Library/navigation";
 import { useTopDialog } from "Client/Library/dialog-stack";
 import { useChessSettings } from "Client/Library/chessSettings";
 import { lessonProgress, type LessonProgressState } from "Client/Library/lessonProgress";
-import { findUnit } from "Client/Component/Lesson/LessonsView";
-
-// ── NEW API IMPORTS ───────────────────────────────────────────────────
-import {
-  getCategories,
-  getSubcategories,
-  getWordSlugs,
-  type SupportedLang
-} from "Server/API/Language";
-
-const MAP_LANG_CODE: Record<string, SupportedLang> = {
-  nl: "Dutch",
-  en: "English",
-  ar: "Arabic",
-  ps: "Pashto"
-};
-
-const langLabels: Record<string, string> = {
-  nl: "Nederlands",
-  en: "English",
-  ar: "العربية",
-};
 
 interface LayoutProps {
   children: ReactNode;
@@ -57,7 +34,7 @@ export default function Layout({ children }: LayoutProps) {
   const isSettings = lowerPath.startsWith("/settings");
   const isRecall = lowerPath.startsWith("/recall");
   const isSign = lowerPath.startsWith("/sign");
-  const isHomeRoute = location.pathname === "/";
+  const isHomeRoute = location.pathname === "/" || lowerPath.startsWith("/language") || lowerPath.startsWith("/chess");
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -78,90 +55,6 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   const useSettingsBar = isMobile && isSettings && settingsBar.active;
-
-  const crumbs: { label: string; idx: number }[] = [];
-  
-  if (isHomeRoute && browsePath.length > 0 && browsePath[0] === "language") {
-    crumbs.push({ label: t("language") || "Language", idx: 0 });
-    
-    const targetLangCode = browsePath[1];
-    const apiLangName = MAP_LANG_CODE[targetLangCode] || "English";
-
-    if (browsePath.length >= 2) {
-      crumbs.push({ label: langLabels[targetLangCode] || targetLangCode, idx: 1 });
-    }
-    
-    if (browsePath.length >= 3) {
-      const seg = browsePath[2];
-      
-      if (seg === ALPHABET_SEGMENT) {
-        crumbs.push({ label: uiLang === "nl" ? "Alfabet" : uiLang === "ar" ? "الحروف" : "Alphabet", idx: 2 });
-      } else if (seg === "lessons") {
-        crumbs.push({ label: uiLang === "nl" ? "Lessen" : uiLang === "ar" ? "دروس" : "Lessons", idx: 2 });
-        if (browsePath.length >= 4) {
-          const secLabels: Record<string, string> = { "sec-0": "Beginner", "sec-1": "Intermediate", "sec-2": "Advanced" };
-          crumbs.push({ label: secLabels[browsePath[3]] || browsePath[3], idx: 3 });
-        }
-        if (browsePath.length >= 5) {
-          const [, subId] = browsePath[4].split(":");
-          crumbs.push({ label: subId || browsePath[4], idx: 4 });
-        }
-        if (browsePath.length >= 6) {
-          const unit = findUnit(browsePath[5]);
-          crumbs.push({ label: unit ? unit.title : "Lesson", idx: 5 });
-        }
-      } else if (seg === "_marked") {
-        const catId = browsePath[3];
-        crumbs.push({ label: catId, idx: 3 });
-        
-        if (browsePath.length >= 5) {
-          const subId = browsePath[4];
-          crumbs.push({ label: subId, idx: 4 });
-        }
-        if (browsePath.length >= 6) {
-          crumbs.push({ label: browsePath[5], idx: 5 });
-        }
-      } else {
-        crumbs.push({ label: seg, idx: 2 });
-      }
-    }
-
-    if (browsePath.length >= 4 && browsePath[2] !== "lessons" && browsePath[2] !== ALPHABET_SEGMENT && browsePath[2] !== "_marked") {
-      crumbs.push({ label: browsePath[3], idx: 3 });
-    }
-    if (browsePath.length >= 5 && browsePath[2] !== "lessons" && browsePath[2] !== ALPHABET_SEGMENT && browsePath[2] !== "_marked") {
-      crumbs.push({ label: browsePath[4], idx: 4 });
-    }
-
-  // ── REFACTORED CHESS BREADCRUMB PARSING (NO MORE STATIC DATA COUPLING) ──
-  } else if (isHomeRoute && browsePath.length > 0 && browsePath[0] === "chess") {
-    crumbs.push({ label: uiLang === "nl" ? "Schaken" : uiLang === "ar" ? "الشطرنج" : "Chess", idx: 0 });
-    
-    const chessSection: Record<string, string> = {
-      lesson: uiLang === "nl" ? "Les" : uiLang === "ar" ? "درس" : "Lesson",
-      puzzle: uiLang === "nl" ? "Puzzel" : uiLang === "ar" ? "لغز" : "Puzzle",
-      play: uiLang === "nl" ? "Spelen" : uiLang === "ar" ? "العب" : "Play",
-    };
-
-    if (browsePath.length >= 2) {
-      crumbs.push({ label: chessSection[browsePath[1]] || browsePath[1], idx: 1 });
-    }
-    
-    if (browsePath[1] === "lesson") {
-      // Category / Skill level level (e.g., "beginner", "intermediate")
-      if (browsePath.length >= 3) {
-        crumbs.push({ label: browsePath[2], idx: 2 });
-      }
-      // Subcategory / Concept group (e.g., "learn-to-play")
-      if (browsePath.length >= 4) {
-        crumbs.push({ label: browsePath[3], idx: 3 });
-      }
-      // Target individual lesson unit payload ID (e.g., "king")
-      if (browsePath.length >= 5) {
-        crumbs.push({ label: browsePath[4], idx: 4 });
-      }
-    }
-  }
 
   const topDialog = useTopDialog();
   const [chessSettings] = useChessSettings();
@@ -188,8 +81,6 @@ export default function Layout({ children }: LayoutProps) {
     if (isSettings) { navigate("/"); return; }
     if (browsePath.length > 0) popBrowse();
   };
-
-  const showCrumbs = isHomeRoute && browsePath.length > 0 && !searchOpen && !topDialog && !focusMode && !inLesson;
 
   if (useSettingsBar) {
     return (
@@ -264,39 +155,6 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         ))}
       </div>
-      )}
-
-      {showCrumbs && (
-        <nav aria-label="breadcrumb" className="px-4 mt-1 mb-4">
-          <TitleBar>
-            <ol className="flex flex-wrap items-center gap-1">
-              <li>
-                <button onClick={() => resetBrowse()} className="hover:underline">
-                  {t("root") || "Home"}
-                </button>
-                <span className="px-1">&gt;</span>
-              </li>
-              {crumbs.map((c, i) => {
-                const isLast = i === crumbs.length - 1;
-                return (
-                  <li key={c.idx} className="flex items-center gap-1">
-                    {isLast ? (
-                      <span className="font-medium">{c.label}</span>
-                    ) : (
-                      <button
-                        onClick={() => setBrowsePath(browsePath.slice(0, c.idx + 1))}
-                        className="hover:underline"
-                      >
-                        {c.label}
-                      </button>
-                    )}
-                    {!isLast && <span className="px-1">&gt;</span>}
-                  </li>
-                );
-              })}
-            </ol>
-          </TitleBar>
-        </nav>
       )}
 
       <div>{children}</div>

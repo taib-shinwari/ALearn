@@ -136,7 +136,7 @@ function buildSections(allUnits: Unit[]): Section[] {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface Props { lang: string }
+interface Props { lang: SupportedLang }
 
 export function LessonsView({ lang }: Props) {
   const { uiLang } = useCourseLanguage();
@@ -148,7 +148,7 @@ export function LessonsView({ lang }: Props) {
 
   // Build units synchronously from in-memory registry
   const allUnits = useMemo<Unit[]>(
-    () => buildAllUnits(lang as SupportedLang, uiLang),
+    () => buildAllUnits(lang, uiLang),
     [lang, uiLang],
   );
 
