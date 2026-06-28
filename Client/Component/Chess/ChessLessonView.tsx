@@ -11,6 +11,7 @@ import {
   cName,
   getChessLevel,
   type PieceColor,
+  type PieceType,
   type PlacedPiece,
   type Arrow,
 } from "Server/API/Chess";
