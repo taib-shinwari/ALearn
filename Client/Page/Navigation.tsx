@@ -271,7 +271,6 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, apiLangName, bu
   if (builtInSlugs.includes(wordId)) {
     const apiData = getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, wordId);
     if (apiData) {
-      raw = { id: wordId, value: apiData };
       raw = wordDetailFromApi(wordId, apiData, apiLangName);
     }
   } else {
