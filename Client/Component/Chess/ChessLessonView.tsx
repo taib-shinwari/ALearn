@@ -197,6 +197,14 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
     });
   }, [phase, selected, piece, extras, stars]);
 
+  if (!lesson || !piece) {
+    return (
+      <div className="px-4 text-center p-8 space-y-3">
+        <p className="text-sm text-destructive">Could not load lesson.</p>
+      </div>
+    );
+  }
+
   const continueLabel = phase === "intro"
     ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
     : phase === "done"
