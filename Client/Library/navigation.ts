@@ -47,6 +47,31 @@ function toTitleSlug(segment: string) {
     .join("-");
 }
 
+const LESSON_SECTION_TO_SLUG: Record<string, string> = {
+  "sec-0": "Beginner",
+  "sec-1": "Intermediate",
+  "sec-2": "Advanced",
+};
+
+const LESSON_SLUG_TO_SECTION: Record<string, string> = {
+  beginner: "sec-0",
+  intermediate: "sec-1",
+  advanced: "sec-2",
+  "sec-0": "sec-0",
+  "sec-1": "sec-1",
+  "sec-2": "sec-2",
+};
+
+function sectionToUrlSegment(section?: string) {
+  if (!section) return undefined;
+  return enc(LESSON_SECTION_TO_SLUG[section] ?? toTitleSlug(section));
+}
+
+function sectionFromUrlSegment(section?: string) {
+  if (!section) return undefined;
+  return LESSON_SLUG_TO_SECTION[section.toLowerCase()] ?? section;
+}
+
 function languageCodeFromSlug(slug: string) {
   return LANG_NAME_TO_CODE[dec(slug).toLowerCase()] ?? dec(slug).toLowerCase();
 }
@@ -68,6 +93,14 @@ function lessonUnitToSegment(unitId?: string) {
   return [enc(parts[2] ?? unitId)];
 }
 
+function languageContentSegments(path: string[]) {
+  // Internal browsePath uses a synthetic Default subcategory for word files that
+  // live directly under a category. Keep the public URL slug clean:
+  // /Language/English/Dictionary/Vocabulary/Noun/Hello
+  if (path.length >= 3 && path[1] === "Default") return [path[0], ...path.slice(2)];
+  return path;
+}
+
 export function browsePathToUrl(path: string[]): string {
   if (path.length === 0) return "/";
 
@@ -87,16 +120,16 @@ export function browsePathToUrl(path: string[]): string {
       const [section, folder, unit] = path.slice(3);
       return [
         `${base}/Lessons`,
-        section && enc(section),
+        sectionToUrlSegment(section),
         ...lessonFolderToSegments(folder),
         ...lessonUnitToSegment(unit),
       ].filter(Boolean).join("/");
     }
     if (branch === "_marked") {
-      return `${base}/Dictionary/Vocabulary/${path.slice(3).map(enc).join("/")}`;
+      return `${base}/Dictionary/Vocabulary/${languageContentSegments(path.slice(3)).map(enc).join("/")}`;
     }
 
-    return `${base}/Dictionary/Vocabulary/${path.slice(2).map(enc).join("/")}`;
+    return `${base}/Dictionary/Vocabulary/${languageContentSegments(path.slice(2)).map(enc).join("/")}`;
   }
 
   if (path[0] === "chess") {
@@ -135,11 +168,12 @@ export function urlToBrowsePath(pathname: string): string[] | null {
       const lessonSegs = rest.slice(1);
       const [section, cat, sub, unitIndex] = lessonSegs;
       if (!section) return ["language", langCode, "lessons"];
-      if (!cat) return ["language", langCode, "lessons", section];
+      const sectionId = sectionFromUrlSegment(section)!;
+      if (!cat) return ["language", langCode, "lessons", sectionId];
       if (!sub) return ["language", langCode, "lessons", section, cat];
       const folderId = `${cat}:${sub}`;
-      if (!unitIndex) return ["language", langCode, "lessons", section, folderId];
-      return ["language", langCode, "lessons", section, folderId, `${folderId}:${unitIndex}`];
+      if (!unitIndex) return ["language", langCode, "lessons", sectionId, folderId];
+      return ["language", langCode, "lessons", sectionId, folderId, `${folderId}:${unitIndex}`];
     }
 
     const dictionarySegments = branch === "dictionary" ? rest.slice(1) : rest;
