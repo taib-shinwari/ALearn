@@ -139,14 +139,6 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
     return lesson.introArrows.map((a: any) => ({ ...a, color: "hsl(var(--primary))" }));
   }, [phase, lesson]);
 
-  if (!lesson || !piece) {
-    return (
-      <div className="px-4 text-center p-8 space-y-3">
-        <p className="text-sm text-destructive">Could not load lesson.</p>
-      </div>
-    );
-  }
-
   const handleContinue = () => {
     if (phase === "intro") { setPhase("play"); setCanAdvance(false); }
     else if (phase === "done") onNext?.();
@@ -204,6 +196,14 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
       return isLegalMove(piece.type, piece.square, to, wouldCapture);
     });
   }, [phase, selected, piece, extras, stars]);
+
+  if (!lesson || !piece) {
+    return (
+      <div className="px-4 text-center p-8 space-y-3">
+        <p className="text-sm text-destructive">Could not load lesson.</p>
+      </div>
+    );
+  }
 
   const continueLabel = phase === "intro"
     ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
