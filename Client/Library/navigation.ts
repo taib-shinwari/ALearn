@@ -74,7 +74,6 @@ export function browsePathToUrl(path: string[]): string {
   if (path[0] === "language") {
     if (path.length === 1) return "/Language";
 
-    const langCode = languageCodeFromSlug(path[1]);
     const langName = languageNameFromCodeOrName(path[1]);
     const base = `/Language/${enc(langName)}`;
     const branch = path[2];
