@@ -19,7 +19,7 @@ import { AlphabetView } from "Client/Component/View/Alphabet";
 import { WordDetailView } from "Client/Component/View/Word";
 import { ChessBranch, EmptyState } from "Client/Component/View/Chess";
 import { SubcategoriesView } from "Client/Component/View/Subcategory";
-import { LanguageRootView } from "Client/Component/View/Language";
+import { LanguageDictionaryView, LanguageRootView } from "Client/Component/View/Language";
 
 // ── NEW API IMPORTS ───────────────────────────────────────────────────
 import {
@@ -103,17 +103,17 @@ export default function HomePage() {
     );
   }
 
-  // ── PASHTO PREVIEW ────────────────────────────────────────────────────
-  if (browsePath[0] === "language" && browsePath[1] === "ps") {
-    return <PashtoComingSoon />;
-  }
-
   const targetLangCode = browsePath[1];
   const apiLangName = MAP_LANG_CODE[targetLangCode] || "English";
 
   // ── LANGUAGE HOME ─────────────────────────────────────────────────────
   if (browsePath.length === 2) {
-    return <LanguageRootView targetLang={targetLangCode as any} />;
+    return <LanguageRootView targetLang={apiLangName} targetLangCode={targetLangCode} />;
+  }
+
+  // ── DICTIONARY ROOT ───────────────────────────────────────────────────
+  if (browsePath[2] === "dictionary") {
+    return <LanguageDictionaryView targetLang={apiLangName} targetLangCode={targetLangCode} />;
   }
 
   // ── ALPHABET ──────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export default function HomePage() {
 
   // ── LESSONS ───────────────────────────────────────────────────────────
   if (browsePath[2] === "lessons") {
-    return <LessonsView lang={targetLangCode as any} />;
+    return <LessonsView lang={apiLangName} langCode={targetLangCode} />;
   }
 
   // ── DICTIONARY MARKED BRANCH: ["language", lang, "_marked", catId, subId, wordId?] ──
