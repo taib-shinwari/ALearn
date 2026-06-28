@@ -61,7 +61,7 @@ export default function HomePage() {
     setLearningLanguage, interfaceLanguage,
     setActiveRecall, setRecallReturnPath,
   } = useApp();
-  const { uiLang, t } = useCourseLanguage();
+  const { uiLang, i18nLang, t } = useCourseLanguage();
   const navigate = useNavigate();
 
   // ── ROOT ──────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export default function HomePage() {
 
   // ── ALPHABET ──────────────────────────────────────────────────────────
   if (browsePath[2] === ALPHABET_SEGMENT) {
-    return <AlphabetView targetLang={targetLangCode as any} uiLang={uiLang} />;
+    return <AlphabetView targetLang={targetLangCode as any} uiLang={i18nLang} />;
   }
 
   // ── LESSONS ───────────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ export default function HomePage() {
   const wordSlugs = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
 
   if (browsePath.length === 4 && wordSlugs.length === 0 && isValidSub) {
-    return <EmptyState uiLang={uiLang} kind="words" />;
+    return <EmptyState uiLang={i18nLang} kind="words" />;
   }
 
   if (browsePath.length === 4) {
@@ -315,8 +315,8 @@ function WordsView({
 
   const filtered = useMemo(() => {
     switch (filter) {
-      case "marked":    return allWords.filter(w => isMarked(courseLang, w.id));
-      case "favorites": return allWords.filter(w => isFavorite(courseLang, w.id));
+      case "marked":    return allWords.filter(w => isMarked(courseLang as any, w.id));
+      case "favorites": return allWords.filter(w => isFavorite(courseLang as any, w.id));
       case "custom":    return allWords.filter(w => customWords.some(c => c.id === w.id));
       default:          return allWords;
     }

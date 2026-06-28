@@ -176,7 +176,7 @@ export default function FlashcardsPage() {
         {isSpeechAvailable() && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); speak(target, courseLang); }}
+            onClick={(e) => { e.stopPropagation(); speak(target, courseLang as any); }}
             className="absolute top-3 right-3 rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors z-10"
             aria-label={t("play") || "Play"}
           >

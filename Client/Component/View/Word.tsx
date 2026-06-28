@@ -70,8 +70,9 @@ export function WordDetailView({
 
   const handleFlip = () => setFlip(f => ((f + 1) % 3) as FlipState);
 
+  const cLang  = courseLang as WordLang;
   const interfaceWordLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
-  const showLang: WordLang = flip === 2 ? interfaceWordLang : courseLang;
+  const showLang: WordLang = flip === 2 ? interfaceWordLang : cLang;
   const dataFor = (lang: WordLang) => (lang === "ar" ? word.ar ?? word.en : word[lang]);
   const data = dataFor(showLang);
 
@@ -89,10 +90,10 @@ export function WordDetailView({
     : gender === "n" ? t("neuter")
     : gender === "c" ? t("common") : null;
 
-  const targetText = (courseLang === "ar" ? word.ar?.word : word[courseLang]?.word) ?? word.en.word;
-  const frontPron  = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang]?.pronunciation) ?? undefined;
-  const marked  = isMarked(courseLang, word.id);
-  const favored = isFavorite(courseLang, word.id);
+  const targetText = (cLang === "ar" ? word.ar?.word : word[cLang]?.word) ?? word.en.word;
+  const frontPron  = (cLang === "ar" ? word.ar?.pronunciation : word[cLang]?.pronunciation) ?? undefined;
+  const marked  = isMarked(courseLang as any, word.id);
+  const favored = isFavorite(courseLang as any, word.id);
   const isFront = flip === 0;
 
   return (
@@ -119,7 +120,7 @@ export function WordDetailView({
           {isSpeechAvailable() && (
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); speak(targetText, courseLang); }}
+              onClick={(e) => { e.stopPropagation(); speak(targetText, cLang); }}
               className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
               aria-label={t("play")}
             >
@@ -128,7 +129,7 @@ export function WordDetailView({
           )}
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); toggle(courseLang, word.id); }}
+            onClick={(e) => { e.stopPropagation(); toggle(courseLang as any, word.id); }}
             className={cn(
               "rounded-full p-2 border-2 border-border transition-colors",
               marked ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background",
@@ -139,7 +140,7 @@ export function WordDetailView({
           </button>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); toggleFav(courseLang, word.id); }}
+            onClick={(e) => { e.stopPropagation(); toggleFav(courseLang as any, word.id); }}
             className={cn(
               "rounded-full p-2 border-2 border-border transition-colors",
               favored ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background",
