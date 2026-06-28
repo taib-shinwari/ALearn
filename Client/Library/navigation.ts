@@ -51,20 +51,48 @@ function languageCodeFromSlug(slug: string) {
   return LANG_NAME_TO_CODE[dec(slug).toLowerCase()] ?? dec(slug).toLowerCase();
 }
 
+function languageNameFromCodeOrName(value: string): SupportedLang {
+  const raw = dec(value);
+  const code = LANG_NAME_TO_CODE[raw.toLowerCase()] ?? raw.toLowerCase();
+  return LANG_CODE_TO_NAME[code] ?? "English";
+}
+
+function lessonFolderToSegments(folderId?: string) {
+  if (!folderId) return [];
+  return folderId.split(":").map(enc);
+}
+
+function lessonUnitToSegment(unitId?: string) {
+  if (!unitId) return [];
+  const parts = unitId.split(":");
+  return [enc(parts[2] ?? unitId)];
+}
+
 export function browsePathToUrl(path: string[]): string {
   if (path.length === 0) return "/";
 
   if (path[0] === "language") {
     if (path.length === 1) return "/Language";
 
-    const langCode = path[1];
-    const langName = LANG_CODE_TO_NAME[langCode] ?? "English";
+    const langCode = languageCodeFromSlug(path[1]);
+    const langName = languageNameFromCodeOrName(path[1]);
     const base = `/Language/${enc(langName)}`;
     const branch = path[2];
 
     if (!branch) return base;
     if (branch === ALPHABET_SEGMENT) return `${base}/Alphabet`;
-    if (branch === "lessons") return `${base}/Lessons${path.length > 3 ? `/${path.slice(3).map(enc).join("/")}` : ""}`;
+    if (branch === "dictionary") {
+      return `${base}/Dictionary/Vocabulary${path.length > 3 ? `/${path.slice(3).map(enc).join("/")}` : ""}`;
+    }
+    if (branch === "lessons") {
+      const [section, folder, unit] = path.slice(3);
+      return [
+        `${base}/Lessons`,
+        section && enc(section),
+        ...lessonFolderToSegments(folder),
+        ...lessonUnitToSegment(unit),
+      ].filter(Boolean).join("/");
+    }
     if (branch === "_marked") {
       return `${base}/Dictionary/Vocabulary/${path.slice(3).map(enc).join("/")}`;
     }
@@ -76,7 +104,7 @@ export function browsePathToUrl(path: string[]): string {
     if (path.length === 1) return "/Chess";
     const [mode, level, group, lessonOrPuzzle] = path.slice(1);
     if (mode === "lesson") {
-      return ["/Chess/Lesson", level && toTitleSlug(level), group && toTitleSlug(group), lessonOrPuzzle && toTitleSlug(lessonOrPuzzle)]
+      return ["/Chess/Lesson", level && toTitleSlug(level), group && toTitleSlug(group), lessonOrPuzzle && `The-${toTitleSlug(lessonOrPuzzle)}`]
         .filter(Boolean)
         .join("/");
     }
@@ -104,9 +132,21 @@ export function urlToBrowsePath(pathname: string): string[] | null {
 
     const branch = rest[0].toLowerCase();
     if (branch === "alphabet" || rest[0] === ALPHABET_SEGMENT) return ["language", langCode, ALPHABET_SEGMENT];
-    if (branch === "lesson" || branch === "lessons") return ["language", langCode, "lessons", ...rest.slice(1)];
+    if (branch === "lesson" || branch === "lessons") {
+      const lessonSegs = rest.slice(1);
+      const [section, cat, sub, unitIndex] = lessonSegs;
+      if (!section) return ["language", langCode, "lessons"];
+      if (!cat) return ["language", langCode, "lessons", section];
+      if (!sub) return ["language", langCode, "lessons", section, cat];
+      const folderId = `${cat}:${sub}`;
+      if (!unitIndex) return ["language", langCode, "lessons", section, folderId];
+      return ["language", langCode, "lessons", section, folderId, `${folderId}:${unitIndex}`];
+    }
 
     const dictionarySegments = branch === "dictionary" ? rest.slice(1) : rest;
+    if (branch === "dictionary" && (dictionarySegments.length === 0 || (dictionarySegments.length === 1 && (dictionarySegments[0] === "Vocabulary" || dictionarySegments[0] === "Grammar")))) {
+      return ["language", langCode, "dictionary"];
+    }
     const resolved = resolveLanguagePath(langName, dictionarySegments);
     if (resolved?.kind === "category") return ["language", langCode, resolved.category];
     if (resolved?.kind === "subcategory") return ["language", langCode, resolved.category, resolved.subcategory];
