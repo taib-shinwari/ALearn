@@ -44,7 +44,12 @@ export function HeaderSearch({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!query) { setResults([]); setSelectedIndex(0); return; }
-    setResults(searchByCategory(query, category, { uiLang, courseLang, conceptSlug }));
+    // Caches are populated lazily by surrounding views; for now we run the
+    // search with empty caches so it compiles and degrades to "no results".
+    setResults(searchByCategory(query, category, {
+      uiLang, courseLang, conceptSlug,
+      cachedCategories: [], cachedSubcategories: [],
+    }));
     setSelectedIndex(0);
   }, [query, category, uiLang, courseLang]);
 

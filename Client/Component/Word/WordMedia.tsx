@@ -4,7 +4,7 @@ import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
 import { speak, isSpeechAvailable } from "Client/Component/Practice/speech";
 import { fetchWordImage } from "Client/Library/wordImage";
-import { WordLang } from "Server/Data/courseData";
+import type { WordLang } from "Client/Library/wordTypes";
 import { cn } from "Client/Library/utils";
 
 interface Props {

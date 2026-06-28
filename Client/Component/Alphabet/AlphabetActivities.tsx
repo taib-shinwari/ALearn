@@ -5,7 +5,7 @@ import { Button } from "Client/Component/UI/button";
 import { TitleBar } from "Client/Component/UI/title-bar";
 import { cn } from "Client/Library/utils";
 import { speak, isSpeechAvailable } from "Client/Component/Practice/speech";
-import type { Lang } from "Server/Data/courseData";
+import type { Lang } from "Client/Library/wordTypes";
 
 /**
  * Activity picker that wraps the original alphabet viewer.

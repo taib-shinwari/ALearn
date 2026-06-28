@@ -10,7 +10,8 @@ import { useFavoriteWords } from "Client/Hook/useFavoriteWords";
 import { useCustomWords } from "Client/Hook/useCustomWords";
 import { fetchWordImage } from "Client/Library/wordImage";
 import { cn } from "Client/Library/utils";
-import type { WordDetail, WordLang } from "Server/Data/courseData";
+import type { WordDetail } from "Client/Hook/useCustomWords";
+import type { WordLang } from "Client/Library/wordTypes";
 
 /* ─────────────────────────── Types ─────────────────────────── */
 
@@ -191,7 +192,7 @@ export function WordDetailView({
                     {Object.entries(conjugation).map(([pronoun, form]) => (
                       <div key={pronoun} className="flex justify-between text-sm">
                         <span className="opacity-70">{pronoun}</span>
-                        <span className="font-medium">{form}</span>
+                        <span className="font-medium">{String(form ?? "")}</span>
                       </div>
                     ))}
                   </div>

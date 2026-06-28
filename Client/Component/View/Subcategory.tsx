@@ -78,7 +78,7 @@ export function SubcategoriesView({ category, onOpen }: {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {all.map(sub => {
-            const subTitle = sub.name?.[uiLang] || sub.name?.en || sub.id;
+            const subTitle = (sub.name as any)?.[uiLang] || sub.name?.English || sub.id;
             
             return (
               <CardButton
