@@ -2,17 +2,14 @@ import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "Client/Component/UI/button";
 import { CardButton } from "Client/Component/UI/card-button";
-import { Container } from "Client/Component/UI/container";
 import { TitleBar } from "Client/Component/UI/title-bar";
 import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
-import { useMarkedWords } from "Client/Hook/useMarkedWords";
 import { useCustomCollections } from "Client/Hook/useCustomCollections";
 import {
   getCategories,
   getSubcategories,
-  getWordsInSubcategory,
   getLabel,
   type SupportedLang,
   type I18nLang,
@@ -25,18 +22,6 @@ const TO_I18N: Record<string, I18nLang> = {
   nl: "Dutch",
   en: "English",
   ar: "Arabic",
-};
-
-const COLLECTIONS_LABEL: Record<string, string> = {
-  nl: "Collecties",
-  en: "Collections",
-  ar: "المجموعات",
-};
-
-const EMPTY_LABEL: Record<string, string> = {
-  nl: "Je woordenboek is leeg. Voltooi lessen om woorden toe te voegen.",
-  en: "Your dictionary is empty. Complete lessons to add words.",
-  ar: "قاموسك فارغ. أكمل الدروس لإضافة الكلمات.",
 };
 
 /**
@@ -52,8 +37,7 @@ function localizedName(name: Record<string, string> | string | undefined, lang: 
 
 export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLang: SupportedLang; targetLangCode: string }) {
   const { uiLang, t } = useCourseLanguage();
-  const { pushBrowse, setBrowsePath } = useApp();
-  const { map } = useMarkedWords();
+  const { setBrowsePath } = useApp();
 
   const rootKey = `__lang_${targetLang}`;
   const { collections, addCollection, removeCollection } = useCustomCollections(rootKey);
@@ -61,31 +45,24 @@ export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLan
   const [addOpen, setAddOpen]   = useState(false);
   const [name, setName]         = useState("");
 
-  const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
-
   // Derive the i18n lang for Server/API/Language calls
   const i18nLang: I18nLang = TO_I18N[uiLang] ?? "English";
 
-  // Build grouped view: categories → subcategories containing marked words
-  const grouped = useMemo(() => {
-    const categoryIds = getCategories(targetLang, "Vocabulary");
-
-    return categoryIds.flatMap(catId => {
-      const subcategoryIds = getSubcategories(targetLang, "Vocabulary", catId);
-
-      const subs = subcategoryIds.flatMap(subId => {
-        const words = getWordsInSubcategory(targetLang, "Vocabulary", catId, subId);
-        const markedWords = Object.entries(words).filter(([slug]) => markedIds.has(slug));
-        return markedWords.length > 0
-          ? [{ subId, wordCount: markedWords.length }]
-          : [];
-      });
-
-      return subs.length > 0 ? [{ catId, subs }] : [];
-    });
+  const categories = useMemo(() => {
+    const builtIns = getCategories(targetLang, "Vocabulary").map(catId => ({
+      id: catId,
+      label: getLabel(i18nLang, catId) ?? catId,
+      count: getSubcategories(targetLang, "Vocabulary", catId).length,
+      custom: false,
+    }));
+    const custom = collections.map(col => ({
+      id: col.id,
+      label: localizedName(col.name, uiLang) || col.id,
+      count: col.words?.length ?? 0,
+      custom: true,
+    }));
+    return [...builtIns, ...custom];
   }, [targetLang, markedIds]);
-
-  const hasAny = grouped.length > 0;
 
   return (
     <div className="px-4 w-full space-y-3">
@@ -106,70 +83,34 @@ export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLan
         )}
       </div>
 
-      {/* ── Empty state ── */}
-      {!hasAny && collections.length === 0 ? (
-        <Container>
-          <p className="text-sm text-center opacity-70">
-            {EMPTY_LABEL[uiLang] ?? EMPTY_LABEL.en}
-          </p>
-        </Container>
-      ) : (
-        <div className="space-y-5">
-          {/* ── Marked word groups ── */}
-          {grouped.map(({ catId, subs }) => (
-            <section key={catId} className="space-y-2">
-              <TitleBar className="font-semibold">
-                {getLabel(i18nLang, catId) ?? catId}
-              </TitleBar>
-              <div className="grid grid-cols-2 gap-3">
-                {subs.map(({ subId, wordCount }) => (
-                  <CardButton
-                    key={`${catId}-${subId}`}
-                    onClick={() => setBrowsePath(["language", targetLangCode, "_marked", catId, subId])}
-                    className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
-                  >
-                    <span className="font-semibold">
-                      {getLabel(i18nLang, subId) ?? subId}
-                    </span>
-                    <span className="text-xs opacity-70 mt-0.5">{wordCount}</span>
-                  </CardButton>
-                ))}
-              </div>
-            </section>
+      <section className="space-y-2">
+        <TitleBar className="font-semibold">{getLabel(i18nLang, "dictionary") || "Dictionary"}</TitleBar>
+        <div className="grid grid-cols-2 gap-3">
+          {categories.map(cat => (
+            <CardButton
+              key={cat.id}
+              onClick={() => setBrowsePath(["language", targetLangCode, cat.id])}
+              className="min-h-[72px] py-3 px-3 flex flex-col items-center justify-center text-center relative"
+            >
+              {cat.custom && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Remove custom category?")) removeCollection(rootKey, cat.id);
+                  }}
+                  className="absolute top-2 right-2 opacity-50 hover:opacity-100"
+                  aria-label="Remove"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <span className="font-semibold line-clamp-1">{cat.label}</span>
+              <span className="text-xs opacity-70 mt-0.5">{cat.count}</span>
+            </CardButton>
           ))}
-
-          {/* ── Custom collections ── */}
-          {collections.length > 0 && (
-            <section className="space-y-2">
-              <TitleBar className="font-semibold">{COLLECTIONS_LABEL[uiLang]}</TitleBar>
-              <div className="grid grid-cols-2 gap-3">
-                {collections.map(col => (
-                  <div key={col.id} className="space-y-2">
-                    <TitleBar>
-                      <span className="flex items-center justify-between w-full">
-                        <span>{localizedName(col.name, uiLang)}</span>
-                        <button
-                          onClick={() => { if (confirm("Remove collection?")) removeCollection(rootKey, col.id); }}
-                          className="opacity-60 hover:opacity-100"
-                          aria-label="Remove"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    </TitleBar>
-                    <CardButton
-                      onClick={() => pushBrowse(col.id)}
-                      className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
-                    >
-                      <span className="text-xs opacity-70">0 {t("words")}</span>
-                    </CardButton>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
-      )}
+      </section>
 
       {/* ── Add collection dialog ── */}
       <FullPageDialog
