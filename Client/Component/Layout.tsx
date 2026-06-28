@@ -34,7 +34,7 @@ export default function Layout({ children }: LayoutProps) {
   const isSettings = lowerPath.startsWith("/settings");
   const isRecall = lowerPath.startsWith("/recall");
   const isSign = lowerPath.startsWith("/sign");
-  const isHomeRoute = location.pathname === "/";
+  const isHomeRoute = location.pathname === "/" || lowerPath.startsWith("/language") || lowerPath.startsWith("/chess");
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
