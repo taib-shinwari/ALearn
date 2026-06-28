@@ -50,7 +50,7 @@ function localizedName(name: Record<string, string> | string | undefined, lang: 
   return name[i18n] ?? name[lang] ?? name["English"] ?? Object.values(name)[0] ?? "";
 }
 
-export function DictionaryBrowseView({ targetLang }: { targetLang: SupportedLang }) {
+export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLang: SupportedLang; targetLangCode: string }) {
   const { uiLang, t } = useCourseLanguage();
   const { pushBrowse, setBrowsePath } = useApp();
   const { map } = useMarkedWords();
@@ -125,7 +125,7 @@ export function DictionaryBrowseView({ targetLang }: { targetLang: SupportedLang
                 {subs.map(({ subId, wordCount }) => (
                   <CardButton
                     key={`${catId}-${subId}`}
-                    onClick={() => setBrowsePath(["language", targetLang, "_marked", catId, subId])}
+                    onClick={() => setBrowsePath(["language", targetLangCode, "_marked", catId, subId])}
                     className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
                   >
                     <span className="font-semibold">
