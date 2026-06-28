@@ -127,6 +127,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   useEffect(() => {
+    const current = window.location.pathname.toLowerCase();
+    const isBrowseRoute = current === "/" || current.startsWith("/language") || current.startsWith("/chess");
+    if (!isBrowseRoute) return;
+
     const nextUrl = browsePathToUrl(state.browsePath);
     if (window.location.pathname !== nextUrl) {
       window.history.pushState(null, "", nextUrl);
