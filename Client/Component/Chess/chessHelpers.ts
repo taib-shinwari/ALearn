@@ -1,6 +1,6 @@
 // Helpers shared by Play + Puzzle views.
 import type { Chess } from "chess.js";
-import type { PlacedPiece, PieceType } from "Server/Data/chessData";
+import type { PlacedPiece, PieceType } from "Server/API/Chess";
 
 export function fenToPieces(game: Chess): PlacedPiece[] {
   const out: PlacedPiece[] = [];

@@ -5,7 +5,6 @@ import { Container } from "Client/Component/UI/container";
 import { TitleBar } from "Client/Component/UI/title-bar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "Client/Component/UI/dialog";
 import { speak, isSpeechAvailable } from "Client/Component/Practice/speech";
-// ─── Corrected Import Path ───────────────────────────────────────────────────
 import { findArabicForms, type I18nLang, type SupportedLang } from "Server/API/Language"; 
 import {
   AlphabetActivityPicker, ListenAndWrite, MatchPairs, type AlphabetMode,
@@ -67,17 +66,18 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
         className="block w-full text-left"
       >
         <Container className={cn(
-          "p-3 flex flex-col items-center justify-center gap-1 aspect-square",
+          "p-3 flex flex-col items-center justify-center gap-2 aspect-square select-none",
           forms && "hover:bg-foreground hover:text-background transition-colors cursor-pointer",
         )}>
           <span className="text-2xl font-bold leading-none">{letter}</span>
-          {name && <span className="text-[10px] opacity-60">{name}</span>}
+          {name && <span className="text-[10px] opacity-60 font-mono tracking-wide">{name}</span>}
           {canSpeak && (
             <Button
               size="icon"
-              className="h-7 w-7"
+              variant="secondary"
+              className="h-7 w-7 mt-0.5 shrink-0"
               onClick={(e) => { e.stopPropagation(); speak(letter, lang); }}
-              aria-label="Play"
+              aria-label="Play Audio Pronunciation"
             >
               <Volume2 className="h-3.5 w-3.5" />
             </Button>
@@ -90,7 +90,7 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-center text-3xl">
-                {letter} <span className="text-sm opacity-60 align-middle">— {forms.name}</span>
+                {letter} <span className="text-sm opacity-60 align-middle font-normal">— {forms.name}</span>
               </DialogTitle>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-3 mt-2">
@@ -100,9 +100,9 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
                 ["Medial",   forms.medial],
                 ["Final",    forms.final],
               ] as const).map(([label, ch]) => (
-                <Container key={label} className="p-4 flex flex-col items-center gap-1">
-                  <span className="text-3xl font-bold">{ch}</span>
-                  <span className="text-[10px] opacity-60 uppercase tracking-wider">{label}</span>
+                <Container key={label} className="p-4 flex flex-col items-center gap-1 bg-muted/40">
+                  <span className="text-3xl font-bold">{ch || "—"}</span>
+                  <span className="text-[10px] opacity-60 uppercase tracking-wider font-semibold">{label}</span>
                 </Container>
               ))}
             </div>
@@ -117,11 +117,12 @@ function LetterCard({ letter, name, lang }: { letter: string; name?: string; lan
 
 export function AlphabetView({ targetLang, uiLang }: { targetLang: SupportedLang; uiLang: I18nLang }) {
   const table = ALPHABET_TABLES[targetLang as I18nLang] ?? ALPHABET_TABLES.English;
-  const showInteractive = targetLang === "English" || targetLang === "Dutch";
+  // Activates the specialized practice widgets for all language branches
+  const showInteractive = ["English", "Dutch", "Arabic"].includes(targetLang);
   const [mode, setMode] = useState<AlphabetMode>("viewer");
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
       <AlphabetActivityPicker
         targetLang={targetLang}
         uiLang={uiLang}
@@ -138,16 +139,21 @@ export function AlphabetView({ targetLang, uiLang }: { targetLang: SupportedLang
       )}
 
       {mode === "viewer" && (
-        <div className="space-y-6 w-full px-4">
+        <div className="space-y-6 w-full px-4 max-w-3xl mx-auto">
           <section className="space-y-3">
-            <TitleBar className="font-semibold">{table.vowelsLabel[uiLang]}</TitleBar>
-            <div className="grid grid-cols-6 gap-2">
+            <TitleBar className="font-semibold text-xs uppercase tracking-wider opacity-80">
+              {table.vowelsLabel[uiLang] ?? table.vowelsLabel.English}
+            </TitleBar>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {table.vowels.map(v => <LetterCard key={v.letter} {...v} lang={targetLang} />)}
             </div>
           </section>
+          
           <section className="space-y-3">
-            <TitleBar className="font-semibold">{table.consonantsLabel[uiLang]}</TitleBar>
-            <div className="grid grid-cols-6 gap-2">
+            <TitleBar className="font-semibold text-xs uppercase tracking-wider opacity-80">
+              {table.consonantsLabel[uiLang] ?? table.consonantsLabel.English}
+            </TitleBar>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {table.consonants.map(c => <LetterCard key={c.letter} {...c} lang={targetLang} />)}
             </div>
           </section>

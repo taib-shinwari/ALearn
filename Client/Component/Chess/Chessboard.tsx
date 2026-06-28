@@ -7,7 +7,7 @@
 // cancels queued premoves when right-clicking on a premove square.
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "Client/Library/utils";
-import type { PlacedPiece, PieceColor, PieceType, Arrow } from "Server/Data/chessData";
+import type { PlacedPiece, PieceColor, PieceType, Arrow } from "Server/API/Chess";
 import { CLASS_META, type ClassKind } from "./analysis/classification";
 
 const DRAG_THRESHOLD = 6;     // px – distance before we treat as drag
@@ -471,7 +471,6 @@ function ChessboardImpl({
           {renderedArrows}
         </svg>
       )}
-
 
       {size > 0 && moveBadge && (() => {
         const { col, row } = squareToXY(moveBadge.square, orientation);

@@ -1,23 +1,45 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Chessboard } from "Client/Component/Chess/Chessboard";
 import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
 import { ChevronRight, Star, Trophy } from "lucide-react";
-import type { ChessLesson, PlacedPiece, Arrow } from "Server/Data/chessData";
-import { cName, isLegalMove, reachableSquares, type PieceColor } from "Server/Data/chessData";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useChessSettings } from "Client/Library/chessSettings";
+import {
+  isLegalMove,
+  reachableSquares,
+  cName,
+  getChessLevel,
+  type PieceColor,
+  type PlacedPiece,
+  type Arrow,
+} from "Server/API/Chess";
 
-interface Props { lesson: ChessLesson; onNext?: () => void }
+interface Props {
+  category: string;
+  subcategory: string;
+  lessonId: string;
+  onNext?: () => void;
+}
+
 type Phase = "intro" | "play" | "done";
 
-export function ChessLessonView({ lesson, onNext }: Props) {
+export function ChessLessonView({ category, subcategory, lessonId, onNext }: Props) {
   const { uiLang } = useCourseLanguage();
   const [settings] = useChessSettings();
 
+  // Resolve lesson synchronously from the in-memory registry
+  const lesson = useMemo(() => {
+    const level = getChessLevel(category);
+    const group = level?.groups.find(g => g.id === subcategory);
+    const lessonEntry = group?.lessons.find(l => l.id === lessonId);
+    // steps[0] carries the full lesson config object
+    return lessonEntry?.steps[0] ?? null;
+  }, [category, subcategory, lessonId]);
+
   const [phase, setPhase] = useState<Phase>("intro");
-  const [piece, setPiece] = useState<PlacedPiece>(() => ({ ...lesson.piece }));
-  const [extras, setExtras] = useState<PlacedPiece[]>(() => (lesson.extras ?? []).map(p => ({ ...p })));
+  const [piece, setPiece] = useState<PlacedPiece | null>(null);
+  const [extras, setExtras] = useState<PlacedPiece[]>([]);
   const [stars, setStars] = useState<string[]>([]);
   const [captured, setCaptured] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
@@ -25,19 +47,18 @@ export function ChessLessonView({ lesson, onNext }: Props) {
   const [canAdvance, setCanAdvance] = useState(false);
   const [pulse, setPulse] = useState(1);
 
-
-  // Reset on lesson switch
+  // ── Initialize or reset game state when lesson resolves ──────────────────────
   useEffect(() => {
+    if (!lesson) return;
+
     setPhase("intro");
     setPiece({ ...lesson.piece });
-    setExtras((lesson.extras ?? []).map(p => ({ ...p })));
+    setExtras((lesson.extras ?? []).map((p: any) => ({ ...p })));
     setCaptured(new Set());
     setSelected(null);
     setLastMove(null);
     setCanAdvance(false);
 
-
-    // Compute stars now so they are stable for the lesson session.
     if (lesson.randomStars && lesson.randomStars > 0) {
       const reach = reachableSquares(lesson.piece.type, lesson.piece.square)
         .filter(s => s !== lesson.piece.square);
@@ -52,11 +73,11 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     } else {
       setStars([...(lesson.stars ?? [])]);
     }
-  }, [lesson.id]);
+  }, [lesson]);
 
   // Pulse intro arrows
   useEffect(() => {
-    if (phase !== "intro") return;
+    if (phase !== "intro" || !lesson) return;
     let raf = 0;
     const start = performance.now();
     const tick = (t: number) => {
@@ -66,11 +87,11 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase, lesson.id]);
+  }, [phase, lesson]);
 
-  // Narration
+  // Narration voice engine
   useEffect(() => {
-    if (phase !== "intro") return;
+    if (phase !== "intro" || !lesson) return;
     setCanAdvance(false);
     const txt = cName(lesson.intro, uiLang);
     if (settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -89,10 +110,10 @@ export function ChessLessonView({ lesson, onNext }: Props) {
       const tm = window.setTimeout(() => setCanAdvance(true), 600);
       return () => window.clearTimeout(tm);
     }
-  }, [phase, lesson.id, uiLang, settings.speakNarration]);
+  }, [phase, lesson, uiLang, settings.speakNarration]);
 
   useEffect(() => {
-    if (phase !== "done") return;
+    if (phase !== "done" || !lesson) return;
     setCanAdvance(true);
     const txt = lesson.done ? cName(lesson.done, uiLang) : "";
     if (txt && settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -104,20 +125,27 @@ export function ChessLessonView({ lesson, onNext }: Props) {
         window.speechSynthesis.speak(u);
       } catch { /* noop */ }
     }
-  }, [phase, lesson.id, uiLang, settings.speakNarration, lesson.done]);
+  }, [phase, lesson, uiLang, settings.speakNarration]);
 
-  // Active stars on the board
+  // Active stars (only show the next uncaptured one)
   const activeStars = useMemo(() => {
     if (phase !== "play") return [];
-    // Always show one star at a time, in order — regardless of freeOrder.
     const nextIdx = stars.findIndex(s => !captured.has(s));
     return nextIdx === -1 ? [] : [stars[nextIdx]];
   }, [phase, stars, captured]);
 
   const introArrows: Arrow[] = useMemo(() => {
-    if (phase !== "intro") return [];
-    return lesson.introArrows.map(a => ({ ...a, color: "hsl(var(--primary))" }));
-  }, [phase, lesson.introArrows]);
+    if (phase !== "intro" || !lesson || !lesson.introArrows) return [];
+    return lesson.introArrows.map((a: any) => ({ ...a, color: "hsl(var(--primary))" }));
+  }, [phase, lesson]);
+
+  if (!lesson || !piece) {
+    return (
+      <div className="px-4 text-center p-8 space-y-3">
+        <p className="text-sm text-destructive">Could not load lesson.</p>
+      </div>
+    );
+  }
 
   const handleContinue = () => {
     if (phase === "intro") { setPhase("play"); setCanAdvance(false); }
@@ -125,19 +153,19 @@ export function ChessLessonView({ lesson, onNext }: Props) {
   };
 
   const tryMove = (from: string, to: string) => {
-    if (phase !== "play") return;
+    if (phase !== "play" || !piece) return;
     if (from !== piece.square) return;
     if (from === to) return;
     const targetExtra = extras.find(e => e.square === to);
     const wouldCapture = !!targetExtra || stars.includes(to);
 
-    // Castling shortcut: King e1 -> g1 or c1 when rook present.
+    // Castling mechanics edge case
     if (piece.type === "K" && from === "e1" && (to === "g1" || to === "c1")) {
       const rookFrom = to === "g1" ? "h1" : "a1";
-      const rookTo = to === "g1" ? "f1" : "d1";
+      const rookTo   = to === "g1" ? "f1" : "d1";
       const rook = extras.find(e => e.square === rookFrom && e.type === "R");
       if (rook) {
-        setPiece(p => ({ ...p, square: to }));
+        setPiece(p => p ? { ...p, square: to } : null);
         setExtras(es => es.map(e => e === rook ? { ...e, square: rookTo } : e));
         setLastMove({ from, to });
         if (stars.includes(to)) {
@@ -149,7 +177,7 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     }
 
     if (!isLegalMove(piece.type, from, to, wouldCapture)) return;
-    setPiece(p => ({ ...p, square: to }));
+    setPiece(p => p ? { ...p, square: to } : null);
     if (targetExtra) setExtras(es => es.filter(e => e !== targetExtra));
     setLastMove({ from, to });
 
@@ -161,16 +189,15 @@ export function ChessLessonView({ lesson, onNext }: Props) {
   };
 
   const handleSquare = (sq: string) => {
-    if (phase !== "play") return;
+    if (phase !== "play" || !piece) return;
     if (!selected) { if (piece.square === sq) setSelected(sq); return; }
-    if (sq === selected) return; // persists; right-click clears
+    if (sq === selected) return;
     tryMove(selected, sq);
     setSelected(null);
   };
 
-  // Legal squares for highlighting (dots).
   const legalSquares = useMemo(() => {
-    if (phase !== "play" || !selected || selected !== piece.square) return [];
+    if (phase !== "play" || !selected || !piece || selected !== piece.square) return [];
     return reachableSquares(piece.type, piece.square).filter(to => {
       const targetExtra = extras.find(e => e.square === to);
       const wouldCapture = !!targetExtra || stars.includes(to);
@@ -178,18 +205,17 @@ export function ChessLessonView({ lesson, onNext }: Props) {
     });
   }, [phase, selected, piece, extras, stars]);
 
-
   const continueLabel = phase === "intro"
     ? (uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue")
     : phase === "done"
-      ? (onNext ? (uiLang === "nl" ? "Volgende les" : uiLang === "ar" ? "الدرس التالي" : "Next lesson")
-                : (uiLang === "nl" ? "Klaar" : uiLang === "ar" ? "تم" : "Done"))
+      ? (onNext
+          ? (uiLang === "nl" ? "Volgende les" : uiLang === "ar" ? "الدرس التالي" : "Next lesson")
+          : (uiLang === "nl" ? "Klaar" : uiLang === "ar" ? "تم" : "Done"))
       : "";
 
   const totalStars = stars.length;
-  const doneCount = captured.size;
-
-  const allPieces = useMemo(() => [piece, ...extras], [piece, extras]);
+  const doneCount  = captured.size;
+  const allPieces  = [piece, ...extras];
 
   return (
     <div className="px-4 w-full">
@@ -208,7 +234,7 @@ export function ChessLessonView({ lesson, onNext }: Props) {
                 arrowLengthScale={phase === "intro" ? pulse : 1}
                 onSquareClick={handleSquare}
                 onPieceDrop={(from, to) => tryMove(from, to)}
-                onDragBegin={(sq) => { if (sq === piece.square) setSelected(sq); }}
+                onDragBegin={(sq) => { if (piece && sq === piece.square) setSelected(sq); }}
                 onClearSelection={() => setSelected(null)}
                 interactiveColor={piece.color as PieceColor}
                 inputMode={settings.inputMode}

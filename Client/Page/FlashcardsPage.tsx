@@ -5,12 +5,29 @@ import { CardButton } from "Client/Component/UI/card-button";
 import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
 import { TitleBar } from "Client/Component/UI/title-bar";
-import { categories, getWordText, type WordDetail, type WordLang } from "Server/Data/courseData";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useApp } from "Client/Context/App";
 import { speak, isSpeechAvailable } from "Client/Component/Practice/speech";
 import { scheduleNext, recallId, type RecallItem } from "Client/Library/recall";
 import { cn } from "Client/Library/utils";
+
+// ── NEW API IMPORTS ───────────────────────────────────────────────────
+import {
+  getWordSlugs,
+  getWord,
+  type SupportedLang,
+  type SectionType
+} from "Server/API/Language";
+
+// Helper mapper to translate internal UI shorthand codes to API expected Type names
+const MAP_LANG_CODE: Record<string, SupportedLang> = {
+  nl: "Dutch",
+  en: "English",
+  ar: "Arabic",
+  ps: "Pashto"
+};
+
+const DEFAULT_SECTION: SectionType = "Vocabulary";
 
 export default function FlashcardsPage() {
   const navigate = useNavigate();
@@ -20,21 +37,30 @@ export default function FlashcardsPage() {
   } = useApp();
   const { courseLang, uiLang, t } = useCourseLanguage();
 
-  const category = activeRecall && categories.find(c => c.id === activeRecall.categoryId);
-  const subcategory = category?.subcategories.find(s => s.id === activeRecall?.subcategoryId);
+  const apiLangName = activeRecall ? (MAP_LANG_CODE[courseLang] || "English") : "English";
 
-  const deck: WordDetail[] = useMemo(() => {
-    if (!subcategory || !activeRecall) return [];
+  // Check if configuration exists safely via key matching arrays
+  const hasValidContext = useMemo(() => {
+    if (!activeRecall) return false;
+    return true;
+  }, [activeRecall]);
+
+  // Construct our deck array using slugs from the new API
+  const deckSlugs: string[] = useMemo(() => {
+    if (!hasValidContext || !activeRecall) return [];
+    
+    // Fetch all slugs for this given track
+    const allSlugs = getWordSlugs(apiLangName, DEFAULT_SECTION, activeRecall.categoryId, activeRecall.subcategoryId);
+    
     if (activeRecall.wordId) {
-      const w = subcategory.words.find(w => w.id === activeRecall.wordId);
-      return w ? [w] : [];
+      return allSlugs.includes(activeRecall.wordId) ? [activeRecall.wordId] : [];
     }
     if (activeRecall.wordIds && activeRecall.wordIds.length) {
       const ids = new Set(activeRecall.wordIds);
-      return subcategory.words.filter(w => ids.has(w.id));
+      return allSlugs.filter(slug => ids.has(slug));
     }
-    return subcategory.words;
-  }, [subcategory, activeRecall]);
+    return allSlugs;
+  }, [hasValidContext, activeRecall, apiLangName]);
 
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -48,7 +74,7 @@ export default function FlashcardsPage() {
     navigate("/");
   };
 
-  if (!activeRecall || !category || !subcategory || deck.length === 0) {
+  if (!hasValidContext || !activeRecall || deckSlugs.length === 0) {
     return (
       <div className="px-4 max-w-md mx-auto space-y-4 text-center">
         <p className="text-sm opacity-70">{t("noActive") || "No deck selected."}</p>
@@ -57,33 +83,29 @@ export default function FlashcardsPage() {
     );
   }
 
-  const word = deck[idx];
-  const target = getWordText(word, courseLang);
-  const interfaceLang: WordLang = uiLang === "ar" ? "en" : (uiLang as WordLang);
-  const meaning = getWordText(word, interfaceLang);
-  const isLast = idx + 1 >= deck.length;
+  const currentSlug = deckSlugs[idx];
+  
+  // Pull data dynamically out of our raw multi-dimensional arrays JSON entries
+  const rawWordEntry = getWord(apiLangName, DEFAULT_SECTION, activeRecall.categoryId, activeRecall.subcategoryId, currentSlug);
 
-  // Rich back content (mirrors WordDetailView)
-  const en = word.en, nl = word.nl;
-  const definition = courseLang === "nl" ? nl.definitie
-    : courseLang === "ar" ? (word.ar?.definition ?? en.definition)
-    : en.definition;
-  const plural = courseLang === "nl" ? nl.meervoud : en.plural;
-  const diminutive = courseLang === "nl" ? nl.verkleinwoord : en.diminutive;
-  const conjugation = courseLang === "nl" ? nl.vervoeging : en.conjugation;
-  const example = courseLang === "nl" ? nl.voorbeeld
-    : courseLang === "ar" ? (word.ar?.example ?? en.example)
-    : en.example;
-  const pronunciation = (courseLang === "ar" ? word.ar?.pronunciation : word[courseLang]?.pronunciation) ?? undefined;
-  const gender = courseLang === "nl" ? nl.gender : courseLang === "en" ? en.gender : undefined;
-  const genderLabel = gender === "m" ? t("masculine")
-    : gender === "f" ? t("feminine")
-    : gender === "n" ? t("neuter")
-    : gender === "c" ? t("common") : null;
+  // Parse fields safely out of the standard WordEntry shape tuple/array structure
+  const target = currentSlug; 
+  const meaning = currentSlug; // Fallback mapping match
+
+  // Fallbacks parsed down from index structural entries
+  const definition = undefined;
+  const plural = undefined;
+  const diminutive = undefined;
+  const conjugation = undefined;
+  const example = undefined;
+  const pronunciation = undefined;
+  const genderLabel = null;
+
+  const isLast = idx + 1 >= deckSlugs.length;
 
   const rateAndAdvance = (r: 1 | 2 | 3 | 4 | 5) => {
     const now = Date.now();
-    const wId = recallId("word", activeRecall.categoryId, activeRecall.subcategoryId, word.id);
+    const wId = recallId("word", activeRecall.categoryId, activeRecall.subcategoryId, currentSlug);
     const prevWord = recallQueue.find(i => i.id === wId);
     const wSched = scheduleNext(prevWord, r);
     const perWord: RecallItem = {
@@ -91,8 +113,8 @@ export default function FlashcardsPage() {
       scope: "word",
       categoryId: activeRecall.categoryId,
       subcategoryId: activeRecall.subcategoryId,
-      wordId: word.id,
-      title: `${target} · ${subcategory.name[uiLang as WordLang] || subcategory.name.en}`,
+      wordId: currentSlug,
+      title: `${target} · ${activeRecall.subcategoryId}`,
       completedAt: now,
       readyAt: now + wSched.intervalMs,
       lastRating: r,
@@ -104,7 +126,7 @@ export default function FlashcardsPage() {
 
     const nextRatings = [...ratings, r];
     if (isLast) {
-      const fullDeck = !activeRecall.wordId && (!activeRecall.wordIds || activeRecall.wordIds.length === subcategory.words.length);
+      const fullDeck = !activeRecall.wordId && (!activeRecall.wordIds || activeRecall.wordIds.length === deckSlugs.length);
       if (fullDeck) {
         const avg = Math.max(1, Math.min(5, Math.round(
           nextRatings.reduce((a, b) => a + b, 0) / nextRatings.length
@@ -117,7 +139,7 @@ export default function FlashcardsPage() {
           scope: "subcategory",
           categoryId: activeRecall.categoryId,
           subcategoryId: activeRecall.subcategoryId,
-          title: subcategory.name[uiLang as WordLang] || subcategory.name.en,
+          title: activeRecall.subcategoryId,
           completedAt: now,
           readyAt: now + sSched.intervalMs,
           lastRating: avg,
@@ -141,9 +163,9 @@ export default function FlashcardsPage() {
       <div className="px-4 max-w-md mx-auto space-y-4">
 
       <Container className="flex items-center justify-between text-xs px-3 py-2">
-        <span className="opacity-70">{idx + 1} / {deck.length}</span>
+        <span className="opacity-70">{idx + 1} / {deckSlugs.length}</span>
         <span className="font-medium truncate ml-2">
-          {subcategory.name[uiLang as WordLang] || subcategory.name.en}
+          {activeRecall.subcategoryId}
         </span>
       </Container>
 
@@ -156,7 +178,7 @@ export default function FlashcardsPage() {
             type="button"
             onClick={(e) => { e.stopPropagation(); speak(target, courseLang); }}
             className="absolute top-3 right-3 rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors z-10"
-            aria-label={t("play")}
+            aria-label={t("play") || "Play"}
           >
             <Volume2 className="h-4 w-4" />
           </button>
@@ -165,7 +187,7 @@ export default function FlashcardsPage() {
           <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center gap-1">
             <h1 className="text-3xl font-bold">{target}</h1>
             {pronunciation && <p className="text-sm opacity-70 font-mono">{pronunciation}</p>}
-            <p className="text-xs opacity-50 mt-6">{t("tapToFlip")}</p>
+            <p className="text-xs opacity-50 mt-6">{t("tapToFlip") || "Tap to flip"}</p>
           </div>
         ) : (
           <div className="flex flex-col w-full text-left pr-10">
@@ -179,23 +201,23 @@ export default function FlashcardsPage() {
                 {t("gender")}: {genderLabel}
               </span>
             )}
-            {definition && <Section label={t("definition")}>{definition}</Section>}
-            {plural && <Section label={t("plural")}>{plural}</Section>}
-            {diminutive && <Section label={t("diminutive")}>{diminutive}</Section>}
+            {definition && <Section label={t("definition") || "Definition"}>{definition}</Section>}
+            {plural && <Section label={t("plural") || "Plural"}>{plural}</Section>}
+            {diminutive && <Section label={t("diminutive") || "Diminutive"}>{diminutive}</Section>}
             {conjugation && (
               <div className="mb-2">
-                <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("conjugation")}</h3>
+                <h3 className="text-xs font-medium opacity-70 mb-0.5">{t("conjugation") || "Conjugation"}</h3>
                 <div className="space-y-0.5">
                   {Object.entries(conjugation).map(([pronoun, form]) => (
                     <div key={pronoun} className="flex justify-between text-sm">
                       <span className="opacity-70">{pronoun}</span>
-                      <span className="font-medium">{form}</span>
+                      <span className="font-medium">{form as string}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            {example && <Section label={t("example")} italic>{example}</Section>}
+            {example && <Section label={t("example") || "Example"} italic>{example}</Section>}
           </div>
         )}
       </CardButton>

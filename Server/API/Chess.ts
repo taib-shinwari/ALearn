@@ -1,112 +1,240 @@
-import express, { Request, Response, Router } from 'express';
-import fs from 'fs';
-import path from 'path';
+// Server/API/Chess.ts
+import { type I18nLang } from "Server/API/Language";
 
-const router: Router = express.Router();
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// Define base paths to our generated flat data structures
-const LESSON_BASE_DIR = path.join(process.cwd(), 'Server', 'Data', 'Chess', 'Lesson');
-const PUZZLE_BASE_DIR = path.join(process.cwd(), 'Server', 'Data', 'Chess', 'Puzzle');
+export type PieceType  = "K" | "Q" | "R" | "B" | "N" | "P";
+export type PieceColor = "w" | "b";
 
-/**
- * Helper utility to safely capitalize strings matching your generated file tree system.
- * Example: "learn-to-play" -> "Learn-To-Play"
- */
-function capitalizeParam(str: string): string {
-  if (!str) return '';
-  return str
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('-');
+export interface PlacedPiece {
+  square: string;
+  color: PieceColor;
+  type: PieceType;
+  /** Stable id for animation tracking across moves. */
+  id?: string;
+  /**
+   * When true the piece color is driven by the UI theme (dark → white piece,
+   * light → black piece) instead of its own `color` field.
+   */
+  themed?: boolean;
 }
 
-// ── LESSON API ENDPOINTS ─────────────────────────────────────────────
+export interface Arrow {
+  from: string;
+  to: string;
+  color?: string;
+}
+
+// ─── Localized name helper ────────────────────────────────────────────────────
 
 /**
- * GET /api/chess/lesson/:category/:subcategory/:lessonId
- * Fetches a specific highly optimized lesson array.
- * Example: /api/chess/lesson/beginner/learn-to-play/king
+ * Resolves a localized string map to the correct display string.
+ * Accepts both the I18nLang union ("Dutch" | "English" | "Arabic") and the
+ * legacy short codes ("nl" | "en" | "ar") used in older UI layers.
  */
-router.get('/lesson/:category/:subcategory/:lessonId', (req: Request, res: Response): void => {
-  try {
-    const { category, subcategory, lessonId } = req.params;
+export function cName(
+  name: Record<string, string> | string | undefined,
+  lang: string,
+): string {
+  if (!name) return "";
+  if (typeof name === "string") return name;
 
-    // Enforce folder casing conventions established by our generator
-    const capitalizedCategory = capitalizeParam(category);
-    const capitalizedSubcategory = capitalizeParam(subcategory);
-    const capitalizedFileName = `The-${capitalizeParam(lessonId)}.json`;
+  // Direct key hit (e.g. "English", "Dutch", "Arabic")
+  if (name[lang] !== undefined) return name[lang];
 
-    const targetFilePath = path.join(
-      LESSON_BASE_DIR,
-      capitalizedCategory,
-      capitalizedSubcategory,
-      capitalizedFileName
-    );
+  // Legacy short-code fallback
+  const SHORT: Record<string, string> = { nl: "Dutch", en: "English", ar: "Arabic" };
+  const full = SHORT[lang];
+  if (full && name[full] !== undefined) return name[full];
 
-    // Guard rail: Verify file existence before reading
-    if (!fs.existsSync(targetFilePath)) {
-      res.status(404).json({ error: `Lesson not found at specified path configuration.` });
-      return;
+  // Fallback chain
+  return name["English"] ?? name["Dutch"] ?? Object.values(name)[0] ?? "";
+}
+
+// ─── Move legality ────────────────────────────────────────────────────────────
+
+const FILES = "abcdefgh";
+
+function fileOf(sq: string) { return FILES.indexOf(sq[0]); }
+function rankOf(sq: string) { return parseInt(sq[1], 10) - 1; }
+
+/**
+ * Returns true when moving `type` from `from` to `to` is geometrically legal.
+ * `wouldCapture` must be set to true when the destination is occupied by an
+ * enemy piece (or a star square treated as a capture target) — pawns move
+ * differently depending on this.
+ */
+export function isLegalMove(
+  type: PieceType,
+  from: string,
+  to: string,
+  wouldCapture = false,
+): boolean {
+  if (from === to) return false;
+  const df = Math.abs(fileOf(to) - fileOf(from));
+  const dr = Math.abs(rankOf(to) - rankOf(from));
+  const ff = fileOf(from), rf = rankOf(from);
+  const ft = fileOf(to),   rt = rankOf(to);
+
+  switch (type) {
+    case "K": return df <= 1 && dr <= 1;
+    case "Q": return df === 0 || dr === 0 || df === dr;
+    case "R": return df === 0 || dr === 0;
+    case "B": return df === dr;
+    case "N": return (df === 1 && dr === 2) || (df === 2 && dr === 1);
+    case "P": {
+      const dir = 1; // always white pawn for lesson pieces
+      const rankDiff = rt - rf;
+      if (wouldCapture) return df === 1 && rankDiff === dir;
+      if (df !== 0) return false;
+      if (rankDiff === dir) return true;
+      if (rankDiff === 2 * dir && rf === 1) return true; // starting rank push
+      return false;
     }
+    default: return false;
+  }
+}
 
-    const rawData = fs.readFileSync(targetFilePath, 'utf-8');
-    
-    // Parse and return the custom structural index array directly
-    const lessonArray = JSON.parse(rawData);
-    res.json(lessonArray);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error processing lesson data.' });
+// ─── Reachable squares ────────────────────────────────────────────────────────
+
+/**
+ * Returns all squares a piece of `type` on `square` can geometrically reach
+ * (ignoring blocking pieces — suitable for lesson/UI highlight purposes).
+ */
+export function reachableSquares(type: PieceType, square: string): string[] {
+  const f = fileOf(square);
+  const r = rankOf(square);
+  const out: string[] = [];
+
+  const add = (ff: number, rr: number) => {
+    if (ff < 0 || ff > 7 || rr < 0 || rr > 7) return;
+    out.push(`${FILES[ff]}${rr + 1}`);
+  };
+
+  switch (type) {
+    case "K":
+      for (let df = -1; df <= 1; df++)
+        for (let dr = -1; dr <= 1; dr++)
+          if (df !== 0 || dr !== 0) add(f + df, r + dr);
+      break;
+
+    case "Q":
+    case "R":
+      for (let i = 0; i < 8; i++) { if (i !== f) add(i, r); }
+      for (let i = 0; i < 8; i++) { if (i !== r) add(f, i); }
+      if (type === "R") break;
+      // fall through for diagonals
+      // eslint-disable-next-line no-fallthrough
+    case "B":
+      for (let d = 1; d < 8; d++) {
+        add(f + d, r + d); add(f - d, r + d);
+        add(f + d, r - d); add(f - d, r - d);
+      }
+      break;
+
+    case "N":
+      for (const [df, dr] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]])
+        add(f + df, r + dr);
+      break;
+
+    case "P":
+      add(f, r + 1);
+      if (r === 1) add(f, r + 2);
+      add(f - 1, r + 1);
+      add(f + 1, r + 1);
+      break;
+  }
+
+  return out;
+}
+
+// ─── Lesson / Puzzle data loading ────────────────────────────────────────────
+
+const allLessonFiles = import.meta.glob('/Server/Data/Chess/Lesson/*/*/*.json', { eager: true });
+const allPuzzleFiles = import.meta.glob('/Server/Data/Chess/Puzzle/*.json', { eager: true });
+
+// ─── Lesson structure types ───────────────────────────────────────────────────
+
+export interface ChessLesson {
+  id: string;
+  name: Record<I18nLang, string>;
+  steps: any[];
+}
+
+export interface ChessGroup {
+  id: string;
+  name: Record<I18nLang, string>;
+  lessons: ChessLesson[];
+}
+
+export interface ChessLevel {
+  id: string;
+  name: Record<I18nLang, string>;
+  groups: ChessGroup[];
+}
+
+// ─── Build lesson registry ────────────────────────────────────────────────────
+
+function formatNameFromId(id: string): Record<I18nLang, string> {
+  const clean = id.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return { Dutch: clean, English: clean, Arabic: clean };
+}
+
+const LEVEL_ORDER = ["beginner", "intermediate", "advanced"];
+const levelsMap: Record<string, Record<string, ChessGroup>> = {};
+LEVEL_ORDER.forEach(id => { levelsMap[id] = {}; });
+
+for (const [filePath, module] of Object.entries(allLessonFiles)) {
+  const match = filePath.match(/\/Lesson\/([^/]+)\/([^/]+)\/The-([^/]+)\.json$/i);
+  if (!match) continue;
+
+  const categoryId  = match[1].toLowerCase();
+  const subcatId    = match[2].toLowerCase();
+  const lessonId    = match[3].toLowerCase();
+  const stepsData   = (module as { default: any }).default;
+
+  if (!levelsMap[categoryId]) levelsMap[categoryId] = {};
+
+  if (!levelsMap[categoryId][subcatId]) {
+    levelsMap[categoryId][subcatId] = {
+      id: subcatId,
+      name: formatNameFromId(subcatId),
+      lessons: [],
+    };
+  }
+
+  levelsMap[categoryId][subcatId].lessons.push({
+    id: lessonId,
+    name: formatNameFromId(lessonId),
+    steps: Array.isArray(stepsData) ? stepsData : [stepsData],
+  });
+}
+
+const levelsList: ChessLevel[] = [];
+LEVEL_ORDER.forEach(id => {
+  const groups = Object.values(levelsMap[id] || {});
+  if (groups.length > 0) {
+    levelsList.push({ id, name: formatNameFromId(id), groups });
   }
 });
 
-// ── PUZZLE API ENDPOINTS ─────────────────────────────────────────────
+// ─── Public lesson / puzzle API ───────────────────────────────────────────────
 
-/**
- * GET /api/chess/puzzles
- * Scans the flat puzzle directory and provides a roster list of all available puzzle filenames (FEN tokens).
- */
-router.get('/puzzles', (_req: Request, res: Response): void => {
-  try {
-    if (!fs.existsSync(PUZZLE_BASE_DIR)) {
-      res.json([]);
-      return;
-    }
+export function getChessLevels(): ChessLevel[] {
+  return levelsList;
+}
 
-    const files = fs.readdirSync(PUZZLE_BASE_DIR);
-    
-    // Filter down to JSON files and strip extensions to reveal the clean, usable FEN string names
-    const activePuzzles = files
-      .filter(file => file.endsWith('.json'))
-      .map(file => file.replace('.json', ''));
+export function getChessLevel(id: string): ChessLevel | null {
+  return levelsList.find(l => l.id === id) ?? null;
+}
 
-    res.json({ puzzles: activePuzzles });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to inventory puzzle resources.' });
-  }
-});
+export function getAllPuzzles(): string[] {
+  return Object.keys(allPuzzleFiles).map(
+    filePath => filePath.split("/").pop()?.replace(".json", "") ?? "",
+  );
+}
 
-/**
- * GET /api/chess/puzzle/:fenName
- * Resolves a specific puzzle's validated pathways using its sanitized FEN string filename.
- * Example: /api/chess/puzzle/6k1-5ppp-8-8-8-8-8-R6K-w----0-1
- */
-router.get('/puzzle/:fenName', (req: Request, res: Response): void => {
-  try {
-    const { fenName } = req.params;
-    const targetFilePath = path.join(PUZZLE_BASE_DIR, `${fenName}.json`);
-
-    if (!fs.existsSync(targetFilePath)) {
-      res.status(404).json({ error: 'Requested chess tactical setup could not be found.' });
-      return;
-    }
-
-    const rawData = fs.readFileSync(targetFilePath, 'utf-8');
-    const puzzleArray = JSON.parse(rawData);
-    
-    res.json(puzzleArray);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error processing puzzle solutions.' });
-  }
-});
-
-export default router;
+export function getPuzzleByFen(fen: string): any | null {
+  const match = Object.entries(allPuzzleFiles).find(([fp]) => fp.endsWith(`${fen}.json`));
+  return match ? (match[1] as { default: any }).default : null;
+}

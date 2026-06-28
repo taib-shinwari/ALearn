@@ -4,117 +4,55 @@
 //   ["language", lang, "lessons", sectionId, folderId]            → numbered round lesson buttons
 //   ["language", lang, "lessons", sectionId, folderId, unitId]    → multiple-choice runner
 import { useEffect, useMemo, useState } from "react";
-import { Lock, Star, Flag } from "lucide-react";
+import { Lock, Star, Flag, Loader2 } from "lucide-react";
 import { CardButton } from "Client/Component/UI/card-button";
 import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
 import { cn } from "Client/Library/utils";
 import { toast } from "Client/Component/UI/use-toast";
-import {
-  categories,
-  getWordText,
-  localizedName,
-  type Lang,
-  type WordLang,
-  type WordDetail,
-} from "Server/Data/courseData";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useApp } from "Client/Context/App";
 import { lessonProgress } from "Client/Library/lessonProgress";
 import { useMarkedWords } from "Client/Hook/useMarkedWords";
+import {
+  getCategories,
+  getSubcategories,
+  getWordsInSubcategory,
+  type SupportedLang,
+} from "Server/API/Language";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Unit {
   id: string;
   title: string;
   catId: string;
   subId: string;
-  partIndex: number; // 1-based part number within the subcategory
-  words: WordDetail[];
+  partIndex: number;
+  words: Array<{ id: string; text: string; [key: string]: any }>;
 }
+
+export interface Section { id: string; name: string; folderIds: string[] }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const UNIT_SIZE = 5;
 
-export function buildAllUnits(): Unit[] {
-  const units: Unit[] = [];
-  for (const cat of categories) {
-    for (const sub of cat.subcategories) {
-      if (sub.words.length === 0) continue;
-      for (let i = 0; i < sub.words.length; i += UNIT_SIZE) {
-        const partNum = Math.floor(i / UNIT_SIZE) + 1;
-        const showPart = sub.words.length > UNIT_SIZE;
-        units.push({
-          id: `${cat.id}:${sub.id}:${i}`,
-          title: `${sub.name.en}${showPart ? ` (${partNum})` : ""}`,
-          catId: cat.id,
-          subId: sub.id,
-          partIndex: partNum,
-          words: sub.words.slice(i, i + UNIT_SIZE),
-        });
-      }
-    }
-  }
-  return units;
-}
-
-export interface Section { id: string; name: string; units: Unit[] }
-const SECTION_DEFS: Array<[string, string, number]> = [
-  ["sec-0", "Beginner", 8],
-  ["sec-1", "Intermediate", 12],
-  ["sec-2", "Advanced", Infinity],
+const SECTION_DEFS: Array<[string, string]> = [
+  ["sec-0", "Beginner"],
+  ["sec-1", "Intermediate"],
+  ["sec-2", "Advanced"],
 ];
 
-export function buildSections(): Section[] {
-  const all = buildAllUnits();
-  const out: Section[] = [];
-  let idx = 0;
-  for (const [id, name, size] of SECTION_DEFS) {
-    const slice = all.slice(idx, idx + size);
-    if (!slice.length) continue;
-    out.push({ id, name, units: slice });
-    idx += size;
-  }
-  return out;
-}
-
-export function sectionLabel(id: string): string | undefined {
-  return SECTION_DEFS.find(s => s[0] === id)?.[1];
-}
-
-export function findUnit(id: string): Unit | undefined {
-  return buildAllUnits().find(u => u.id === id);
-}
-
-interface Folder {
-  id: string;        // `${catId}:${subId}`
-  title: string;
-  units: Unit[];
-}
-
-function groupByFolder(units: Unit[], lang: Lang): Folder[] {
-  const map = new Map<string, Folder>();
-  for (const u of units) {
-    const key = `${u.catId}:${u.subId}`;
-    let f = map.get(key);
-    if (!f) {
-      const cat = categories.find(c => c.id === u.catId);
-      const sub = cat?.subcategories.find(s => s.id === u.subId);
-      const title = sub ? localizedName(sub.name, lang) : key;
-      f = { id: key, title, units: [] };
-      map.set(key, f);
-    }
-    f.units.push(u);
-  }
-  // Preserve original ordering within each folder by partIndex
-  for (const f of map.values()) f.units.sort((a, b) => a.partIndex - b.partIndex);
-  return Array.from(map.values());
-}
+// ─── Progress helpers ─────────────────────────────────────────────────────────
 
 function progressKey(lang: string) { return `lessons:${lang}`; }
+
 function loadProgress(lang: string): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(progressKey(lang)) || "{}"); }
   catch { return {}; }
 }
+
 function saveStars(lang: string, unitId: string, stars: number) {
   try {
     const data = loadProgress(lang);
@@ -123,51 +61,142 @@ function saveStars(lang: string, unitId: string, stars: number) {
   } catch { /* noop */ }
 }
 
-interface Props { lang: Lang }
+// ─── Unit builder (module-level, synchronous) ─────────────────────────────────
+
+/**
+ * Builds all units for a given language directly from the in-memory
+ * Server/API/Language registry. No async fetch needed.
+ *
+ * `uiLang` is used to resolve subcategory display names; pass "en" as a
+ * safe default when calling from outside a React component (e.g. Layout).
+ */
+export function buildAllUnits(lang: SupportedLang, uiLang = "en"): Unit[] {
+  const units: Unit[] = [];
+  const categoryIds = getCategories(lang, "Vocabulary");
+
+  for (const catId of categoryIds) {
+    const subIds = getSubcategories(lang, "Vocabulary", catId);
+
+    for (const subId of subIds) {
+      const wordsMap = getWordsInSubcategory(lang, "Vocabulary", catId, subId);
+      const wordEntries = Object.entries(wordsMap);
+      if (wordEntries.length === 0) continue;
+
+      // Flatten each word entry into a plain object the runner can consume
+      const words = wordEntries.map(([slug, entry]) => {
+        const base = Array.isArray(entry) ? entry[0] : entry;
+        return { id: slug, text: slug, ...(typeof base === "object" ? base : {}) };
+      });
+
+      const showPart = words.length > UNIT_SIZE;
+
+      for (let i = 0; i < words.length; i += UNIT_SIZE) {
+        const partNum = Math.floor(i / UNIT_SIZE) + 1;
+        units.push({
+          id: `${catId}:${subId}:${i}`,
+          title: `${subId}${showPart ? ` (${partNum})` : ""}`,
+          catId,
+          subId,
+          partIndex: partNum,
+          words: words.slice(i, i + UNIT_SIZE),
+        });
+      }
+    }
+  }
+  return units;
+}
+
+/**
+ * Finds a single unit by its id without needing a React component.
+ * Used by Layout.tsx to resolve breadcrumb titles.
+ *
+ * Since we don't know the lang at call-site in Layout, we scan all
+ * supported langs and return the first match.
+ */
+export function findUnit(unitId: string): Unit | undefined {
+  const LANGS: SupportedLang[] = ["Dutch", "English", "Arabic", "Pashto"];
+  for (const lang of LANGS) {
+    const unit = buildAllUnits(lang).find(u => u.id === unitId);
+    if (unit) return unit;
+  }
+  return undefined;
+}
+
+// ─── Sections helper ──────────────────────────────────────────────────────────
+
+function buildSections(allUnits: Unit[]): Section[] {
+  const uniqueFolderIds = Array.from(new Set(allUnits.map(u => `${u.catId}:${u.subId}`)));
+  const chunkCount = Math.ceil(uniqueFolderIds.length / 3);
+
+  return SECTION_DEFS.map(([id, name], idx) => {
+    const start = idx * chunkCount;
+    return { id, name, folderIds: uniqueFolderIds.slice(start, start + chunkCount) };
+  });
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface Props { lang: string }
 
 export function LessonsView({ lang }: Props) {
   const { uiLang } = useCourseLanguage();
   const { browsePath, pushBrowse, popBrowse } = useApp();
-  // Hooks must be unconditional — call them all up front, then branch.
-  const sections = useMemo(buildSections, []);
 
   const sectionId = browsePath[3];
-  const folderId = browsePath[4];
-  const unitId = browsePath[5];
+  const folderId  = browsePath[4]; // `${catId}:${subId}`
+  const unitId    = browsePath[5];
 
-  const section = useMemo(
-    () => (sectionId ? sections.find(s => s.id === sectionId) : undefined),
+  // Build units synchronously from in-memory registry
+  const allUnits = useMemo<Unit[]>(
+    () => buildAllUnits(lang as SupportedLang, uiLang),
+    [lang, uiLang],
+  );
+
+  const sections = useMemo(() => buildSections(allUnits), [allUnits]);
+
+  const currentSection = useMemo(
+    () => sections.find(s => s.id === sectionId),
     [sectionId, sections],
   );
-  const folders = useMemo(
-    () => (section ? groupByFolder(section.units, uiLang) : []),
-    [section, uiLang],
-  );
-  const folder = useMemo(
-    () => (folderId ? folders.find(f => f.id === folderId) : undefined),
-    [folderId, folders],
-  );
-  const unit = useMemo(
-    () => (unitId ? findUnit(unitId) : undefined),
-    [unitId],
+
+  const activeFolderData = useMemo(() => {
+    if (!folderId) return null;
+    const units = allUnits.filter(u => `${u.catId}:${u.subId}` === folderId);
+    if (!units.length) return null;
+
+    const [, subId] = folderId.split(":");
+    return {
+      id: folderId,
+      title: subId ?? folderId,
+      units: units.sort((a, b) => a.partIndex - b.partIndex),
+    };
+  }, [folderId, allUnits]);
+
+  const activeUnit = useMemo(
+    () => allUnits.find(u => u.id === unitId),
+    [unitId, allUnits],
   );
 
-  // Runner
+  // 1. Exercise runner
   if (sectionId && folderId && unitId) {
-    return <LessonRunner lang={lang} unit={unit} onDone={popBrowse} />;
+    return <LessonRunner lang={lang} unit={activeUnit} onDone={popBrowse} />;
   }
 
-  // Folder detail — numbered round lesson buttons (with lock gating)
+  // 2. Folder detail — circular progress nodes
   if (sectionId && folderId) {
-    if (!folder) return <div className="px-4 text-sm">Folder not found.</div>;
+    if (!activeFolderData) {
+      return <div className="px-4 text-sm opacity-60">Folder resources unavailable.</div>;
+    }
     const progress = loadProgress(lang);
+
     return (
       <div className="px-4 w-full max-w-3xl mx-auto">
         <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-          {folder.units.map((u, i) => {
+          {activeFolderData.units.map((u, i) => {
             const stars = progress[u.id] ?? 0;
-            const prevStars = i === 0 ? 1 : (progress[folder.units[i - 1].id] ?? 0);
+            const prevStars = i === 0 ? 1 : (progress[activeFolderData.units[i - 1].id] ?? 0);
             const locked = prevStars <= 0;
+
             return (
               <button
                 key={u.id}
@@ -198,28 +227,36 @@ export function LessonsView({ lang }: Props) {
     );
   }
 
-  // Section detail — folders (one per subcategory)
+  // 3. Section detail — folder grid
   if (sectionId) {
-    if (!section) return <div className="px-4 text-sm">Section not found.</div>;
+    if (!currentSection) {
+      return <div className="px-4 text-sm opacity-60">Section target out of reach.</div>;
+    }
+
     return (
       <div className="px-4 w-full max-w-3xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {folders.map(f => (
-            <CardButton
-              key={f.id}
-              onClick={() => pushBrowse(f.id)}
-              className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
-            >
-              <span className="font-semibold text-sm">{f.title}</span>
-              <span className="text-xs opacity-70 whitespace-nowrap">{f.units.length}</span>
-            </CardButton>
-          ))}
+          {currentSection.folderIds.map(fId => {
+            const [, subId] = fId.split(":");
+            const count = allUnits.filter(u => `${u.catId}:${u.subId}` === fId).length;
+
+            return (
+              <CardButton
+                key={fId}
+                onClick={() => pushBrowse(fId)}
+                className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
+              >
+                <span className="font-semibold text-sm line-clamp-2 text-left">{subId ?? fId}</span>
+                <span className="text-xs opacity-70 whitespace-nowrap">{count}</span>
+              </CardButton>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  // Sections list — three folders
+  // 4. Top-level milestone grid
   return (
     <div className="px-4 w-full max-w-3xl mx-auto">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -230,7 +267,7 @@ export function LessonsView({ lang }: Props) {
             className="min-h-[64px] py-3 px-4 flex items-center justify-between gap-3"
           >
             <span className="font-semibold text-sm">{sec.name}</span>
-            <span className="text-xs opacity-70 whitespace-nowrap">{sec.units.length} Lessons</span>
+            <span className="text-xs opacity-70 whitespace-nowrap">{sec.folderIds.length} Groups</span>
           </CardButton>
         ))}
       </div>
@@ -238,7 +275,7 @@ export function LessonsView({ lang }: Props) {
   );
 }
 
-/* ─────────────────────── Lesson Runner ─────────────────────── */
+/* ─────────────────────────── Lesson Runner ─────────────────────────── */
 
 interface Question { prompt: string; answer: string; options: string[] }
 
@@ -251,32 +288,33 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-function buildQuestions(unit: Unit, courseLang: WordLang, uiLang: Lang): Question[] {
-  const promptLang: WordLang = uiLang === "ar" ? "en" : uiLang;
-  const pool = unit.words.map(w => getWordText(w, courseLang)).filter(Boolean);
+function buildQuestions(unit: Unit, uiLang: string): Question[] {
+  const promptProp = uiLang === "ar" ? "en" : uiLang;
+  const pool = unit.words.map(w => w.text || w.id).filter(Boolean);
+
   return unit.words.map(w => {
-    const answer = getWordText(w, courseLang);
-    const promptText = w[promptLang]?.word ?? w.en.word;
+    const answer     = w.text || w.id;
+    const promptText = w[promptProp]?.word || w.word || w.id;
     const distractors = shuffle(pool.filter(x => x !== answer)).slice(0, 3);
     return { prompt: promptText, answer, options: shuffle([answer, ...distractors]) };
   });
 }
 
-function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone: () => void }) {
+function LessonRunner({ lang, unit, onDone }: { lang: string; unit?: Unit; onDone: () => void }) {
   const { uiLang } = useCourseLanguage();
   const { isMarked, toggle } = useMarkedWords();
+
   const initialQuestions = useMemo(
-    () => unit ? buildQuestions(unit, lang as WordLang, uiLang) : [],
-    [unit, lang, uiLang],
+    () => (unit ? buildQuestions(unit, uiLang) : []),
+    [unit, uiLang],
   );
 
   const totalRounds = initialQuestions.length;
-  // Queue allows pushing missed questions to the end.
-  const [queue, setQueue] = useState<Question[]>(initialQuestions);
+  const [queue, setQueue]       = useState<Question[]>(initialQuestions);
   const [completed, setCompleted] = useState(0);
-  const [picked, setPicked] = useState<string | null>(null);
-  const [checked, setChecked] = useState(false);
-  const [correct, setCorrect] = useState(0);
+  const [picked, setPicked]     = useState<string | null>(null);
+  const [checked, setChecked]   = useState(false);
+  const [correct, setCorrect]   = useState(0);
 
   useEffect(() => {
     setQueue(initialQuestions);
@@ -286,28 +324,21 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
     setCorrect(0);
   }, [unit?.id, totalRounds]);
 
-  // Snapshot which word ids were ALREADY in the dictionary at lesson start.
-  // A word is shown green only while we're on the FIRST question that
-  // introduces it; on the next question it's no longer "new".
   const [alreadyMarked] = useState<Set<string>>(() => {
     const out = new Set<string>();
     if (!unit) return out;
-    for (const w of unit.words) {
-      if (isMarked(lang, w.id)) out.add(w.id);
-    }
+    for (const w of unit.words) { if (isMarked(lang, w.id)) out.add(w.id); }
     return out;
   });
-  // Word ids that have been "seen" (auto-added to dict) so we stop colouring them.
+
   const [seenIds, setSeenIds] = useState<Set<string>>(() => new Set(alreadyMarked));
 
-  // Map answer text → wordId so we can color options.
   const textToId = useMemo(() => {
     const m = new Map<string, string>();
-    if (unit) for (const w of unit.words) m.set(getWordText(w, lang as WordLang), w.id);
+    if (unit) for (const w of unit.words) m.set(w.text || w.id, w.id);
     return m;
-  }, [unit, lang]);
+  }, [unit]);
 
-  // Publish progress to the global header bar.
   useEffect(() => {
     if (!unit || !totalRounds) return;
     lessonProgress.set({ current: Math.min(completed, totalRounds), total: totalRounds });
@@ -323,11 +354,11 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
     );
   }
 
-  const q = queue[0];
+  const q    = queue[0];
   const done = !q;
 
   if (done) {
-    const pct = correct / Math.max(1, totalRounds);
+    const pct   = correct / Math.max(1, totalRounds);
     const stars = pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1;
     saveStars(lang, unit.id, stars);
     return (
@@ -349,14 +380,14 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
   const isCorrect = picked === q.answer;
 
   const L = {
-    check: uiLang === "nl" ? "Controleren" : uiLang === "ar" ? "تحقق" : "Check",
-    skip: uiLang === "nl" ? "Overslaan" : uiLang === "ar" ? "تخطي" : "Skip",
-    cont: uiLang === "nl" ? "Doorgaan" : uiLang === "ar" ? "متابعة" : "Continue",
-    correctAns: uiLang === "nl" ? "Juiste antwoord" : uiLang === "ar" ? "الإجابة الصحيحة" : "Correct answer",
-    nice: uiLang === "nl" ? "Goed gedaan!" : uiLang === "ar" ? "أحسنت!" : "Nice!",
-    notQuite: uiLang === "nl" ? "Niet helemaal" : uiLang === "ar" ? "ليس تمامًا" : "Not quite",
-    translate: uiLang === "nl" ? "Vertaal" : uiLang === "ar" ? "ترجم" : "Translate",
-    reported: uiLang === "nl" ? "Bedankt voor de melding" : uiLang === "ar" ? "شكرًا للإبلاغ" : "Thanks for the report",
+    check:      uiLang === "nl" ? "Controleren"        : uiLang === "ar" ? "تحقق"          : "Check",
+    skip:       uiLang === "nl" ? "Overslaan"          : uiLang === "ar" ? "تخطي"          : "Skip",
+    cont:       uiLang === "nl" ? "Doorgaan"           : uiLang === "ar" ? "متابعة"        : "Continue",
+    correctAns: uiLang === "nl" ? "Juiste antwoord"    : uiLang === "ar" ? "الإجابة الصحيحة" : "Correct answer",
+    nice:       uiLang === "nl" ? "Goed gedaan!"       : uiLang === "ar" ? "أحسنت!"        : "Nice!",
+    notQuite:   uiLang === "nl" ? "Niet helemaal"      : uiLang === "ar" ? "ليس تمامًا"    : "Not quite",
+    translate:  uiLang === "nl" ? "Vertaal"            : uiLang === "ar" ? "ترجم"          : "Translate",
+    reported:   uiLang === "nl" ? "Bedankt voor de melding" : uiLang === "ar" ? "شكرًا للإبلاغ" : "Thanks for the report",
   };
 
   const handleCheck = () => {
@@ -383,19 +414,8 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
     setChecked(false);
   };
 
-  const handleContinue = () => {
-    if (!checked) return;
-    advance({ requeue: !isCorrect });
-  };
-
-  const handleSkip = () => {
-    if (checked) return;
-    advance();
-  };
-
-  const handleReport = () => {
-    toast({ description: L.reported });
-  };
+  const handleContinue = () => { if (checked) advance({ requeue: !isCorrect }); };
+  const handleSkip     = () => { if (!checked) advance(); };
 
   return (
     <div className="px-4 max-w-md mx-auto w-full space-y-6 py-4 pb-40">
@@ -405,7 +425,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
       </div>
       <div className="grid gap-2">
         {q.options.map(opt => {
-          const id = textToId.get(opt);
+          const id    = textToId.get(opt);
           const isNew = id ? (!alreadyMarked.has(id) && !seenIds.has(id)) : false;
           const isPicked = picked === opt;
           return (
@@ -448,7 +468,7 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
             )}
           </div>
           <button
-            onClick={handleReport}
+            onClick={() => toast({ description: L.reported })}
             aria-label="Report"
             title="Report a problem"
             className="p-2 rounded-md opacity-60 hover:opacity-100 hover:bg-muted"
@@ -458,13 +478,10 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
         </Container>
       )}
 
-      {/* Footer: mobile stacked (Check top, Skip below), desktop side-by-side (Skip left, Check right). */}
       <div className="fixed left-0 right-0 bottom-0 z-40 border-t-2 border-border bg-background/95 backdrop-blur px-4 py-3">
         <div className="max-w-md mx-auto flex flex-col-reverse sm:flex-row gap-2">
           {!checked && (
-            <Button onClick={handleSkip} fullWidth className="sm:flex-1">
-              {L.skip}
-            </Button>
+            <Button onClick={handleSkip} fullWidth className="sm:flex-1">{L.skip}</Button>
           )}
           {!checked ? (
             <Button
@@ -477,13 +494,10 @@ function LessonRunner({ lang, unit, onDone }: { lang: Lang; unit?: Unit; onDone:
               {L.check}
             </Button>
           ) : (
-            <Button active onClick={handleContinue} fullWidth>
-              {L.cont}
-            </Button>
+            <Button active onClick={handleContinue} fullWidth>{L.cont}</Button>
           )}
         </div>
       </div>
     </div>
   );
 }
-

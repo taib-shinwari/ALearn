@@ -9,28 +9,52 @@ import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useMarkedWords } from "Client/Hook/useMarkedWords";
 import { useCustomCollections } from "Client/Hook/useCustomCollections";
-import { categories, localizedName, type Lang } from "Server/Data/courseData";
+import {
+  getCategories,
+  getSubcategories,
+  getWordsInSubcategory,
+  getLabel,
+  type SupportedLang,
+  type I18nLang,
+} from "Server/API/Language";
 
 /* ─────────────────────────── DictionaryBrowseView ─────────────────────────── */
 
-const COLLECTIONS_LABEL: Record<Lang, string> = {
+// Legacy short-code → I18nLang map used by the UI layer
+const TO_I18N: Record<string, I18nLang> = {
+  nl: "Dutch",
+  en: "English",
+  ar: "Arabic",
+};
+
+const COLLECTIONS_LABEL: Record<string, string> = {
   nl: "Collecties",
   en: "Collections",
   ar: "المجموعات",
 };
 
-const EMPTY_LABEL: Record<Lang, string> = {
+const EMPTY_LABEL: Record<string, string> = {
   nl: "Je woordenboek is leeg. Voltooi lessen om woorden toe te voegen.",
   en: "Your dictionary is empty. Complete lessons to add words.",
   ar: "قاموسك فارغ. أكمل الدروس لإضافة الكلمات.",
 };
 
-export function DictionaryBrowseView({ targetLang }: { targetLang: Lang }) {
+/**
+ * Resolve a localized name from a word-entry name field.
+ * Accepts both full ("Dutch") and short ("nl") lang codes.
+ */
+function localizedName(name: Record<string, string> | string | undefined, lang: string): string {
+  if (!name) return "";
+  if (typeof name === "string") return name;
+  const i18n = TO_I18N[lang] ?? lang;
+  return name[i18n] ?? name[lang] ?? name["English"] ?? Object.values(name)[0] ?? "";
+}
+
+export function DictionaryBrowseView({ targetLang }: { targetLang: SupportedLang }) {
   const { uiLang, t } = useCourseLanguage();
   const { pushBrowse, setBrowsePath } = useApp();
   const { map } = useMarkedWords();
 
-  // State previously lifted into LanguageRootView — lives here now
   const rootKey = `__lang_${targetLang}`;
   const { collections, addCollection, removeCollection } = useCustomCollections(rootKey);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,15 +63,27 @@ export function DictionaryBrowseView({ targetLang }: { targetLang: Lang }) {
 
   const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
 
+  // Derive the i18n lang for Server/API/Language calls
+  const i18nLang: I18nLang = TO_I18N[uiLang] ?? "English";
+
+  // Build grouped view: categories → subcategories containing marked words
   const grouped = useMemo(() => {
-    return categories.flatMap(cat => {
-      const subs = cat.subcategories.flatMap(sub => {
-        const words = sub.words.filter(w => markedIds.has(w.id));
-        return words.length > 0 ? [{ sub, words }] : [];
+    const categoryIds = getCategories(targetLang, "Vocabulary");
+
+    return categoryIds.flatMap(catId => {
+      const subcategoryIds = getSubcategories(targetLang, "Vocabulary", catId);
+
+      const subs = subcategoryIds.flatMap(subId => {
+        const words = getWordsInSubcategory(targetLang, "Vocabulary", catId, subId);
+        const markedWords = Object.entries(words).filter(([slug]) => markedIds.has(slug));
+        return markedWords.length > 0
+          ? [{ subId, wordCount: markedWords.length }]
+          : [];
       });
-      return subs.length > 0 ? [{ cat, subs }] : [];
+
+      return subs.length > 0 ? [{ catId, subs }] : [];
     });
-  }, [markedIds]);
+  }, [targetLang, markedIds]);
 
   const hasAny = grouped.length > 0;
 
@@ -80,18 +116,22 @@ export function DictionaryBrowseView({ targetLang }: { targetLang: Lang }) {
       ) : (
         <div className="space-y-5">
           {/* ── Marked word groups ── */}
-          {grouped.map(({ cat, subs }) => (
-            <section key={cat.id} className="space-y-2">
-              <TitleBar className="font-semibold">{localizedName(cat.name, uiLang)}</TitleBar>
+          {grouped.map(({ catId, subs }) => (
+            <section key={catId} className="space-y-2">
+              <TitleBar className="font-semibold">
+                {getLabel(i18nLang, catId) ?? catId}
+              </TitleBar>
               <div className="grid grid-cols-2 gap-3">
-                {subs.map(({ sub, words }) => (
+                {subs.map(({ subId, wordCount }) => (
                   <CardButton
-                    key={`${cat.id}-${sub.id}`}
-                    onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id])}
+                    key={`${catId}-${subId}`}
+                    onClick={() => setBrowsePath(["language", targetLang, "_marked", catId, subId])}
                     className="min-h-[64px] py-3 px-3 flex flex-col items-center justify-center text-center"
                   >
-                    <span className="font-semibold">{localizedName(sub.name, uiLang)}</span>
-                    <span className="text-xs opacity-70 mt-0.5">{words.length}</span>
+                    <span className="font-semibold">
+                      {getLabel(i18nLang, subId) ?? subId}
+                    </span>
+                    <span className="text-xs opacity-70 mt-0.5">{wordCount}</span>
                   </CardButton>
                 ))}
               </div>

@@ -4,18 +4,12 @@ import { Brain, CheckSquare, Clock, Filter, Plus, Square, X } from "lucide-react
 import { CardButton } from "Client/Component/UI/card-button";
 import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
-import { TitleBar } from "Client/Component/UI/title-bar";
 import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useMarkedWords } from "Client/Hook/useMarkedWords";
 import { useCustomWords } from "Client/Hook/useCustomWords";
-import { useCustomCollections } from "Client/Hook/useCustomCollections";
 import { useFavoriteWords } from "Client/Hook/useFavoriteWords";
-import {
-  categories, getWordsForCategory, localizedName, getWordText,
-  type Lang, type WordLang, type WordDetail,
-} from "Server/Data/courseData";
 import { RecallButton } from "Client/Component/RecallButton";
 import { ALPHABET_SEGMENT } from "Client/Library/navigation";
 import { cn } from "Client/Library/utils";
@@ -27,7 +21,27 @@ import { ChessBranch, EmptyState } from "Client/Component/View/Chess";
 import { SubcategoriesView } from "Client/Component/View/Subcategory";
 import { LanguageRootView } from "Client/Component/View/Language";
 
-const TARGET_LANGS: { code: Lang; label: string }[] = [
+// ── NEW API IMPORTS ───────────────────────────────────────────────────
+import {
+  getCategories,
+  getSubcategories,
+  getWordSlugs,
+  getWord,
+  getWordsInSubcategory,
+  type SupportedLang,
+  type SectionType,
+  type WordEntry
+} from "Server/API/Language";
+
+// Helper mapper to translate internal UI shorthand codes to API expected Type names
+const MAP_LANG_CODE: Record<string, SupportedLang> = {
+  nl: "Dutch",
+  en: "English",
+  ar: "Arabic",
+  ps: "Pashto"
+};
+
+const TARGET_LANGS: { code: string; label: string }[] = [
   { code: "nl", label: "Nederlands" },
   { code: "en", label: "English" },
   { code: "ar", label: "العربية" },
@@ -37,8 +51,9 @@ const EXTRA_LANGS: { code: string; label: string; preview?: boolean }[] = [
   { code: "ps", label: "پښتو (Pashto)", preview: true },
 ];
 
-const LANGUAGE_LABEL: Record<Lang, string> = { nl: "Taal",      en: "Language", ar: "اللغة"    };
-const CHESS_LABEL:    Record<Lang, string> = { nl: "Schaken",   en: "Chess",    ar: "الشطرنج"  };
+const LANGUAGE_LABEL: Record<string, string> = { nl: "Taal",      en: "Language", ar: "اللغة"    };
+const CHESS_LABEL:    Record<string, string> = { nl: "Schaken",   en: "Chess",    ar: "الشطرنج"  };
+const DEFAULT_SECTION: SectionType = "Vocabulary";
 
 export default function HomePage() {
   const {
@@ -57,13 +72,13 @@ export default function HomePage() {
           onClick={() => pushBrowse("language")}
           className="min-h-[64px] py-3 flex items-center justify-center text-center"
         >
-          <span className="font-semibold">{LANGUAGE_LABEL[uiLang]}</span>
+          <span className="font-semibold">{LANGUAGE_LABEL[uiLang] || "Language"}</span>
         </CardButton>
         <CardButton
           onClick={() => pushBrowse("chess")}
           className="min-h-[64px] py-3 flex items-center justify-center text-center"
         >
-          <span className="font-semibold">{CHESS_LABEL[uiLang]}</span>
+          <span className="font-semibold">{CHESS_LABEL[uiLang] || "Chess"}</span>
         </CardButton>
       </div>
     );
@@ -93,71 +108,92 @@ export default function HomePage() {
     return <PashtoComingSoon />;
   }
 
-  const targetLang = browsePath[1] as Lang;
+  const targetLangCode = browsePath[1];
+  const apiLangName = MAP_LANG_CODE[targetLangCode] || "English";
 
   // ── LANGUAGE HOME ─────────────────────────────────────────────────────
   if (browsePath.length === 2) {
-    return <LanguageRootView targetLang={targetLang} />;
+    return <LanguageRootView targetLang={targetLangCode as any} />;
   }
 
   // ── ALPHABET ──────────────────────────────────────────────────────────
   if (browsePath[2] === ALPHABET_SEGMENT) {
-    return <AlphabetView targetLang={targetLang} uiLang={uiLang} />;
+    return <AlphabetView targetLang={targetLangCode as any} uiLang={uiLang} />;
   }
 
   // ── LESSONS ───────────────────────────────────────────────────────────
   if (browsePath[2] === "lessons") {
-    return <LessonsView lang={targetLang} />;
+    return <LessonsView lang={targetLangCode as any} />;
   }
 
   // ── DICTIONARY MARKED BRANCH: ["language", lang, "_marked", catId, subId, wordId?] ──
   if (browsePath[2] === "_marked") {
-    const cat = categories.find(c => c.id === browsePath[3]);
-    const sub = cat?.subcategories.find(s => s.id === browsePath[4]);
-    if (!cat || !sub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    const catId = browsePath[3];
+    const subId = browsePath[4];
+    
+    const availableCategories = getCategories(apiLangName, DEFAULT_SECTION);
+    if (!availableCategories.includes(catId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
+
+    const availableSubcategories = getSubcategories(apiLangName, DEFAULT_SECTION, catId);
+    if (!availableSubcategories.includes(subId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
+
     if (browsePath.length === 5) {
-      return <MarkedSubcategoryWordsView cat={cat} sub={sub} targetLang={targetLang} />;
+      return <MarkedSubcategoryWordsView categoryId={catId} subcategoryId={subId} targetLang={targetLangCode} />;
     }
+
+    const wordSlugs = getWordSlugs(apiLangName, DEFAULT_SECTION, catId, subId);
     return (
       <WordDetailResolver
-        categoryId={cat.id}
-        subcategoryId={sub.id}
+        categoryId={catId}
+        subcategoryId={subId}
         wordId={browsePath[5]}
-        builtIn={sub.words}
+        apiLangName={apiLangName}
+        builtInSlugs={wordSlugs}
       />
     );
   }
 
   // ── SUBCATEGORIES ─────────────────────────────────────────────────────
-  const category = categories.find(c => c.id === browsePath[2]);
-  if (!category) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  const categoryId = browsePath[2];
+  const allCategories = getCategories(apiLangName, DEFAULT_SECTION);
+  
+  if (!allCategories.includes(categoryId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
-    return <SubcategoriesView category={category} onOpen={(id) => pushBrowse(id)} />;
+    const subIds = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+    const mockCategoryStructure = {
+      id: categoryId,
+      subcategories: subIds.map(id => ({ id, name: { nl: id, en: id } }))
+    };
+
+    return <SubcategoriesView category={mockCategoryStructure as any} onOpen={(id) => pushBrowse(id)} />;
   }
 
   // ── WORDS ─────────────────────────────────────────────────────────────
-  const builtInSub = category.subcategories.find(s => s.id === browsePath[3]);
-  const subId      = browsePath[3];
-  const resolvedSub = builtInSub ?? { id: subId, name: { nl: subId, en: subId }, words: [] };
+  const subcategoryId = browsePath[3];
+  const availableSubs = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+  const isValidSub = availableSubs.includes(subcategoryId);
 
-  if (browsePath.length === 4 && resolvedSub.words.length === 0 && builtInSub) {
+  const wordSlugs = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
+
+  if (browsePath.length === 4 && wordSlugs.length === 0 && isValidSub) {
     return <EmptyState uiLang={uiLang} kind="words" />;
   }
 
   if (browsePath.length === 4) {
     return (
       <WordsView
-        categoryId={category.id}
-        subcategoryId={resolvedSub.id}
-        targetLang={targetLang}
+        categoryId={categoryId}
+        subcategoryId={subcategoryId}
+        targetLang={targetLangCode}
+        apiLangName={apiLangName}
         onOpenWord={(id) => pushBrowse(id)}
         onSelectedRecall={(wordIds) => {
           setRecallReturnPath(browsePath);
           setActiveRecall({
             scope: "word",
-            categoryId: category.id,
-            subcategoryId: resolvedSub.id,
+            categoryId: categoryId,
+            subcategoryId: subcategoryId,
             wordIds,
           });
           navigate("/Recall");
@@ -169,25 +205,37 @@ export default function HomePage() {
   // ── WORD DETAIL ───────────────────────────────────────────────────────
   return (
     <WordDetailResolver
-      categoryId={category.id}
-      subcategoryId={resolvedSub.id}
+      categoryId={categoryId}
+      subcategoryId={subcategoryId}
       wordId={browsePath[4]}
-      builtIn={resolvedSub.words}
+      apiLangName={apiLangName}
+      builtInSlugs={wordSlugs}
     />
   );
 }
 
 /* ──────────────────────── WordDetailResolver ────────────────────────── */
 
-function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
+function WordDetailResolver({ categoryId, subcategoryId, wordId, apiLangName, builtInSlugs }: {
   categoryId: string;
   subcategoryId: string;
   wordId: string;
-  builtIn: WordDetail[];
+  apiLangName: SupportedLang;
+  builtInSlugs: string[];
 }) {
   const { t } = useCourseLanguage();
   const { customWords, applyOverride } = useCustomWords(categoryId, subcategoryId);
-  const raw  = builtIn.find(w => w.id === wordId) || customWords.find(w => w.id === wordId);
+
+  let raw: any = null;
+  if (builtInSlugs.includes(wordId)) {
+    const apiData = getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, wordId);
+    if (apiData) {
+      raw = { id: wordId, value: apiData };
+    }
+  } else {
+    raw = customWords.find(w => w.id === wordId);
+  }
+
   if (!raw) return <div className="px-4 text-sm">{t("notFound")}</div>;
   const word     = applyOverride(raw);
   const isCustom = customWords.some(w => w.id === wordId);
@@ -203,25 +251,29 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, builtIn }: {
 
 /* ──────────────────── MarkedSubcategoryWordsView ────────────────────── */
 
-function MarkedSubcategoryWordsView({ cat, sub, targetLang }: {
-  cat: typeof categories[number];
-  sub: typeof categories[number]["subcategories"][number];
-  targetLang: Lang;
+function MarkedSubcategoryWordsView({ categoryId, subcategoryId, targetLang }: {
+  categoryId: string;
+  subcategoryId: string;
+  targetLang: string;
 }) {
   const { setBrowsePath } = useApp();
   const { map } = useMarkedWords();
-  const markedIds = useMemo(() => new Set(map[targetLang] || []), [map, targetLang]);
-  const words = sub.words.filter(w => markedIds.has(w.id));
+  const apiLangName = MAP_LANG_CODE[targetLang] || "English";
+  
+  const markedIds = useMemo(() => new Set(map[targetLang as any] || []), [map, targetLang]);
+  const slugs = getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId);
+  const words = slugs.filter(id => markedIds.has(id));
+
   return (
     <div className="px-4 w-full space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        {words.map(w => (
+        {words.map(slug => (
           <CardButton
-            key={w.id}
-            onClick={() => setBrowsePath(["language", targetLang, "_marked", cat.id, sub.id, w.id])}
+            key={slug}
+            onClick={() => setBrowsePath(["language", targetLang, "_marked", categoryId, subcategoryId, slug])}
             className="min-h-[56px] py-2 px-3 flex items-center justify-center text-center"
           >
-            <span className="font-semibold text-sm">{getWordText(w, targetLang as WordLang)}</span>
+            <span className="font-semibold text-sm">{slug}</span>
           </CardButton>
         ))}
       </div>
@@ -232,17 +284,15 @@ function MarkedSubcategoryWordsView({ cat, sub, targetLang }: {
 /* ──────────────────────────── WordsView ─────────────────────────────── */
 
 function WordsView({
-  categoryId, subcategoryId, targetLang, onOpenWord, onSelectedRecall,
+  categoryId, subcategoryId, targetLang, apiLangName, onOpenWord, onSelectedRecall,
 }: {
   categoryId: string;
   subcategoryId: string;
-  targetLang: Lang;
+  targetLang: string;
+  apiLangName: SupportedLang;
   onOpenWord: (wordId: string) => void;
   onSelectedRecall: (wordIds: string[]) => void;
 }) {
-  const category    = categories.find(c => c.id === categoryId)!;
-  const builtIn     = category.subcategories.find(s => s.id === subcategoryId);
-  const subcategory = builtIn ?? { id: subcategoryId, name: { nl: subcategoryId, en: subcategoryId }, words: [] };
   const { t, courseLang } = useCourseLanguage();
   const { recallQueue } = useApp();
   const { customWords, addCustomWord, applyOverride } = useCustomWords(categoryId, subcategoryId);
@@ -254,10 +304,14 @@ function WordsView({
   const [filter, setFilter] = useState<FilterMode>("all");
   const [addOpen, setAddOpen] = useState(false);
 
-  const allWords: WordDetail[] = useMemo(
-    () => [...subcategory.words, ...customWords].map(applyOverride),
-    [subcategory.words, customWords, applyOverride],
-  );
+  const allWords: any[] = useMemo(() => {
+    const slugs = getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId);
+    const apiWordsMapped = slugs.map(slug => ({
+      id: slug,
+      value: getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, slug)
+    }));
+    return [...apiWordsMapped, ...customWords].map(applyOverride);
+  }, [categoryId, subcategoryId, apiLangName, customWords, applyOverride]);
 
   const filtered = useMemo(() => {
     switch (filter) {
@@ -275,7 +329,7 @@ function WordsView({
     );
     return !!item && item.readyAt > now;
   };
-  const subItem   = recallQueue.find(r => r.scope === "subcategory" && r.categoryId === categoryId && r.subcategoryId === subcategoryId);
+  const subItem    = recallQueue.find(r => r.scope === "subcategory" && r.categoryId === categoryId && r.subcategoryId === subcategoryId);
   const subCooling = !!subItem && subItem.readyAt > now;
 
   const toggle = (id: string) => {
@@ -336,8 +390,9 @@ function WordsView({
         {filtered.map(word => {
           const isSel   = selected.has(word.id);
           const cooling = wordCooling(word.id);
-          const wText   = getWordText(word, targetLang as WordLang);
-          const wPron   = (targetLang === "ar" ? word.ar?.pronunciation : word[targetLang as WordLang]?.pronunciation) ?? undefined;
+          const wText   = word.id;
+          const wPron   = undefined;
+
           return (
             <CardButton
               key={word.id}
