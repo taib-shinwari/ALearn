@@ -28,6 +28,10 @@ function AppRoutes() {
       <Route path="/settings" element={withLayout(<SettingsPage />)} />
       <Route path="/recall" element={withLayout(<FlashcardsPage />)} />
       <Route path="/" element={withLayout(<HomePage />)} />
+      <Route path="/Language/*" element={withLayout(<HomePage />)} />
+      <Route path="/language/*" element={withLayout(<HomePage />)} />
+      <Route path="/Chess/*" element={withLayout(<HomePage />)} />
+      <Route path="/chess/*" element={withLayout(<HomePage />)} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
