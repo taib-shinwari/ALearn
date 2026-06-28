@@ -25,7 +25,7 @@ export function SubcategoriesView({ category, onOpen }: {
   category: Category;
   onOpen: (id: string) => void;
 }) {
-  const { uiLang, t } = useCourseLanguage(); // uiLang: I18nLang
+  const { uiLang, i18nLang, t } = useCourseLanguage();
   const { collections, addCollection, removeCollection } = useCustomCollections(category.id);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [addColOpen, setAddColOpen] = useState(false);
@@ -74,7 +74,7 @@ export function SubcategoriesView({ category, onOpen }: {
 
       {/* ── Resource Items Grid Directory ── */}
       {all.length === 0 ? (
-        <EmptyState uiLang={uiLang} kind="subcategories" />
+        <EmptyState uiLang={i18nLang} kind="subcategories" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {all.map(sub => {

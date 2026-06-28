@@ -70,7 +70,7 @@ const CHESS_MENU_LABELS: Record<string, Record<I18nLang, string>> = {
 
 export function ChessBranch() {
   const { browsePath, pushBrowse, popBrowse, setBrowsePath } = useApp();
-  const { uiLang, t } = useCourseLanguage();
+  const { uiLang, i18nLang, t } = useCourseLanguage();
 
   // Unified sync file data access matrices
   const allLevels = getChessLevels();
@@ -106,7 +106,7 @@ export function ChessBranch() {
   if (browsePath[1] === "play") {
     return (
       <div className="w-full space-y-2">
-        <BackHeader label={CHESS_MENU_LABELS.play[uiLang]} />
+        <BackHeader label={CHESS_MENU_LABELS.play[i18nLang]} />
         <ChessPlayView />
       </div>
     );
@@ -114,11 +114,11 @@ export function ChessBranch() {
 
   // ── /chess/puzzle ────────────────────────────────────────────────────
   if (browsePath[1] === "puzzle" && browsePath.length === 2) {
-    if (allPuzzles.length === 0) return <EmptyState uiLang={uiLang} kind="puzzles" onBack={popBrowse} />;
-    
+    if (allPuzzles.length === 0) return <EmptyState uiLang={i18nLang} kind="puzzles" onBack={popBrowse} />;
+
     return (
       <div className="w-full max-w-3xl mx-auto">
-        <BackHeader label={CHESS_MENU_LABELS.puzzle[uiLang]} />
+        <BackHeader label={CHESS_MENU_LABELS.puzzle[i18nLang]} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4">
           {allPuzzles.map(fenId => (
             <CardButton
@@ -161,7 +161,7 @@ export function ChessBranch() {
   if (browsePath[1] === "lesson" && browsePath.length === 2) {
     return (
       <div className="w-full max-w-3xl mx-auto">
-        <BackHeader label={CHESS_MENU_LABELS.lesson[uiLang]} />
+        <BackHeader label={CHESS_MENU_LABELS.lesson[i18nLang]} />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-4">
           {allLevels.map(lvl => (
             <CardButton
@@ -169,7 +169,7 @@ export function ChessBranch() {
               onClick={() => pushBrowse(lvl.id)}
               className="min-h-[72px] p-4 flex items-center justify-center text-center"
             >
-              <span className="font-semibold text-sm">{lvl.name[uiLang] ?? lvl.name.English}</span>
+              <span className="font-semibold text-sm">{lvl.name[i18nLang] ?? lvl.name.English}</span>
             </CardButton>
           ))}
         </div>
@@ -181,11 +181,11 @@ export function ChessBranch() {
   if (browsePath[1] === "lesson" && browsePath.length === 3) {
     const lvl = getChessLevel(browsePath[2]);
     if (!lvl) return <div className="px-4 text-sm py-6 text-center opacity-60">{t("notFound")}</div>;
-    if (lvl.groups.length === 0) return <EmptyState uiLang={uiLang} kind="groups" onBack={popBrowse} />;
-    
+    if (lvl.groups.length === 0) return <EmptyState uiLang={i18nLang} kind="groups" onBack={popBrowse} />;
+
     return (
       <div className="w-full max-w-3xl mx-auto">
-        <BackHeader label={lvl.name[uiLang] ?? lvl.name.English} />
+        <BackHeader label={lvl.name[i18nLang] ?? lvl.name.English} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4">
           {lvl.groups.map(g => (
             <CardButton
@@ -193,7 +193,7 @@ export function ChessBranch() {
               onClick={() => pushBrowse(g.id)}
               className="min-h-[72px] p-4 flex items-center justify-between gap-4"
             >
-              <span className="font-semibold text-sm text-left">{g.name[uiLang] ?? g.name.English}</span>
+              <span className="font-semibold text-sm text-left">{g.name[i18nLang] ?? g.name.English}</span>
               <span className="text-xs opacity-50 shrink-0">{g.lessons.length} Lessons</span>
             </CardButton>
           ))}
@@ -207,11 +207,11 @@ export function ChessBranch() {
     const lvl = getChessLevel(browsePath[2]);
     const grp = lvl?.groups.find(g => g.id === browsePath[3]);
     if (!grp) return <div className="px-4 text-sm py-6 text-center opacity-60">{t("notFound")}</div>;
-    if (grp.lessons.length === 0) return <EmptyState uiLang={uiLang} kind="lessons" onBack={popBrowse} />;
-    
+    if (grp.lessons.length === 0) return <EmptyState uiLang={i18nLang} kind="lessons" onBack={popBrowse} />;
+
     return (
       <div className="w-full max-w-3xl mx-auto">
-        <BackHeader label={grp.name[uiLang] ?? grp.name.English} />
+        <BackHeader label={grp.name[i18nLang] ?? grp.name.English} />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-4">
           {grp.lessons.map(ls => (
             <CardButton
@@ -219,7 +219,7 @@ export function ChessBranch() {
               onClick={() => pushBrowse(ls.id)}
               className="min-h-[72px] p-4 flex items-center justify-center text-center text-sm font-semibold"
             >
-              <span className="line-clamp-2">{ls.name[uiLang] ?? ls.name.English}</span>
+              <span className="line-clamp-2">{ls.name[i18nLang] ?? ls.name.English}</span>
             </CardButton>
           ))}
         </div>
@@ -234,14 +234,16 @@ export function ChessBranch() {
     const lesson = grp?.lessons.find(ls => ls.id === browsePath[4]);
     if (!lesson) return <div className="px-4 text-sm py-6 text-center opacity-60">{t("notFound")}</div>;
 
-    const currentIndex = grp.lessons.findIndex(l => l.id === lesson.id);
-    const nextLesson = grp.lessons[currentIndex + 1];
+    const currentIndex = grp!.lessons.findIndex(l => l.id === lesson.id);
+    const nextLesson = grp!.lessons[currentIndex + 1];
 
     return (
       <div className="w-full space-y-2">
-        <BackHeader label={lesson.name[uiLang] ?? lesson.name.English} />
+        <BackHeader label={lesson.name[i18nLang] ?? lesson.name.English} />
         <ChessLessonView
-          lesson={lesson}
+          category={browsePath[2]}
+          subcategory={browsePath[3]}
+          lessonId={browsePath[4]}
           onNext={nextLesson ? () => setBrowsePath([...browsePath.slice(0, -1), nextLesson.id]) : undefined}
         />
       </div>

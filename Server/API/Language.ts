@@ -148,7 +148,7 @@ export function getWordsInCategory(
   section: SectionType,
   category: string,
 ): Record<string, Record<string, WordEntry>> {
-  return (VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category] ?? {}) as Record<string, Record<string, WordEntry>>;
+  return (VOCAB_GRAMMAR_DATA[lang]?.[section]?.[category] ?? {}) as unknown as Record<string, Record<string, WordEntry>>;
 }
 
 export function getAllWords(
