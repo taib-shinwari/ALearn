@@ -123,7 +123,7 @@ export default function HomePage() {
 
   // ── LESSONS ───────────────────────────────────────────────────────────
   if (browsePath[2] === "lessons") {
-    return <LessonsView lang={apiLangName} langCode={targetLangCode} />;
+    return <LessonsView lang={apiLangName} />;
   }
 
   // ── DICTIONARY MARKED BRANCH: ["language", lang, "_marked", catId, subId, wordId?] ──
