@@ -31,6 +31,7 @@ import {
   getWord,
   type SupportedLang,
   type SectionType,
+  type WordEntry,
 } from "Server/API/Language";
 
 // Helper mapper to translate internal UI shorthand codes to API expected Type names
@@ -54,6 +55,36 @@ const EXTRA_LANGS: { code: string; label: string; preview?: boolean }[] = [
 const LANGUAGE_LABEL: Record<string, string> = { nl: "Taal",      en: "Language", ar: "اللغة"    };
 const CHESS_LABEL:    Record<string, string> = { nl: "Schaken",   en: "Chess",    ar: "الشطرنج"  };
 const DEFAULT_SECTION: SectionType = "Vocabulary";
+
+function entryText(entry: WordEntry | null | undefined, index: number): string | undefined {
+  const value = Array.isArray(entry) ? entry[index] : undefined;
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") return value.English ?? Object.values(value)[0];
+  return undefined;
+}
+
+function wordDetailFromApi(id: string, entry: WordEntry, lang: SupportedLang): WordDetail {
+  const word = entryText(entry, 0) ?? id;
+  const definition = entryText(entry, 1);
+  const example = entryText(entry, 2);
+  const base: WordDetail = {
+    id,
+    nl: { word: id },
+    en: { word: id },
+  };
+
+  if (lang === "Dutch") {
+    base.nl = { word, definitie: definition, voorbeeld: example };
+    base.en = { word: id, definition, example };
+  } else if (lang === "Arabic") {
+    base.en = { word: id, definition, example };
+    base.ar = { word, definition, example };
+  } else {
+    base.en = { word, definition, example };
+  }
+
+  return base;
+}
 
 export default function HomePage() {
   const {
@@ -241,6 +272,7 @@ function WordDetailResolver({ categoryId, subcategoryId, wordId, apiLangName, bu
     const apiData = getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, wordId);
     if (apiData) {
       raw = { id: wordId, value: apiData };
+      raw = wordDetailFromApi(wordId, apiData, apiLangName);
     }
   } else {
     raw = customWords.find(w => w.id === wordId);
@@ -319,7 +351,7 @@ function WordsView({
     const apiWordsMapped = slugs.map(slug => ({
       id: slug,
       value: getWord(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId, slug)
-    }));
+    })).flatMap(({ id, value }) => value ? [wordDetailFromApi(id, value, apiLangName)] : []);
     return [...apiWordsMapped, ...customWords].map(applyOverride);
   }, [categoryId, subcategoryId, apiLangName, customWords, applyOverride]);
 
