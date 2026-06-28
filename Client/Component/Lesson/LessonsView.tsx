@@ -136,9 +136,9 @@ function buildSections(allUnits: Unit[]): Section[] {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface Props { lang: SupportedLang; langCode: string }
+interface Props { lang: SupportedLang }
 
-export function LessonsView({ lang, langCode }: Props) {
+export function LessonsView({ lang }: Props) {
   const { uiLang } = useCourseLanguage();
   const { browsePath, pushBrowse, popBrowse } = useApp();
 
