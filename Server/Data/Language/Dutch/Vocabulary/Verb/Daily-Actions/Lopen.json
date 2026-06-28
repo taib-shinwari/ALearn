@@ -1,0 +1,13 @@
+[
+  "Lopen",
+  "Zich voortbewegen te voet.",
+  {
+    "ik": "loop",
+    "jij": "loopt",
+    "hij/zij": "loopt",
+    "wij": "lopen",
+    "jullie": "lopen",
+    "zij (mv)": "lopen"
+  },
+  "Ik loop naar school."
+]

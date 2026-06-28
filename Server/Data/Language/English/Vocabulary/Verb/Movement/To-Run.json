@@ -1,0 +1,12 @@
+[
+  "To Run",
+  "To move fast on foot.",
+  {
+    "I": "run",
+    "you": "run",
+    "he/she": "runs",
+    "we": "run",
+    "they": "run"
+  },
+  "The children run in the park."
+]

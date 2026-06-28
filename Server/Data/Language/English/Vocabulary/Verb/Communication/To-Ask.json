@@ -1,0 +1,12 @@
+[
+  "To Ask",
+  "To pose a question.",
+  {
+    "I": "ask",
+    "you": "ask",
+    "he/she": "asks",
+    "we": "ask",
+    "they": "ask"
+  },
+  "May I ask something?"
+]

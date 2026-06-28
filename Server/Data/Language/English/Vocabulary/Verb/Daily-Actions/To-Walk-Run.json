@@ -1,0 +1,12 @@
+[
+  "To Walk/Run",
+  "To move on foot.",
+  {
+    "I": "walk",
+    "you": "walk",
+    "he/she": "walks",
+    "we": "walk",
+    "they": "walk"
+  },
+  "I walk to school."
+]

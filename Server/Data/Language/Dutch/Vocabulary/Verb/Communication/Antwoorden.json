@@ -1,0 +1,13 @@
+[
+  "Antwoorden",
+  "Reageren op een vraag.",
+  {
+    "ik": "antwoord",
+    "jij": "antwoordt",
+    "hij/zij": "antwoordt",
+    "wij": "antwoorden",
+    "jullie": "antwoorden",
+    "zij (mv)": "antwoorden"
+  },
+  "Kun je antwoorden?"
+]

@@ -1,0 +1,12 @@
+[
+  "To Jump",
+  "To leave the ground.",
+  {
+    "I": "jump",
+    "you": "jump",
+    "he/she": "jumps",
+    "we": "jump",
+    "they": "jump"
+  },
+  "The rabbit jumps high."
+]
