@@ -8,7 +8,9 @@ import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
 import { useMarkedWords } from "Client/Hook/useMarkedWords";
+import { useCustomCollections } from "Client/Hook/useCustomCollections";
 import { useCustomWords } from "Client/Hook/useCustomWords";
+import type { WordDetail } from "Client/Hook/useCustomWords";
 import { useFavoriteWords } from "Client/Hook/useFavoriteWords";
 import { RecallButton } from "Client/Component/RecallButton";
 import { ALPHABET_SEGMENT } from "Client/Library/navigation";
@@ -27,10 +29,8 @@ import {
   getSubcategories,
   getWordSlugs,
   getWord,
-  getWordsInSubcategory,
   type SupportedLang,
   type SectionType,
-  type WordEntry
 } from "Server/API/Language";
 
 // Helper mapper to translate internal UI shorthand codes to API expected Type names
@@ -63,6 +63,10 @@ export default function HomePage() {
   } = useApp();
   const { uiLang, i18nLang, t } = useCourseLanguage();
   const navigate = useNavigate();
+  const hookTargetLangCode = browsePath[0] === "language" ? browsePath[1] : undefined;
+  const hookApiLangName = hookTargetLangCode ? (MAP_LANG_CODE[hookTargetLangCode] || "English") : undefined;
+  const { collections: customCategories } = useCustomCollections(hookApiLangName ? `__lang_${hookApiLangName}` : undefined);
+  const { collections: customSubcategories } = useCustomCollections(browsePath[0] === "language" ? browsePath[2] : undefined);
 
   // ── ROOT ──────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
@@ -156,14 +160,21 @@ export default function HomePage() {
   // ── SUBCATEGORIES ─────────────────────────────────────────────────────
   const categoryId = browsePath[2];
   const allCategories = getCategories(apiLangName, DEFAULT_SECTION);
+  const customCategory = customCategories.find(c => c.id === categoryId);
+  const isCustomCategory = !!customCategory;
   
-  if (!allCategories.includes(categoryId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  if (!allCategories.includes(categoryId) && !isCustomCategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 3) {
-    const subIds = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+    const subIds = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
     const mockCategoryStructure = {
       id: categoryId,
-      subcategories: subIds.map(id => ({ id, name: { nl: id, en: id } }))
+      name: customCategory?.name ?? { Dutch: categoryId, English: categoryId, Arabic: categoryId },
+      subcategories: subIds.map(id => ({
+        id,
+        name: { Dutch: id, English: id, Arabic: id },
+        words: getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, id).map(wid => ({ id: wid })),
+      }))
     };
 
     return <SubcategoriesView category={mockCategoryStructure as any} onOpen={(id) => pushBrowse(id)} />;
@@ -171,14 +182,13 @@ export default function HomePage() {
 
   // ── WORDS ─────────────────────────────────────────────────────────────
   const subcategoryId = browsePath[3];
-  const availableSubs = getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
-  const isValidSub = availableSubs.includes(subcategoryId);
+  const availableSubs = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+  const isCustomSub = customSubcategories.some(c => c.id === subcategoryId);
+  const isValidSub = availableSubs.includes(subcategoryId) || isCustomSub;
 
   const wordSlugs = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
 
-  if (browsePath.length === 4 && wordSlugs.length === 0 && isValidSub) {
-    return <EmptyState uiLang={i18nLang} kind="words" />;
-  }
+  if (!isValidSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
   if (browsePath.length === 4) {
     return (
