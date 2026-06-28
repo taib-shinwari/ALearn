@@ -62,7 +62,7 @@ export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLan
       custom: true,
     }));
     return [...builtIns, ...custom];
-  }, [targetLang, markedIds]);
+  }, [targetLang, i18nLang, collections, uiLang]);
 
   return (
     <div className="px-4 w-full space-y-3">
