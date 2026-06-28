@@ -170,7 +170,7 @@ export function urlToBrowsePath(pathname: string): string[] | null {
       if (!section) return ["language", langCode, "lessons"];
       const sectionId = sectionFromUrlSegment(section)!;
       if (!cat) return ["language", langCode, "lessons", sectionId];
-      if (!sub) return ["language", langCode, "lessons", section, cat];
+      if (!sub) return ["language", langCode, "lessons", sectionId, cat];
       const folderId = `${cat}:${sub}`;
       if (!unitIndex) return ["language", langCode, "lessons", sectionId, folderId];
       return ["language", langCode, "lessons", sectionId, folderId, `${folderId}:${unitIndex}`];
