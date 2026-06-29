@@ -113,9 +113,19 @@ export function browsePathToUrl(path: string[]): string {
 
     if (!branch) return base;
     if (branch === ALPHABET_SEGMENT) return `${base}/Alphabet`;
+
     if (branch === "dictionary") {
-      return `${base}/Dictionary/Vocabulary${path.length > 3 ? `/${path.slice(3).map(enc).join("/")}` : ""}`;
+      // ["language", code, "dictionary"]                          → /Dictionary
+      // ["language", code, "dictionary", "vocabulary", ...rest]   → /Dictionary/Vocabulary/rest
+      if (path.length === 3) return `${base}/Dictionary`;
+      const sub = path[3];
+      const rest = path.slice(4);
+      const subSeg = sub === "vocabulary" ? "Vocabulary" : sub === "grammar" ? "Grammar" : toTitleSlug(sub);
+      return [`${base}/Dictionary`, subSeg, ...languageContentSegments(rest).map(enc)]
+        .filter(Boolean)
+        .join("/");
     }
+
     if (branch === "lessons") {
       const [section, folder, unit] = path.slice(3);
       return [
@@ -129,7 +139,7 @@ export function browsePathToUrl(path: string[]): string {
       return `${base}/Dictionary/Vocabulary/${languageContentSegments(path.slice(3)).map(enc).join("/")}`;
     }
 
-    return `${base}/Dictionary/Vocabulary/${languageContentSegments(path.slice(2)).map(enc).join("/")}`;
+    return `${base}/${path.slice(2).map(enc).join("/")}`;
   }
 
   if (path[0] === "chess") {
@@ -176,19 +186,28 @@ export function urlToBrowsePath(pathname: string): string[] | null {
       return ["language", langCode, "lessons", sectionId, folderId, `${folderId}:${unitIndex}`];
     }
 
-    const dictionarySegments = branch === "dictionary" ? rest.slice(1) : rest;
-    if (branch === "dictionary" && (dictionarySegments.length === 0 || (dictionarySegments.length === 1 && (dictionarySegments[0] === "Vocabulary" || dictionarySegments[0] === "Grammar")))) {
-      return ["language", langCode, "dictionary"];
-    }
-    const resolved = resolveLanguagePath(langName, dictionarySegments);
-    if (resolved?.kind === "category") return ["language", langCode, resolved.category];
-    if (resolved?.kind === "subcategory") return ["language", langCode, resolved.category, resolved.subcategory];
-    if (resolved?.kind === "word") return ["language", langCode, resolved.category, resolved.subcategory, resolved.word];
+    if (branch === "dictionary") {
+      const dictRest = rest.slice(1);
+      if (dictRest.length === 0) return ["language", langCode, "dictionary"];
 
-    const withoutSection = dictionarySegments[0] === "Vocabulary" || dictionarySegments[0] === "Grammar"
-      ? dictionarySegments.slice(1)
-      : dictionarySegments;
-    return ["language", langCode, ...withoutSection];
+      const subSeg = dictRest[0].toLowerCase();
+      const subKey = subSeg === "grammar" ? "grammar" : "vocabulary";
+      const contentSegs = dictRest.slice(1);
+      if (contentSegs.length === 0) return ["language", langCode, "dictionary", subKey];
+
+      // Resolve content path via the language registry
+      const resolved = resolveLanguagePath(langName, contentSegs);
+      if (resolved?.kind === "category")
+        return ["language", langCode, "dictionary", subKey, resolved.category];
+      if (resolved?.kind === "subcategory")
+        return ["language", langCode, "dictionary", subKey, resolved.category, resolved.subcategory];
+      if (resolved?.kind === "word")
+        return ["language", langCode, "dictionary", subKey, resolved.category, resolved.subcategory, resolved.word];
+
+      return ["language", langCode, "dictionary", subKey, ...contentSegs];
+    }
+
+    return ["language", langCode, ...rest];
   }
 
   if (root === "chess") {
