@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "Client/Component/UI/button";
 import { CardButton } from "Client/Component/UI/card-button";
-import { TitleBar } from "Client/Component/UI/title-bar";
+
 import { FullPageDialog } from "Client/Component/UI/full-page-dialog";
 import { useApp } from "Client/Context/App";
 import { useCourseLanguage } from "Client/Hook/useCourseLanguage";
