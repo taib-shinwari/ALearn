@@ -673,20 +673,7 @@ export function ChessPlayView() {
             {evalScore !== null && analysisView !== "analysis" && <EvalBar score={evalScore} />}
             <Container className="p-2 rounded-[20px] flex-1 min-w-0">
               <Chessboard
-                pieces={(() => {
-                  // When premoves are queued on the live board, render the
-                  // projected board so captured opponent pieces visually
-                  // disappear on the player's screen immediately.
-                  if (live && premoves.length > 0) {
-                    const proj = projectedBoard();
-                    if (proj) {
-                      const t = new PieceTracker();
-                      t.reset(proj);
-                      return t.withIds(proj);
-                    }
-                  }
-                  return pieces;
-                })()}
+                pieces={projectedPieces ?? pieces}
                 orientation={orientation}
                 selected={selected}
                 legalSquares={legal}
