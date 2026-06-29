@@ -97,7 +97,13 @@ export default function HomePage() {
   const hookTargetLangCode = browsePath[0] === "language" ? browsePath[1] : undefined;
   const hookApiLangName = hookTargetLangCode ? (MAP_LANG_CODE[hookTargetLangCode] || "English") : undefined;
   const { collections: customCategories } = useCustomCollections(hookApiLangName ? `__lang_${hookApiLangName}` : undefined);
-  const { collections: customSubcategories } = useCustomCollections(browsePath[0] === "language" ? browsePath[2] : undefined);
+  // Custom subcategories live under a category id. With the new
+  // /dictionary/vocabulary/<cat>/<sub> shape, that id sits at index 4.
+  const { collections: customSubcategories } = useCustomCollections(
+    browsePath[0] === "language" && browsePath[2] === "dictionary" && browsePath[3] === "vocabulary"
+      ? browsePath[4]
+      : undefined,
+  );
 
   // ── ROOT ──────────────────────────────────────────────────────────────
   if (browsePath.length === 0) {
@@ -146,8 +152,22 @@ export default function HomePage() {
     return <LanguageRootView targetLang={apiLangName} targetLangCode={targetLangCode} />;
   }
 
-  // ── DICTIONARY ROOT ───────────────────────────────────────────────────
-  if (browsePath[2] === "dictionary") {
+  // ── DICTIONARY ROOT (shows just the "Vocabulary" button) ──────────────
+  if (browsePath[2] === "dictionary" && browsePath.length === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-3 w-full px-4">
+        <CardButton
+          onClick={() => pushBrowse("vocabulary")}
+          className="min-h-[64px] py-3 flex items-center justify-center text-center"
+        >
+          <span className="font-semibold">{t("vocabulary") || "Vocabulary"}</span>
+        </CardButton>
+      </div>
+    );
+  }
+
+  // ── DICTIONARY / VOCABULARY (categories grid) ─────────────────────────
+  if (browsePath[2] === "dictionary" && browsePath[3] === "vocabulary" && browsePath.length === 4) {
     return <LanguageDictionaryView targetLang={apiLangName} targetLangCode={targetLangCode} />;
   }
 
@@ -161,11 +181,11 @@ export default function HomePage() {
     return <LessonsView lang={apiLangName} />;
   }
 
-  // ── DICTIONARY MARKED BRANCH: ["language", lang, "_marked", catId, subId, wordId?] ──
+  // ── DICTIONARY MARKED BRANCH ──────────────────────────────────────────
   if (browsePath[2] === "_marked") {
     const catId = browsePath[3];
     const subId = browsePath[4];
-    
+
     const availableCategories = getCategories(apiLangName, DEFAULT_SECTION);
     if (!availableCategories.includes(catId)) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
@@ -188,71 +208,78 @@ export default function HomePage() {
     );
   }
 
-  // ── SUBCATEGORIES ─────────────────────────────────────────────────────
-  const categoryId = browsePath[2];
-  const allCategories = getCategories(apiLangName, DEFAULT_SECTION);
-  const customCategory = customCategories.find(c => c.id === categoryId);
-  const isCustomCategory = !!customCategory;
-  
-  if (!allCategories.includes(categoryId) && !isCustomCategory) return <div className="px-4 text-sm">{t("notFound")}</div>;
+  // ── DICTIONARY → VOCABULARY → CATEGORY/… ──────────────────────────────
+  if (browsePath[2] === "dictionary" && browsePath[3] === "vocabulary") {
+    const categoryId   = browsePath[4];
+    const subcategoryId = browsePath[5];
+    const wordId       = browsePath[6];
 
-  if (browsePath.length === 3) {
-    const subIds = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
-    const mockCategoryStructure = {
-      id: categoryId,
-      name: customCategory?.name ?? { Dutch: categoryId, English: categoryId, Arabic: categoryId },
-      subcategories: subIds.map(id => ({
-        id,
-        name: { Dutch: id, English: id, Arabic: id },
-        words: getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, id).map(wid => ({ id: wid })),
-      }))
-    };
+    const allCategories  = getCategories(apiLangName, DEFAULT_SECTION);
+    const customCategory = customCategories.find(c => c.id === categoryId);
+    const isCustomCategory = !!customCategory;
 
-    return <SubcategoriesView category={mockCategoryStructure as any} onOpen={(id) => pushBrowse(id)} />;
-  }
+    if (!allCategories.includes(categoryId) && !isCustomCategory) {
+      return <div className="px-4 text-sm">{t("notFound")}</div>;
+    }
 
-  // ── WORDS ─────────────────────────────────────────────────────────────
-  const subcategoryId = browsePath[3];
-  const availableSubs = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
-  const isCustomSub = customSubcategories.some(c => c.id === subcategoryId);
-  const isValidSub = availableSubs.includes(subcategoryId) || isCustomSub;
+    // /dictionary/vocabulary/<cat>
+    if (browsePath.length === 5) {
+      const subIds = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+      const mockCategoryStructure = {
+        id: categoryId,
+        name: customCategory?.name ?? { Dutch: categoryId, English: categoryId, Arabic: categoryId },
+        subcategories: subIds.map(id => ({
+          id,
+          name: { Dutch: id, English: id, Arabic: id },
+          words: getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, id).map(wid => ({ id: wid })),
+        })),
+      };
+      return <SubcategoriesView category={mockCategoryStructure as any} onOpen={(id) => pushBrowse(id)} />;
+    }
 
-  const wordSlugs = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
+    const availableSubs = isCustomCategory ? [] : getSubcategories(apiLangName, DEFAULT_SECTION, categoryId);
+    const isCustomSub   = customSubcategories.some(c => c.id === subcategoryId);
+    const isValidSub    = availableSubs.includes(subcategoryId) || isCustomSub;
+    const wordSlugs     = isValidSub ? getWordSlugs(apiLangName, DEFAULT_SECTION, categoryId, subcategoryId) : [];
 
-  if (!isValidSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
+    if (!isValidSub) return <div className="px-4 text-sm">{t("notFound")}</div>;
 
-  if (browsePath.length === 4) {
+    // /dictionary/vocabulary/<cat>/<sub>
+    if (browsePath.length === 6) {
+      return (
+        <WordsView
+          categoryId={categoryId}
+          subcategoryId={subcategoryId}
+          targetLang={targetLangCode}
+          apiLangName={apiLangName}
+          onOpenWord={(id) => pushBrowse(id)}
+          onSelectedRecall={(wordIds) => {
+            setRecallReturnPath(browsePath);
+            setActiveRecall({
+              scope: "word",
+              categoryId,
+              subcategoryId,
+              wordIds,
+            });
+            navigate("/Recall");
+          }}
+        />
+      );
+    }
+
+    // /dictionary/vocabulary/<cat>/<sub>/<word>
     return (
-      <WordsView
+      <WordDetailResolver
         categoryId={categoryId}
         subcategoryId={subcategoryId}
-        targetLang={targetLangCode}
+        wordId={wordId}
         apiLangName={apiLangName}
-        onOpenWord={(id) => pushBrowse(id)}
-        onSelectedRecall={(wordIds) => {
-          setRecallReturnPath(browsePath);
-          setActiveRecall({
-            scope: "word",
-            categoryId: categoryId,
-            subcategoryId: subcategoryId,
-            wordIds,
-          });
-          navigate("/Recall");
-        }}
+        builtInSlugs={wordSlugs}
       />
     );
   }
 
-  // ── WORD DETAIL ───────────────────────────────────────────────────────
-  return (
-    <WordDetailResolver
-      categoryId={categoryId}
-      subcategoryId={subcategoryId}
-      wordId={browsePath[4]}
-      apiLangName={apiLangName}
-      builtInSlugs={wordSlugs}
-    />
-  );
+  return <div className="px-4 text-sm">{t("notFound")}</div>;
 }
 
 /* ──────────────────────── WordDetailResolver ────────────────────────── */
