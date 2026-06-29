@@ -537,8 +537,57 @@ export function ChessPlayView() {
     return () => window.removeEventListener("keydown", onKey);
   }, [viewIndex, varCursor]);
 
+  const s = stateRef.current;
+  const hasActiveGame = !!cfg && !!s;
+  const live = hasActiveGame ? viewIndex === -1 && varCursor == null : true;
+  const reviewing = hasActiveGame ? !live : false;
+  const view = hasActiveGame ? computeView() : null;
+
+  // These hooks must run for both the setup screen and the active game.
+  // The setup screen used to return before them, then starting a game added
+  // more hooks on the next render, which triggers React error #310.
+  const viewGame: Chess = useMemo(() => {
+    if (!s || !view) return new Chess();
+    try { return new Chess(view.fen); } catch { return s.game; }
+  }, [s, view?.fen]);
+
+  const liveFenForPieces = s?.game.fen() ?? "";
+  const pieces = useMemo(() => {
+    if (!s) return idlePieces;
+    if (reviewing) {
+      const t = new PieceTracker();
+      t.reset(viewGame);
+      return t.withIds(viewGame);
+    }
+    return s.tracker.withIds(s.game);
+    // s.tracker is mutated in place; key on liveFenForPieces so we recompute
+    // whenever the live position actually changes (not every clock tick).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s, reviewing, viewGame, liveFenForPieces, refreshCounter, idlePieces]);
+
+  // Legal squares for the selected piece. During the opponent's turn we
+  // compute on the projected (post-premove) board with the side-to-move
+  // forced to the player's color, so premove dots show normally.
+  const legal: string[] = useMemo(() => {
+    if (!s || !selected) return [];
+    if (live && s.game.turn() !== s.playerColor) {
+      const proj = projectedBoard();
+      if (!proj) return [];
+      const parts = proj.fen().split(" ");
+      parts[1] = s.playerColor;
+      parts[3] = "-";
+      try {
+        const g = new Chess(parts.join(" "));
+        return (g.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+      } catch { return []; }
+    }
+    return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
+  }, [s, selected, live, viewGame, projectedBoard]);
+
+  const lastMove = view?.lastMove ?? null;
+
   // ── Idle (setup) view ────────────────────────────────────────────────
-  if (!cfg || !stateRef.current) {
+  if (!cfg || !s) {
     return (
       <div className="px-4 w-full">
         <div className="grid gap-3 md:grid-cols-[1fr_340px] max-w-5xl mx-auto">
@@ -553,52 +602,9 @@ export function ChessPlayView() {
     );
   }
 
-  const s = stateRef.current;
   const orientation = s.playerColor === "w" ? "white" : "black";
   const isResigned = (s as any).resigned === true;
   const isGameOver = s.game.isGameOver() || isResigned;
-  const live = viewIndex === -1 && varCursor == null;
-  const reviewing = !live;
-
-  const view = computeView();
-  // Memoize the parsed view board by FEN so clock ticks don't re-parse it.
-  const viewGame: Chess = useMemo(() => {
-    try { return new Chess(view.fen); } catch { return s.game; }
-  }, [view.fen, s.game]);
-
-  const liveFenForPieces = s.game.fen();
-  const pieces = useMemo(() => {
-    if (reviewing) {
-      const t = new PieceTracker();
-      t.reset(viewGame);
-      return t.withIds(viewGame);
-    }
-    return s.tracker.withIds(s.game);
-    // s.tracker is mutated in place; key on liveFenForPieces so we recompute
-    // whenever the live position actually changes (not every clock tick).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewing, viewGame, liveFenForPieces, refreshCounter]);
-
-  // Legal squares for the selected piece. During the opponent's turn we
-  // compute on the projected (post-premove) board with the side-to-move
-  // forced to the player's color, so premove dots show normally.
-  const legal: string[] = useMemo(() => {
-    if (!selected) return [];
-    if (live && s.game.turn() !== s.playerColor) {
-      const proj = projectedBoard();
-      if (!proj) return [];
-      const parts = proj.fen().split(" ");
-      parts[1] = s.playerColor;
-      parts[3] = "-";
-      try {
-        const g = new Chess(parts.join(" "));
-        return (g.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
-      } catch { return []; }
-    }
-    return (viewGame.moves({ square: selected as any, verbose: true }) as any[]).map((m: any) => m.to);
-  }, [selected, live, viewGame, projectedBoard, s.game, s.playerColor]);
-
-  const lastMove = view.lastMove;
 
 
   const topClockColor: "w" | "b" = orientation === "white" ? "b" : "w";
