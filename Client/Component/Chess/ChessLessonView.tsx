@@ -290,11 +290,11 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
               <Button
                 onClick={handleContinue}
                 disabled={!canAdvance || (phase === "done" && !onNext)}
-                size="icon"
                 aria-label={continueLabel}
                 title={continueLabel}
-                className="flex-1 max-w-[160px]"
+                className="flex-1 max-w-[200px] gap-2"
               >
+                <span className="font-semibold">{continueLabel}</span>
                 <ChevronRight className="h-5 w-5" />
               </Button>
             )}
