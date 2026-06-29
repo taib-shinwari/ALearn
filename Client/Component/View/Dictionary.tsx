@@ -83,14 +83,13 @@ export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLan
         )}
       </div>
 
-      <section className="space-y-2">
-        <TitleBar className="font-semibold">{getLabel(i18nLang, "dictionary") || "Dictionary"}</TitleBar>
+      <section>
         <div className="grid grid-cols-2 gap-3">
           {categories.map(cat => (
             <CardButton
               key={cat.id}
-              onClick={() => setBrowsePath(["language", targetLangCode, cat.id])}
-              className="min-h-[72px] py-3 px-3 flex flex-col items-center justify-center text-center relative"
+              onClick={() => setBrowsePath(["language", targetLangCode, "dictionary", "vocabulary", cat.id])}
+              className="min-h-[64px] py-3 px-3 flex items-center justify-center text-center relative"
             >
               {cat.custom && (
                 <button
@@ -105,8 +104,7 @@ export function DictionaryBrowseView({ targetLang, targetLangCode }: { targetLan
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
-              <span className="font-semibold line-clamp-1">{cat.label}</span>
-              <span className="text-xs opacity-70 mt-0.5">{cat.count}</span>
+              <span className="font-semibold">{cat.label}</span>
             </CardButton>
           ))}
         </div>
