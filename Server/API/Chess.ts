@@ -204,10 +204,13 @@ for (const [filePath, module] of Object.entries(allLessonFiles)) {
     };
   }
 
+  // Each JSON file is treated as a single lesson step. The step itself may
+  // be an array tuple ([piecePlacement, stars, introKey]) or an object —
+  // wrap it once so ChessLessonView always sees `steps[0]` as the step.
   levelsMap[categoryId][subcatId].lessons.push({
     id: lessonId,
     name: formatNameFromId(lessonId),
-    steps: Array.isArray(stepsData) ? stepsData : [stepsData],
+    steps: [stepsData],
   });
 }
 
