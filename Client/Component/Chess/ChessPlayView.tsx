@@ -565,6 +565,17 @@ export function ChessPlayView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s, reviewing, viewGame, liveFenForPieces, refreshCounter, idlePieces]);
 
+  // Memoized projected pieces (post-premove) — avoid recomputing every render
+  // (clock ticks, etc.) which caused noticeable lag while premoves were queued.
+  const projectedPieces = useMemo(() => {
+    if (!s || !live || premoves.length === 0) return null;
+    const proj = projectedBoard();
+    if (!proj) return null;
+    const t = new PieceTracker();
+    t.reset(proj);
+    return t.withIds(proj);
+  }, [s, live, premoves, liveFenForPieces, projectedBoard]);
+
   // Legal squares for the selected piece. During the opponent's turn we
   // compute on the projected (post-premove) board with the side-to-move
   // forced to the player's color, so premove dots show normally.
