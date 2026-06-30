@@ -35,7 +35,7 @@ const CARD = "min-h-[64px] py-3 px-3 flex items-center justify-between gap-2 tex
 
 function useUnlockTick() {
   const [, set] = useState(0);
-  useEffect(() => subscribeUnlock(() => set(n => n + 1)), []);
+  useEffect(() => { const off = subscribeUnlock(() => set(n => n + 1)); return () => { off(); }; }, []);
 }
 
 interface LockableCardProps {
