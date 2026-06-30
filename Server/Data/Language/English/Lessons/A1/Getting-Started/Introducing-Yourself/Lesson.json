@@ -1,0 +1,5 @@
+[
+  { "kind": "learn", "word": "My name is…", "note": "Use this to tell someone your name." },
+  { "kind": "buildTranslation", "prompt": "Tell someone your name is Alex.", "tokens": ["My", "name", "is", "Alex", "your", "."], "answer": [0, 1, 2, 3, 5] },
+  { "kind": "multipleChoice", "prompt": "Which one introduces yourself?", "options": ["What time is it?", "My name is Sam.", "How much?", "Goodbye."], "answer": 1 }
+]

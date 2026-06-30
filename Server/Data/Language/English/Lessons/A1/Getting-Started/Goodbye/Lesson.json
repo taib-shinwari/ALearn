@@ -1,0 +1,5 @@
+[
+  { "kind": "learn", "word": "Goodbye", "ipa": "/ɡʊdˈbaɪ/", "note": "Used when leaving." },
+  { "kind": "matchPairs", "pairs": [["Goodbye", "Leaving"], ["Hello", "Arriving"], ["See you", "Casual goodbye"]] },
+  { "kind": "multipleChoice", "prompt": "Which one means farewell?", "options": ["Hello", "Goodbye", "Please", "Thanks"], "answer": 1 }
+]

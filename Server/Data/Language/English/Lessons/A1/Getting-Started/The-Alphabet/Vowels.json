@@ -1,0 +1,12 @@
+[
+  { "kind": "learn", "word": "A", "ipa": "/eɪ/", "note": "First vowel of the English alphabet." },
+  { "kind": "learn", "word": "E", "ipa": "/iː/", "note": "Most common letter in English." },
+  { "kind": "learn", "word": "I", "ipa": "/aɪ/" },
+  { "kind": "learn", "word": "O", "ipa": "/oʊ/" },
+  { "kind": "learn", "word": "U", "ipa": "/juː/" },
+  { "kind": "flashcard", "front": "A", "back": "/eɪ/" },
+  { "kind": "flashcard", "front": "E", "back": "/iː/" },
+  { "kind": "multipleChoice", "prompt": "Which one is a vowel?", "options": ["B", "C", "E", "D"], "answer": 2 },
+  { "kind": "multipleChoice", "prompt": "How many vowels are in the English alphabet?", "options": ["3", "5", "7", "10"], "answer": 1 },
+  { "kind": "matchPairs", "pairs": [["A", "/eɪ/"], ["E", "/iː/"], ["I", "/aɪ/"], ["O", "/oʊ/"]] }
+]

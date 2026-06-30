@@ -1,0 +1,6 @@
+[
+  { "kind": "learn", "word": "Yes / No", "note": "The two basic answers." },
+  { "kind": "multipleChoice", "prompt": "Which means agreement?", "options": ["No", "Yes", "Maybe", "Never"], "answer": 1 },
+  { "kind": "multipleChoice", "prompt": "Which means refusal?", "options": ["Yes", "Sure", "No", "Okay"], "answer": 2 },
+  { "kind": "flashcard", "front": "Yes", "back": "Agreement / affirmation" }
+]
