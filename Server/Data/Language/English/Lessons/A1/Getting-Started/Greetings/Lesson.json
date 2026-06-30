@@ -1,0 +1,6 @@
+[
+  { "kind": "learn", "word": "Good morning", "note": "Used until around noon." },
+  { "kind": "learn", "word": "Good evening", "note": "Used after sunset." },
+  { "kind": "matchPairs", "pairs": [["Good morning", "Before noon"], ["Good evening", "After sunset"], ["Good night", "When going to sleep"]] },
+  { "kind": "multipleChoice", "prompt": "When do you say 'Good morning'?", "options": ["Before noon", "After dinner", "At midnight", "Never"], "answer": 0 }
+]

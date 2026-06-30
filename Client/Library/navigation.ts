@@ -127,13 +127,9 @@ export function browsePathToUrl(path: string[]): string {
     }
 
     if (branch === "lessons") {
-      const [section, folder, unit] = path.slice(3);
-      return [
-        `${base}/Lessons`,
-        sectionToUrlSegment(section),
-        ...lessonFolderToSegments(folder),
-        ...lessonUnitToSegment(unit),
-      ].filter(Boolean).join("/");
+      // ["language", code, "lessons", level?, unit?, lesson?, sub?]
+      const rest = path.slice(3).map(enc);
+      return [`${base}/Lessons`, ...rest].filter(Boolean).join("/");
     }
     if (branch === "_marked") {
       return `${base}/Dictionary/Vocabulary/${languageContentSegments(path.slice(3)).map(enc).join("/")}`;
@@ -176,14 +172,7 @@ export function urlToBrowsePath(pathname: string): string[] | null {
     if (branch === "alphabet" || rest[0] === ALPHABET_SEGMENT) return ["language", langCode, ALPHABET_SEGMENT];
     if (branch === "lesson" || branch === "lessons") {
       const lessonSegs = rest.slice(1);
-      const [section, cat, sub, unitIndex] = lessonSegs;
-      if (!section) return ["language", langCode, "lessons"];
-      const sectionId = sectionFromUrlSegment(section)!;
-      if (!cat) return ["language", langCode, "lessons", sectionId];
-      if (!sub) return ["language", langCode, "lessons", sectionId, cat];
-      const folderId = `${cat}:${sub}`;
-      if (!unitIndex) return ["language", langCode, "lessons", sectionId, folderId];
-      return ["language", langCode, "lessons", sectionId, folderId, `${folderId}:${unitIndex}`];
+      return ["language", langCode, "lessons", ...lessonSegs];
     }
 
     if (branch === "dictionary") {

@@ -1,0 +1,7 @@
+[
+  { "kind": "matchPairs", "pairs": [["A", "/eɪ/"], ["B", "/biː/"], ["C", "/siː/"], ["D", "/diː/"]] },
+  { "kind": "multipleChoice", "prompt": "Which letter sounds like /dʒiː/?", "options": ["G", "J", "Z", "Y"], "answer": 0 },
+  { "kind": "multipleChoice", "prompt": "Pick the consonant.", "options": ["A", "E", "K", "U"], "answer": 2 },
+  { "kind": "orderSentence", "prompt": "Order: first five letters of the alphabet.", "tokens": ["A", "B", "C", "D", "E"], "answer": [0, 1, 2, 3, 4] },
+  { "kind": "flashcard", "front": "Q", "back": "/kjuː/" }
+]

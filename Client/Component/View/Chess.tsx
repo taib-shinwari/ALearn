@@ -75,7 +75,7 @@ export function ChessBranch() {
       <div className={GRID_CLASS}>
         {Object.entries(CHESS_MENU_LABELS).map(([id, labels]) => (
           <CardButton key={id} onClick={() => pushBrowse(id)} className={CARD_CLASS}>
-            <span className="font-semibold">{labels[uiLang]}</span>
+            <span className="font-semibold">{labels[i18nLang] ?? labels.English}</span>
           </CardButton>
         ))}
       </div>

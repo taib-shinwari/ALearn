@@ -1,74 +1,63 @@
-A big batch of changes spread across lessons, alphabet, dictionary, chess, and routing. Grouped below so we can confirm scope before I start.
+## Goals
 
-## 1. Alphabet (English + others)
+1. **Lessons hierarchy** (slug-based, consistent with the rest of the app):
+   ```
+   /Language/<Lang>/Lessons                              → CEFR levels grid (A1–C2)
+   /Language/<Lang>/Lessons/A1                           → units grid (named, e.g. "Getting Started")
+   /Language/<Lang>/Lessons/A1/Getting-Started           → lessons (Alphabet, Pronunciation, Hello…)
+   /Language/<Lang>/Lessons/A1/Getting-Started/The-Alphabet
+                                                          → sub-lessons (Vowels, Consonants, Practice, Lesson)
+   /Language/<Lang>/Lessons/A1/Getting-Started/The-Alphabet/Vowels
+                                                          → exercise runner (sequence of steps)
+   ```
+   First-time visit to `/Lessons` redirects to `A1/Getting-Started/The-Alphabet`.
 
-Replace the current static alphabet table with interactive activities:
+2. **Locking & bypass**
+   - A1 unlocked by default. A2…C2 locked until prior level complete.
+   - Inside a level, units unlock sequentially. Inside units, lessons unlock sequentially. Sub-lessons inside a lesson run linearly.
+   - **Bypass**: 3 quick clicks on a locked card forces unlock (persisted in `localStorage` under `lessonProgress:bypass`). Visual hint: small lock icon dims.
 
-- **Listen & Write** (English): TTS speaks a letter, user types it. Validate case-insensitively, show ✓ / ✗, advance.
-- **Match Pairs** (memory cards): grid of face-down cards; flip two at a time to match uppercase ↔ lowercase of the same letter. Round ends when all pairs matched.
-- A small picker at the top of the alphabet screen lets the user choose which activity to run; default rotates between them per session.
-- Arabic alphabet stays as a viewer for now (letters don't have upper/lowercase); we can add a "listen & tap the letter you heard" variant in a follow-up.
+3. **Exercise types** (8–12, used as a step `kind` in lesson JSON):
+   `learn`, `flashcard`, `multipleChoice`, `matchPairs`, `buildTranslation`, `fillBlank`, `typeAnswer`, `listenChoose`, `listenType`, `orderSentence`, `imageSelect`, `speaking`. Each rendered by a dedicated component; lesson author picks any subset.
 
-## 2. Lessons flow
+4. **A1 seed content** (English target, UI any of en/nl/ar):
+   - Unit "Getting Started" with: The Alphabet, Pronunciation, Hello, Greetings, Introducing Yourself, Yes & No, Numbers 0-10, Goodbye.
+   - "The Alphabet" sub-lessons: Vowels, Consonants, Special Letters, Practice, Lesson.
+   - Each populated mixing `learn`, `flashcard`, `multipleChoice`, `matchPairs`, `imageSelect`, `buildTranslation`. No `listenType`/`typeAnswer` for non-Latin scripts in A1.
 
-### Breadcrumbs
-`Beginner > Greetings` instead of `Beginner > Lesson`. Pull the actual lesson title from the data instead of the literal string `"Lesson"` in `Layout.tsx`'s crumb builder.
+5. **Fix Chess labels** showing only buttons. Use `t("lesson")`, `t("chessPuzzles")`, `t("play")` and ensure CardButton renders centered text reliably.
 
-### Lesson UI
-Add proper question types and a footer action bar:
+## Files
 
-- **Multiple Choice Questions** as a new lesson step type alongside whatever exists today. Options are tappable; selecting one highlights it. `Check` stays disabled until an option is selected.
-- **Footer buttons**
-  - Mobile: stacked, `Check` on top, `Skip` below.
-  - Desktop: side-by-side, `Skip` left, `Check` right.
-  - `Check` starts disabled (muted), enables once an answer is chosen.
-- **Wrong answer state**
-  - Hide `Skip`.
-  - Show the correct answer inline ("Correct answer: …").
-  - Show a `Report` icon button (flag icon) for users to report bad questions.
-  - `Check` becomes `Continue`.
-  - Re-queue the missed question to reappear at the end of the lesson.
-- **Correct answer**: `Check` becomes `Continue`, advance to next step.
+**New**
+- `Server/Data/Language/<Lang>/Lessons/A1/Getting-Started/<lesson>/<sublesson>.json` — step arrays.
+- `Server/API/Lessons.ts` — glob-load lesson tree, expose `getLevels(lang)`, `getUnits`, `getLessons`, `getSubLessons`, `getSteps`.
+- `Client/Library/lessonsUnlock.ts` — unlock/bypass persistence (extends existing `lessonProgress.ts`).
+- `Client/Component/Lesson/LessonRunner.tsx` — drives step sequence.
+- `Client/Component/Lesson/Exercises/*.tsx` — one per exercise kind.
 
-## 3. Dictionary categorization
+**Edited**
+- `Client/Component/Lesson/LessonsView.tsx` — replace old browse with level/unit/lesson/sub-lesson grid, lock + triple-click bypass, first-visit redirect.
+- `Client/Page/Navigation.tsx` — route the new path depths to the right view.
+- `Client/Library/navigation.ts` — slug ↔ browsePath mapping for the new depth.
+- `Client/Component/View/Chess.tsx` — use `t()` for menu labels.
 
-Today the dictionary lands directly on subcategories like "Greetings". Insert a part-of-speech layer above it:
+## Lesson step JSON shape
 
-`Dictionary > Vocabulary > Noun / Adjective / Verb / Phrase / … > Greetings > word`
+```json
+[
+  { "kind": "learn", "word": "A", "ipa": "/eɪ/", "audio": "...", "image": "..." },
+  { "kind": "flashcard", "front": "A", "back": "/eɪ/" },
+  { "kind": "multipleChoice", "prompt": "Which is the first letter?", "options": ["A","B","C","D"], "answer": 0 },
+  { "kind": "matchPairs", "pairs": [["A","/eɪ/"], ["B","/biː/"]] },
+  { "kind": "buildTranslation", "prompt": "Hello, how are you?", "tokens": ["Hello","how","are","you","goodbye"], "answer": [0,1,2,3] },
+  { "kind": "imageSelect", "prompt": "Apple", "options": [{"image":"...","correct":true},{"image":"..."}] }
+]
+```
 
-We'll tag each existing subcategory in `courseData.ts` with a `partOfSpeech` field, then group the subcategory list under those headings. Untagged items fall under "Other" until tagged.
+## Scope notes
+- This turn ships the framework + A1/Getting-Started/The-Alphabet content end-to-end and the Chess label fix. Other A1 lessons get stub JSON (one `learn` step) so navigation works; they can be filled in later turns to keep this turn shippable.
+- All UI text uses existing `t()` keys; new keys added to all three label files.
+- No backend/Cloud changes.
 
-## 4. Arabic (MSA) lessons
-
-Add a parallel set of beginner-level lessons for Arabic (Modern Standard Arabic) mirroring the structure of the English ones (greetings, numbers, basic phrases), with Arabic script + transliteration + audio. Scope for v1: the Beginner section only; Intermediate/Advanced come later.
-
-## 5. Add Language (with Pashto)
-
-In the language picker, add a **+** button that opens a sheet listing additional languages a user can enable. Include **Pashto** marked as "Preview — limited content". Selecting it adds it to the user's active languages and routes into a stub language home that explains content is still being added.
-
-## 6. Chess lessons — one star at a time
-
-In `ChessLessonView`, force sequential stars regardless of `freeOrder`: only the next uncollected star is rendered. Total per lesson stays at 3 (update `randomStars`/`stars` defaults so each lesson resolves to exactly 3 stars).
-
-## 7. Route casing — partial
-
-I want to push back on part of this one:
-
-- **Route paths** (`/settings` → `/Settings`, `/recall` → `/Recall`, `/sign` → `/Sign`): doable. I'll update the router, `navigate(...)` calls, and the `startsWith` checks in `Layout.tsx`. URLs become capitalized.
-- **Folder and file names** (`src/` → `Src/`, `components/` → `Components/`, etc.): I'd recommend **against** this. React/Vite/Tailwind/shadcn all assume lowercase `src`, and case-sensitive Linux deploys (including Lovable's) will break on mixed casing. Convention across the entire JS ecosystem is lowercase folders.
-
-  If you still want it after seeing that, say so and I'll do it — but I'd like to skip it by default.
-
-## Technical notes
-
-- Lesson question-queue logic lives in whatever lesson runner powers `lessonProgress`; I'll extend it to support a `requeueOnWrong` flag and an MCQ step type.
-- Dictionary grouping is pure data + a render pass in the dictionary view — no schema changes.
-- Pashto/Arabic content will be seeded with a small starter set; not full coverage.
-- Chess single-star: just change the `activeStars` memo to always take `[stars[nextIdx]]` and seed 3 stars per lesson.
-- Route renames touch `App.tsx` routes, every `navigate("/settings"|"/recall"|"/sign")`, and the `location.pathname.startsWith(...)` guards in `Layout.tsx`.
-
-## Confirm before I build
-
-1. OK to **skip** renaming `src/` and component folders, and only capitalize the URL routes?
-2. For the Add-Language `+`, is a simple in-app toggle list fine, or do you want it persisted to your Cloud account?
-3. Arabic + Pashto starter content: I'll seed ~10 beginner phrases each. Want more?
+Approve and I'll build it.

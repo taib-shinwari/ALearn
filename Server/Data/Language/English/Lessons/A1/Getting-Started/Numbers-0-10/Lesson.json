@@ -1,0 +1,6 @@
+[
+  { "kind": "learn", "word": "0–10", "note": "Zero, one, two, three, four, five, six, seven, eight, nine, ten." },
+  { "kind": "matchPairs", "pairs": [["1", "One"], ["2", "Two"], ["3", "Three"], ["4", "Four"], ["5", "Five"]] },
+  { "kind": "multipleChoice", "prompt": "Which word means 7?", "options": ["Six", "Seven", "Eight", "Nine"], "answer": 1 },
+  { "kind": "orderSentence", "prompt": "Put the numbers in order.", "tokens": ["One", "Two", "Three", "Four", "Five"], "answer": [0, 1, 2, 3, 4] }
+]
