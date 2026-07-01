@@ -10,6 +10,7 @@ import {
   reachableSquares,
   cName,
   getChessLevel,
+  resolveLessonText,
   type PieceColor,
   type PieceType,
   type PlacedPiece,
@@ -109,7 +110,7 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
   useEffect(() => {
     if (phase !== "intro" || !lesson) return;
     setCanAdvance(false);
-    const txt = cName(lesson.intro, uiLang);
+    const txt = resolveLessonText(lesson.intro, uiLang);
     if (settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
@@ -131,7 +132,7 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
   useEffect(() => {
     if (phase !== "done" || !lesson) return;
     setCanAdvance(true);
-    const txt = lesson.done ? cName(lesson.done, uiLang) : "";
+    const txt = lesson.done ? resolveLessonText(lesson.done, uiLang) : "";
     if (txt && settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
@@ -275,8 +276,8 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
         <div className="flex flex-col gap-3 md:justify-between">
           <Container className="p-3 text-sm leading-relaxed min-h-[88px]">
             {phase === "done"
-              ? (lesson.done ? cName(lesson.done, uiLang) : "")
-              : cName(lesson.intro, uiLang)}
+              ? (lesson.done ? resolveLessonText(lesson.done, uiLang) : "")
+              : resolveLessonText(lesson.intro, uiLang)}
           </Container>
 
           <div className="flex items-center gap-2 justify-center flex-wrap">
