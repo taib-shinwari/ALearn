@@ -115,6 +115,7 @@ export function ChessBranch() {
     return (
       <ChessPuzzleView
         puzzle={puzzleData}
+        fenId={fenId}
         onSolved={nextFen ? () => setBrowsePath([...browsePath.slice(0, -1), nextFen]) : undefined}
       />
     );
