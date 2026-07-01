@@ -148,16 +148,18 @@ export function getSteps(
 /** First runnable sub-lesson path for the default lesson — used for the
  *  first-visit auto-redirect into /Lessons. Returns null if nothing exists. */
 export function getDefaultLessonEntry(lang: string): { level: string; unit: string; lesson: string; sub: string } | null {
-  const levels = Object.keys(tree[lang]?.children ?? {});
-  if (!levels.length) return null;
-  const level = LEVELS.find(l => levels.includes(l)) ?? levels[0];
-  const units = Object.keys(tree[lang].children[level].children);
-  if (!units.length) return null;
-  const unit = units[0];
-  const lessons = Object.keys(tree[lang].children[level].children[unit].children);
-  if (!lessons.length) return null;
-  const lesson = lessons[0];
-  const subs = Object.keys(tree[lang].children[level].children[unit].children[lesson].children);
-  if (!subs.length) return null;
-  return { level, unit, lesson, sub: subs[0] };
+  const root = tree[lang];
+  if (!root) return null;
+  const pickFirst = (path: string[]): LessonNode | null => {
+    const node = pick(lang, path);
+    if (!node) return null;
+    const kids = sortChildren(path, Object.values(node.children));
+    return kids[0] ?? null;
+  };
+  const lv = pickFirst([]); if (!lv) return null;
+  const un = pickFirst([lv.slug]); if (!un) return null;
+  const ls = pickFirst([lv.slug, un.slug]); if (!ls) return null;
+  const sb = pickFirst([lv.slug, un.slug, ls.slug]); if (!sb) return null;
+  return { level: lv.slug, unit: un.slug, lesson: ls.slug, sub: sb.slug };
 }
+
