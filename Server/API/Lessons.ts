@@ -60,6 +60,38 @@ for (const [path, mod] of Object.entries(all)) {
   node.steps = Array.isArray(data) ? data : [data];
 }
 
+// Explicit ordering for known content. Keyed by path from the language root.
+// Anything not listed falls back to the order the file glob returned (usually
+// alphabetical), which is fine for auto-added content.
+const ORDER: Record<string, string[]> = {
+  "": ["A1", "A2", "B1", "B2", "C1", "C2"],
+  "A1": ["Getting-Started"],
+  "A1/Getting-Started": [
+    "The-Alphabet",
+    "Pronunciation",
+    "Hello",
+    "Greetings",
+    "Introducing-Yourself",
+    "Yes-And-No",
+    "Numbers-0-10",
+    "Goodbye",
+  ],
+  "A1/Getting-Started/The-Alphabet": ["Vowels", "Consonants", "Special-Letters", "Practice", "Lesson"],
+};
+
+function sortChildren(path: string[], children: LessonNode[]): LessonNode[] {
+  const key = path.join("/");
+  const order = ORDER[key];
+  if (!order) return [...children].sort((a, b) => a.slug.localeCompare(b.slug));
+  return [...children].sort((a, b) => {
+    const ai = order.indexOf(a.slug); const bi = order.indexOf(b.slug);
+    if (ai === -1 && bi === -1) return a.slug.localeCompare(b.slug);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
 function pick(lang: string, path: string[]): LessonNode | null {
   let node = tree[lang];
   if (!node) return null;
@@ -73,7 +105,8 @@ function pick(lang: string, path: string[]): LessonNode | null {
 function listChildren(lang: string, path: string[]): { slug: string; title: string; hasSteps: boolean }[] {
   const node = pick(lang, path);
   if (!node) return [];
-  return Object.values(node.children).map(c => ({
+  const kids = sortChildren(path, Object.values(node.children));
+  return kids.map(c => ({
     slug: c.slug,
     title: c.title,
     hasSteps: !!c.steps,
