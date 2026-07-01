@@ -276,8 +276,8 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
         <div className="flex flex-col gap-3 md:justify-between">
           <Container className="p-3 text-sm leading-relaxed min-h-[88px]">
             {phase === "done"
-              ? (lesson.done ? cName(lesson.done, uiLang) : "")
-              : cName(lesson.intro, uiLang)}
+              ? (lesson.done ? resolveLessonText(lesson.done, uiLang) : "")
+              : resolveLessonText(lesson.intro, uiLang)}
           </Container>
 
           <div className="flex items-center gap-2 justify-center flex-wrap">
