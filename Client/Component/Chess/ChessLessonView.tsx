@@ -10,6 +10,7 @@ import {
   reachableSquares,
   cName,
   getChessLevel,
+  resolveLessonText,
   type PieceColor,
   type PieceType,
   type PlacedPiece,
