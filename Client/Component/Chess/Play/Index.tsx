@@ -4,7 +4,7 @@ import { Chessboard } from "Client/Component/Chess/Chessboard";
 import { Container } from "Client/Component/UI/container";
 import { ChessSetupPanel, type GameConfig } from "./ChessSetupPanel";
 import { ChessClock } from "./ChessClock";
-import { MovesList, type MoveVariation, type VariationCursor } from "./MovesList";
+import { MovesList, type VariationCursor } from "./MovesList";
 import { MoveDetailPanel } from "./MoveDetailPanel";
 import { PieceTracker } from "./chessHelpers";
 import { pickEngineMove, findBestMove, findThreat, evaluate } from "Client/Library/chessEngine";
@@ -15,62 +15,15 @@ import { Button } from "Client/Component/UI/button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "Client/Library/utils";
 import { analyseGame, summarisePlayer, type PerMove } from "./analysis/classification";
+import type { VariationData, PlayState } from "./chessPlayTypes";
+import { playMoveSound } from "./chessSound";
+import { evalCache, bestCache, threatCache, ENGINE_REPLY_DELAY_MS } from "./engineCaches";
+import { boardFromFen, sqToRC, pathClear, isPremoveLegal, applyPremoveToFen } from "./premoveBoard";
+import { EvalBar } from "./EvalBar";
+
 // Lazy-load the heavy Highcharts-powered report so it doesn't bloat the
 // initial play-view bundle or re-render on every clock tick.
 const AnalysisReport = lazy(() => import("./analysis/AnalysisReport").then(m => ({ default: m.AnalysisReport })));
-
-// Tiny single-slot caches keyed by FEN so expensive engine calls don't
-// re-run on every render (e.g. clock ticks).
-class FenCache<T> {
-  private key: string | null = null;
-  private val: T | null = null;
-  get(k: string): T | null { return this.key === k ? this.val : null; }
-  set(k: string, v: T): T { this.key = k; this.val = v; return v; }
-}
-const evalCache = new FenCache<number>();
-const bestCache = new FenCache<ReturnType<typeof findBestMove>["move"]>();
-const threatCache = new FenCache<ReturnType<typeof findThreat>>();
-const ENGINE_REPLY_DELAY_MS = 10000;
-
-interface VariationData extends MoveVariation {
-  fens: string[];               // fens from parent position onward; length = sans.length + 1
-  lastMoves: Array<{ from: string; to: string }>;
-}
-
-interface PlayState {
-  game: Chess;
-  tracker: PieceTracker;
-  playerColor: "w" | "b";
-  sans: string[];
-  moveTimes: number[];
-  fenHistory: string[];
-  lastMoves: Array<{ from: string; to: string }>;
-  whiteMs: number;
-  blackMs: number;
-  cfg: GameConfig;
-  startedAt: number;
-  lastMoveAt: number;
-  variations: VariationData[];
-}
-
-// ────────────────────────── audio ─────────────────────────────
-let audioCtx: AudioContext | null = null;
-function playMoveSound(kind: "move" | "capture" = "move") {
-  try {
-    audioCtx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
-    const ctx = audioCtx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = "triangle";
-    osc.frequency.value = kind === "capture" ? 220 : 380;
-    gain.gain.value = 0.0001;
-    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.13);
-  } catch { /* noop */ }
-}
 
 export function ChessPlayView() {
   const [settings] = useChessSettings();
@@ -259,211 +212,25 @@ export function ChessPlayView() {
     } catch { /* illegal */ }
   };
 
-  function applyPremoveToFen(
-  fen: string, from: string, to: string, promotion: string, playerColor: "w" | "b",
-): { fen: string; hiddenKingSquare: string | null } {
-  const parts = fen.split(" ");
-  const board = boardFromFen(fen);
-  const { file: fFile, rank: fRank } = sqToRC(from);
-  const { file: tFile, rank: tRank } = sqToRC(to);
-  const piece = board[fRank][fFile]!;
-  const captured = board[tRank][tFile];
-
-  let hiddenKingSquare: string | null = null;
-
-  // En passant: captured pawn sits beside the destination, not on it.
-  if (piece.type === "p" && fFile !== tFile && !captured) {
-    board[fRank][tFile] = null;
-  }
-
-  // King capture: chess.js requires exactly one king per side to even load
-  // the FEN, so we can't simply delete it. Park it on the first empty
-  // square instead — invisible to the renderer, but keeps the position
-  // loadable so chess.js can keep generating moves for chained premoves.
-  if (captured?.type === "k") {
-    outer:
-    for (let r = 0; r < 8; r++) {
-      for (let f = 0; f < 8; f++) {
-        if (r === tRank && f === tFile) continue;
-        if (board[r][f]) continue;
-        board[r][f] = captured;
-        hiddenKingSquare = `${"abcdefgh"[f]}${r + 1}`;
-        break outer;
-      }
-    }
-  }
-
-  board[fRank][fFile] = null;
-  board[tRank][tFile] = piece.type === "p" && (tRank === 0 || tRank === 7)
-    ? { type: promotion, color: piece.color }
-    : piece;
-
-  if (piece.type === "k" && Math.abs(tFile - fFile) === 2) {
-    const kingside = tFile > fFile;
-    const rookFromFile = kingside ? 7 : 0;
-    const rookToFile = kingside ? tFile - 1 : tFile + 1;
-    board[tRank][rookToFile] = board[tRank][rookFromFile];
-    board[tRank][rookFromFile] = null;
-  }
-
-  const placement = Array.from({ length: 8 }, (_, rIdx) => {
-    const rank = 7 - rIdx;
-    let row = "", empty = 0;
-    for (let file = 0; file < 8; file++) {
-      const p = board[rank][file];
-      if (!p) { empty++; continue; }
-      if (empty) { row += empty; empty = 0; }
-      row += p.color === "w" ? p.type.toUpperCase() : p.type.toLowerCase();
-    }
-    if (empty) row += empty;
-    return row;
-  }).join("/");
-
-  parts[0] = placement;
-  parts[1] = playerColor === "w" ? "b" : "w";
-  parts[3] = "-";
-  return { fen: parts.join(" "), hiddenKingSquare };
-}
   // ── Premoves ──────────────────────────────────────────────────────
-  // FIFO queue, capped, validated against the projected board.
-  // ── Premoves ──────────────────────────────────────────────────────
-  // FIFO queue, validated against the projected board.
+  // FIFO queue, validated against the projected board. The pure FEN/board
+  // math (applyPremoveToFen, isPremoveLegal, etc.) lives in ./premoveBoard —
+  // this hook-local logic just walks the queue and wires it into state.
   const projectedBoard = useCallback((extra?: { from: string; to: string; promotion?: string }) => {
-  const st = stateRef.current;
-  if (!st) return null;
+    const st = stateRef.current;
+    if (!st) return null;
 
-  let fen = st.game.fen();
-  const steps = [...premoves, ...(extra ? [extra] : [])];
+    let fen = st.game.fen();
+    const steps = [...premoves, ...(extra ? [extra] : [])];
 
-  for (const pm of steps) {
-    if (!isPremoveLegal(fen, pm.from, pm.to, st.playerColor)) return null;
-    const result = applyPremoveToFen(fen, pm.from, pm.to, pm.promotion ?? "q", st.playerColor);
-    fen = result.fen;
-  }
-
-  try { return new Chess(fen); } catch { return null; }
-}, [premoves]);
-
-type Board = (null | { type: string; color: "w" | "b" })[][]; // [rank0..7][file0..7], rank0 = rank "1"
-
-function sqToRC(sq: string) {
-  return { file: sq.charCodeAt(0) - 97, rank: parseInt(sq[1], 10) - 1 };
-}
-
-function boardFromFen(fen: string): Board {
-  const placement = fen.split(" ")[0];
-  const rows = placement.split("/"); // rows[0] = rank 8 ... rows[7] = rank 1
-  const board: Board = Array.from({ length: 8 }, () => Array(8).fill(null));
-  rows.forEach((row, rIdx) => {
-    const rank = 7 - rIdx; // rank index 0..7 for ranks 1..8
-    let file = 0;
-    for (const ch of row) {
-      if (/\d/.test(ch)) { file += parseInt(ch, 10); continue; }
-      const color = ch === ch.toUpperCase() ? "w" : "b";
-      board[rank][file] = { type: ch.toLowerCase(), color };
-      file++;
-    }
-  });
-  return board;
-}
-
-function pathClear(board: Board, fFile: number, fRank: number, tFile: number, tRank: number): boolean {
-  const dFile = Math.sign(tFile - fFile);
-  const dRank = Math.sign(tRank - fRank);
-  let file = fFile + dFile, rank = fRank + dRank;
-  while (file !== tFile || rank !== tRank) {
-    if (board[rank][file]) return false;
-    file += dFile; rank += dRank;
-  }
-  return true;
-}
-
-// Castling rights / en passant target pulled straight from FEN fields 3 and 4.
-function isPremoveLegal(
-  boardFen: string,
-  from: string,
-  to: string,
-  playerColor: "w" | "b",
-): boolean {
-  const [, , castling, epTarget] = boardFen.split(" ");
-  const board = boardFromFen(boardFen);
-  const { file: fFile, rank: fRank } = sqToRC(from);
-  const { file: tFile, rank: tRank } = sqToRC(to);
-  if (fFile === tFile && fRank === tRank) return false;
-
-  const piece = board[fRank][fFile];
-  if (!piece || piece.color !== playerColor) return false;
-
-  const target = board[tRank][tFile];
-
-  const dFile = tFile - fFile, dRank = tRank - fRank;
-
-  switch (piece.type) {
-    case "n":
-      return (Math.abs(dFile) === 1 && Math.abs(dRank) === 2) ||
-             (Math.abs(dFile) === 2 && Math.abs(dRank) === 1);
-
-    case "b":
-      if (Math.abs(dFile) !== Math.abs(dRank)) return false;
-      return pathClear(board, fFile, fRank, tFile, tRank);
-
-    case "r":
-      if (dFile !== 0 && dRank !== 0) return false;
-      return pathClear(board, fFile, fRank, tFile, tRank);
-
-    case "q":
-      if (dFile !== 0 && dRank !== 0 && Math.abs(dFile) !== Math.abs(dRank)) return false;
-      return pathClear(board, fFile, fRank, tFile, tRank);
-
-    case "k": {
-      if (Math.abs(dFile) <= 1 && Math.abs(dRank) <= 1) return true;
-      // Castling: king moves two squares along its home rank.
-      if (Math.abs(dFile) === 2 && dRank === 0) {
-        const homeRank = playerColor === "w" ? 0 : 7;
-        if (fRank !== homeRank || tRank !== homeRank) return false;
-        const kingside = dFile > 0;
-        const rightChar = playerColor === "w"
-          ? (kingside ? "K" : "Q")
-          : (kingside ? "k" : "q");
-        if (!castling.includes(rightChar)) return false;
-        const rookFile = kingside ? 7 : 0;
-        const rook = board[homeRank][rookFile];
-        if (!rook || rook.type !== "r" || rook.color !== playerColor) return false;
-        // Squares between king and rook must be empty.
-        return pathClear(board, fFile, fRank, rookFile, homeRank);
-      }
-      return false;
+    for (const pm of steps) {
+      if (!isPremoveLegal(fen, pm.from, pm.to, st.playerColor)) return null;
+      const result = applyPremoveToFen(fen, pm.from, pm.to, pm.promotion ?? "q", st.playerColor);
+      fen = result.fen;
     }
 
-    case "p": {
-      const dir = playerColor === "w" ? 1 : -1;
-      const startRank = playerColor === "w" ? 1 : 6;
-      // Forward move (no capture).
-      if (dFile === 0) {
-        if (target) return false;
-        if (dRank === dir) return true;
-        if (dRank === 2 * dir && fRank === startRank) {
-          const midRank = fRank + dir;
-          return !board[midRank][fFile];
-        }
-        return false;
-      }
-      // Diagonal: normal capture, speculative recapture of own piece, or en passant.
-      if (Math.abs(dFile) === 1 && dRank === dir) {
-        if (target) return true; // any occupant, including a king — geometry only
-        // En passant: target square empty, but matches the FEN ep target.
-        if (epTarget && epTarget !== "-") {
-          return to === epTarget;
-        }
-        return false;
-      }
-      return false;
-    }
-
-    default:
-      return false;
-  }
-}
+    try { return new Chess(fen); } catch { return null; }
+  }, [premoves]);
 
   const queuePremove = (from: string, to: string, viaDrag = false) => {
     const s = stateRef.current;
@@ -756,60 +523,60 @@ function isPremoveLegal(
   // (clock ticks, etc.) which caused noticeable lag while premoves were queued.
   const premoveKey = useMemo(() => premoves.map(pm => `${pm.from}${pm.to}${pm.promotion ?? ""}`).join(","), [premoves]);
   const projectedPieces = useMemo(() => {
-  if (!s || !live || premoves.length === 0) return null;
-  let fen = s.game.fen();
-  const t = s.tracker.clone();
-  const hiddenSquares = new Set<string>();
+    if (!s || !live || premoves.length === 0) return null;
+    let fen = s.game.fen();
+    const t = s.tracker.clone();
+    const hiddenSquares = new Set<string>();
 
-  for (const pm of premoves) {
-    if (!isPremoveLegal(fen, pm.from, pm.to, s.playerColor)) return null;
-    const before = boardFromFen(fen);
-    const { file: fFile, rank: fRank } = sqToRC(pm.from);
-    const { file: tFile, rank: tRank } = sqToRC(pm.to);
-    const moving = before[fRank][fFile];
-    const targetBefore = before[tRank][tFile];
-    const isEnPassant = moving?.type === "p" && fFile !== tFile && !targetBefore;
-    const { fen: nextFen, hiddenKingSquare } = applyPremoveToFen(fen, pm.from, pm.to, pm.promotion ?? "q", s.playerColor);
+    for (const pm of premoves) {
+      if (!isPremoveLegal(fen, pm.from, pm.to, s.playerColor)) return null;
+      const before = boardFromFen(fen);
+      const { file: fFile, rank: fRank } = sqToRC(pm.from);
+      const { file: tFile, rank: tRank } = sqToRC(pm.to);
+      const moving = before[fRank][fFile];
+      const targetBefore = before[tRank][tFile];
+      const isEnPassant = moving?.type === "p" && fFile !== tFile && !targetBefore;
+      const { fen: nextFen, hiddenKingSquare } = applyPremoveToFen(fen, pm.from, pm.to, pm.promotion ?? "q", s.playerColor);
 
-    if (hiddenKingSquare) hiddenSquares.add(hiddenKingSquare);
+      if (hiddenKingSquare) hiddenSquares.add(hiddenKingSquare);
 
-    if (isEnPassant) {
-      const capSq = `${"abcdefgh"[tFile]}${pm.from[1]}`;
-      (t as any).ids.delete(capSq);
-    } else if (targetBefore) {
-      (t as any).ids.delete(pm.to);
+      if (isEnPassant) {
+        const capSq = `${"abcdefgh"[tFile]}${pm.from[1]}`;
+        (t as any).ids.delete(capSq);
+      } else if (targetBefore) {
+        (t as any).ids.delete(pm.to);
+      }
+      const id = (t as any).ids.get(pm.from);
+      (t as any).ids.delete(pm.from);
+      if (id) (t as any).ids.set(pm.to, id);
+      if (moving?.type === "k" && Math.abs(tFile - fFile) === 2) {
+        const kingside = tFile > fFile;
+        const rank = pm.from[1];
+        const rookFrom = kingside ? `h${rank}` : `a${rank}`;
+        const rookTo = kingside ? `f${rank}` : `d${rank}`;
+        const rid = (t as any).ids.get(rookFrom);
+        (t as any).ids.delete(rookFrom);
+        if (rid) (t as any).ids.set(rookTo, rid);
+      }
+
+      fen = nextFen;
     }
-    const id = (t as any).ids.get(pm.from);
-    (t as any).ids.delete(pm.from);
-    if (id) (t as any).ids.set(pm.to, id);
-    if (moving?.type === "k" && Math.abs(tFile - fFile) === 2) {
-      const kingside = tFile > fFile;
-      const rank = pm.from[1];
-      const rookFrom = kingside ? `h${rank}` : `a${rank}`;
-      const rookTo = kingside ? `f${rank}` : `d${rank}`;
-      const rid = (t as any).ids.get(rookFrom);
-      (t as any).ids.delete(rookFrom);
-      if (rid) (t as any).ids.set(rookTo, rid);
-    }
 
-    fen = nextFen;
-  }
-
-  const board = boardFromFen(fen);
-  const pieces: any[] = [];
-  for (let rank = 0; rank < 8; rank++) {
-    for (let file = 0; file < 8; file++) {
-      const p = board[rank][file];
-      if (!p) continue;
-      const square = `${"abcdefgh"[file]}${rank + 1}`;
-      if (hiddenSquares.has(square)) continue; // parked king(s) — not rendered
-      if (!(t as any).ids.has(square)) (t as any).ids.set(square, `p${(t as any).nextId++}`);
-      pieces.push({ square, color: p.color, type: p.type.toUpperCase(), id: (t as any).ids.get(square) });
+    const board = boardFromFen(fen);
+    const pieces: any[] = [];
+    for (let rank = 0; rank < 8; rank++) {
+      for (let file = 0; file < 8; file++) {
+        const p = board[rank][file];
+        if (!p) continue;
+        const square = `${"abcdefgh"[file]}${rank + 1}`;
+        if (hiddenSquares.has(square)) continue; // parked king(s) — not rendered
+        if (!(t as any).ids.has(square)) (t as any).ids.set(square, `p${(t as any).nextId++}`);
+        pieces.push({ square, color: p.color, type: p.type.toUpperCase(), id: (t as any).ids.get(square) });
+      }
     }
-  }
-  return pieces;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [s, live, premoveKey, liveFenForPieces]);
+    return pieces;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s, live, premoveKey, liveFenForPieces]);
 
   // Legal squares for the selected piece. During the opponent's turn we
   // compute on the projected (post-premove) board with the side-to-move
@@ -847,7 +614,7 @@ function isPremoveLegal(
   // forced BoardGrid (all 64 squares) to bail memoization and fully
   // re-render on every tick — that's the lag, and the extra churn around it
   // is what made the premove tint paint unreliably.
- const premoveSquares = useMemo(
+  const premoveSquares = useMemo(
     () => (live ? premoves.flatMap(pm => [pm.from, pm.to]) : []),
     [live, premoveKey],
   );
@@ -892,14 +659,11 @@ function isPremoveLegal(
   const isResigned = (s as any).resigned === true;
   const isGameOver = s.game.isGameOver() || isResigned;
 
-
   const topClockColor: "w" | "b" = orientation === "white" ? "b" : "w";
   const bottomClockColor: "w" | "b" = orientation === "white" ? "w" : "b";
   const clockMs = (c: "w" | "b") => c === "w" ? s.whiteMs : s.blackMs;
   const showClocks = cfg.timer.baseMs > 0;
   const turn = s.game.turn();
-
-  const liveFen = s.game.fen();
 
   const wrapperClass = settings.focusMode
     ? "fixed inset-0 z-30 flex items-center justify-center p-4 overflow-hidden bg-background"
@@ -1112,33 +876,6 @@ function isPremoveLegal(
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function EvalBar({ score }: { score: number }) {
-  const clamped = Math.max(-1000, Math.min(1000, score));
-  const whitePct = 50 + (clamped / 1000) * 50;
-  const pawns = score / 100;
-  const sign = pawns > 0 ? "+" : pawns < 0 ? "" : "";
-  const label = Math.abs(pawns) >= 10 ? `${sign}${pawns.toFixed(0)}` : `${sign}${pawns.toFixed(1)}`;
-  return (
-    <div
-      className="relative w-6 rounded-[8px] overflow-hidden bg-neutral-800 border-2 border-border flex flex-col shrink-0"
-      aria-hidden
-    >
-      <div
-        className="absolute left-0 right-0 bottom-0 bg-neutral-100 transition-[height] duration-200"
-        style={{ height: `${whitePct}%` }}
-      />
-      <span
-        className={cn(
-          "absolute left-0 right-0 text-center text-[10px] font-bold font-mono leading-none",
-          pawns >= 0 ? "bottom-0.5 text-neutral-900" : "top-0.5 text-neutral-100",
-        )}
-      >
-        {label}
-      </span>
     </div>
   );
 }

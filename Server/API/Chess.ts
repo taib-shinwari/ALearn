@@ -17,6 +17,7 @@ export interface PlacedPiece {
    * light → black piece) instead of its own `color` field.
    */
   themed?: boolean;
+  hidden?: boolean;
 }
 
 export interface Arrow {

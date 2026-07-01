@@ -5,14 +5,13 @@
 //  - Past threshold → drag mode; release on legal target plays the move.
 // Right-click / right-drag handles arrows + highlights and (via callback)
 // cancels queued premoves when right-clicking on a premove square.
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "Client/Library/utils";
 import type { PlacedPiece, PieceColor, PieceType, Arrow } from "Server/API/Chess";
 import { CLASS_META, type ClassKind } from "./analysis/classification";
 
 const DRAG_THRESHOLD = 6;     // px – distance before we treat as drag
-const PREMOVE_TINT  = "rgba(220, 38, 38, 0.45)";
-const PREMOVE_RING  = "rgba(220, 38, 38, 0.95)";
+const PREMOVE_TINT  = "rgba(220, 38, 38, 0.35)";
 
 const PIECE_URL: Record<string, string> = {
   wK: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
@@ -57,7 +56,6 @@ interface Props {
   interactiveColor?: PieceColor;
 }
 
-
 function squareToXY(sq: string, orientation: "white" | "black") {
   const file = sq.charCodeAt(0) - "a".charCodeAt(0);
   const rank = parseInt(sq[1], 10) - 1;
@@ -84,6 +82,97 @@ interface DragState {
   isDragging: boolean;
 }
 
+// ── OPTIMIZED BACKGROUND LAYER SUB-COMPONENT ─────────────────
+// Isolated from drag state coordinate ticks to prevent heavy layout re-evaluations.
+const BoardGrid = memo(({
+  orientation, selected, stars, highlights, legalSquares, pieces, lastMove, premoveSquares, clickEnabled, dragActive, onSquareClick, sq
+}: {
+  orientation: "white" | "black"; selected: string | null | undefined; stars: string[]; highlights: Set<string>;
+  legalSquares: string[]; pieces: PlacedPiece[]; lastMove: any; premoveSquares: string[]; clickEnabled: boolean; dragActive: boolean;
+  onSquareClick: any; sq: number;
+}) => {
+  const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+  const visualFiles = orientation === "white" ? files : [...files].reverse();
+  const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
+
+  return (
+    <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "repeat(8, 1fr)", gridTemplateRows: "repeat(8, 1fr)" }}>
+      {visualRanks.map((rank, rIdx) =>
+        visualFiles.map((file, fIdx) => {
+          const square = `${file}${rank}`;
+          const isLight = (rIdx + fIdx) % 2 === 0;
+          const isSel = selected === square;
+          const hasStar = stars.includes(square);
+          const isHighlighted = highlights.has(square);
+          const isLegal = legalSquares.includes(square);
+          const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
+          const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
+          const isPremove = premoveSquares.includes(square);
+          return (
+            <button
+              type="button"
+              key={square}
+              onClick={() => {
+                if (dragActive) return;
+                if (clickEnabled) onSquareClick?.(square);
+              }}
+              className={cn(
+                "relative flex items-center justify-center p-0 m-0 outline-none",
+                isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]",
+              )}
+            >
+              {isLastMove && !isSel && (
+                <span className="absolute inset-0 bg-sky-400/40 pointer-events-none" />
+              )}
+              {isSel && (
+                <span className="absolute inset-0 bg-sky-400/55 pointer-events-none" />
+              )}
+              {isHighlighted && (
+                <span className="absolute inset-0 bg-red-500/55 pointer-events-none" />
+              )}
+              {isPremove && (
+                <span
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: PREMOVE_TINT }}
+                />
+              )}
+              {isLegal && !hasPieceOnLegal && (
+                <span className="absolute rounded-full bg-black/30 pointer-events-none" style={{ width: "30%", height: "30%" }} />
+              )}
+              {isLegal && hasPieceOnLegal && (
+                <span className="absolute inset-[6%] rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 0 4px rgba(0,0,0,0.35)" }} />
+              )}
+              {hasStar && (
+                <svg viewBox="0 0 24 24" className="w-1/2 h-1/2 drop-shadow animate-scale-in" aria-hidden>
+                  <polygon
+                    points="12,2 14.9,9 22,9.3 16.5,13.9 18.4,21 12,16.9 5.6,21 7.5,13.9 2,9.3 9.1,9"
+                    fill="#facc15"
+                    stroke="#a16207"
+                    strokeWidth="0.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              {fIdx === 0 && (
+                <span className="absolute top-0.5 left-1 opacity-60 font-mono text-black leading-none" style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}>
+                  {rank}
+                </span>
+              )}
+              {rIdx === 7 && (
+                <span className="absolute bottom-0.5 right-1 opacity-60 font-mono text-black leading-none" style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}>
+                  {file}
+                </span>
+              )}
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
+});
+BoardGrid.displayName = "BoardGrid";
+
+
 function ChessboardImpl({
   pieces, stars = [], orientation = "white", selected,
   legalSquares = [],
@@ -102,8 +191,6 @@ function ChessboardImpl({
   const clickEnabled = interactive && (inputMode === "click" || inputMode === "both");
   const dragEnabled = interactive && !!onPieceDrop && (inputMode === "drag" || inputMode === "both");
   const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-  const visualFiles = orientation === "white" ? files : [...files].reverse();
-  const visualRanks = orientation === "white" ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8];
 
   const [userArrows, setUserArrows] = useState<Arrow[]>([]);
   const [highlights, setHighlights] = useState<Set<string>>(new Set());
@@ -127,11 +214,11 @@ function ChessboardImpl({
     return () => ro.disconnect();
   }, []);
 
-  // ── Right-click arrows / highlights (separate from left-click pointer drag).
+  // ── Right-click arrows / highlights
   const rightDown = useRef<string | null>(null);
   const onContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
-  // ── Active left-button drag state.
+  // ── Active left-button drag state
   const [drag, setDrag] = useState<DragState | null>(null);
 
   const sqAt = (clientX: number, clientY: number): string | null => {
@@ -146,19 +233,87 @@ function ChessboardImpl({
     return `${file}${rank}`;
   };
 
-  // ── Left-button pointer-drag handlers (attached to piece images).
+  // ── Left-button pointer-drag handlers
+  // ── Left-button pointer-drag handlers
+  // NOTE: we intentionally do NOT use element.setPointerCapture here.
+  // The dragged piece's <img> can unmount mid-drag (e.g. the engine
+  // captures it while the player is still dragging a premove), and an
+  // unmounted element holding pointer capture silently swallows all
+  // further pointermove/pointerup events — leaving `drag` state stuck
+  // forever (frozen ghost piece, no way to drop, stray hover behavior).
+  // Instead we track the drag via window-level listeners while active,
+  // which keep working regardless of what happens to the source element.
+  const dragRef = useRef<DragState | null>(null);
+  useEffect(() => { dragRef.current = drag; }, [drag]);
+
+  const finishDrag = (clientX: number, clientY: number) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const target = sqAt(clientX, clientY);
+    setDrag(null);
+    if (!target) return;
+    if (!d.isDragging) {
+      if (target !== d.fromSquare && clickEnabled) onSquareClick?.(target);
+      return;
+    }
+    if (target === d.fromSquare) return;
+    if (dragEnabled) onPieceDrop?.(d.fromSquare, target);
+    else if (clickEnabled) onSquareClick?.(target);
+  };
+
+  useEffect(() => {
+    if (!drag) return;
+    const onWinMove = (e: PointerEvent) => {
+      if (e.pointerId !== drag.pointerId) return;
+      setDrag(d => {
+        if (!d || d.pointerId !== e.pointerId) return d;
+        const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
+        const isDragging = d.isDragging || Math.hypot(dx, dy) >= DRAG_THRESHOLD;
+        return { ...d, curX: e.clientX, curY: e.clientY, isDragging };
+      });
+    };
+    const onWinUp = (e: PointerEvent) => {
+      if (e.pointerId !== drag.pointerId) return;
+      finishDrag(e.clientX, e.clientY);
+    };
+    const onWinCancel = (e: PointerEvent) => {
+      if (e.pointerId !== drag.pointerId) return;
+      setDrag(null);
+    };
+    window.addEventListener("pointermove", onWinMove);
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinCancel);
+    return () => {
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinCancel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drag?.pointerId]);
+
+  // If the piece being dragged vanishes from the board (e.g. captured by
+  // the engine's reply while the player is still mid-drag on a premove),
+  // cancel the drag instead of leaving it stuck with no element to deliver
+  // further events to.
+  useEffect(() => {
+    if (!drag) return;
+    const stillThere = pieces.some(p => p.square === drag.fromSquare);
+    if (!stillThere) setDrag(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pieces, drag?.fromSquare]);
+
   const beginPieceDrag = (e: React.PointerEvent, square: string) => {
     if (e.button !== 0) return;
     if (!clickEnabled && !dragEnabled) return;
-    // Ownership gate: only pieces of interactiveColor (if set) can be lifted.
+
     if (interactiveColor) {
       const p = pieces.find(pp => pp.square === square);
       if (!p || p.color !== interactiveColor) return;
     }
-    // Clear ephemeral right-click overlays on any left interaction.
+
     if (userArrows.length) setUserArrows([]);
     if (highlights.size) setHighlights(new Set());
-    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
+
     setDrag({
       pointerId: e.pointerId,
       fromSquare: square,
@@ -169,55 +324,21 @@ function ChessboardImpl({
     onDragBegin?.(square);
   };
 
-
-  const movePieceDrag = (e: React.PointerEvent) => {
-    setDrag(d => {
-      if (!d || d.pointerId !== e.pointerId) return d;
-      const dx = e.clientX - d.startX, dy = e.clientY - d.startY;
-      const isDragging = d.isDragging || Math.hypot(dx, dy) >= DRAG_THRESHOLD;
-      return { ...d, curX: e.clientX, curY: e.clientY, isDragging };
-    });
-  };
-
-  const endPieceDrag = (e: React.PointerEvent) => {
-    const d = drag;
-    if (!d || d.pointerId !== e.pointerId) return;
-    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
-    const target = sqAt(e.clientX, e.clientY);
-    setDrag(null);
-    if (!target) return;
-    if (!d.isDragging) {
-      // Click-up on same square: piece was already selected via onDragBegin.
-      // Clicking a different square: treat as click on that target.
-      if (target !== d.fromSquare && clickEnabled) onSquareClick?.(target);
-      return;
-    }
-    // Drag release: attempt move; if released on origin, keep selection.
-    if (target === d.fromSquare) return;
-    if (dragEnabled) onPieceDrop?.(d.fromSquare, target);
-    else if (clickEnabled) onSquareClick?.(target);
-  };
-
+  // Kept as no-ops on the piece element itself — all real handling now
+  // happens via the window-level listeners above, which survive the
+  // source element unmounting mid-drag.
+  const movePieceDrag = (_e: React.PointerEvent) => {};
+  const endPieceDrag = (_e: React.PointerEvent) => {};
   const cancelPieceDrag = () => setDrag(null);
 
-  // ── Board background pointer handlers (clicks on empty squares + right-click).
   const onBoardPointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) {
       const sq = sqAt(e.clientX, e.clientY);
-      const hadSelection = !!selected;
-      // Right-click anywhere always clears the active selection.
       onClearSelection?.();
-      if (sq && premoveSquares.includes(sq)) {
-        onCancelPremoves?.();
-        rightDown.current = null;
-        return;
-      }
-      // If we just cleared a selection, suppress red-tint / arrow on this gesture.
-      rightDown.current = hadSelection ? null : sq;
+      rightDown.current = sq;
       return;
     }
     if (e.button !== 0) return;
-    // Left click on empty area — clear overlays.
     if (userArrows.length) setUserArrows([]);
     if (highlights.size) setHighlights(new Set());
   };
@@ -229,8 +350,13 @@ function ChessboardImpl({
     rightDown.current = null;
     if (!from || !to) return;
     if (from === to) {
-      // Toggle red highlight (unless cancelling premoves).
-      if (premoveSquares.includes(from)) return;
+      // Simple right-click (no drag): cancel any queued premoves first,
+      // regardless of which square was clicked. Only falls through to the
+      // highlight toggle when there's nothing to cancel.
+      if (premoveSquares.length > 0) {
+        onCancelPremoves?.();
+        return;
+      }
       setHighlights(prev => {
         const next = new Set(prev);
         if (next.has(from)) next.delete(from); else next.add(from);
@@ -238,6 +364,7 @@ function ChessboardImpl({
       });
       return;
     }
+    // Held and dragged → drawing an arrow, never cancels premoves.
     setUserArrows(prev => {
       const same = prev.find(x => x.from === from && x.to === to);
       if (same) return prev.filter(x => x !== same);
@@ -289,9 +416,6 @@ function ChessboardImpl({
     });
   }, [arrows, userArrows, arrowLengthScale, size, orientation]);
 
-  // Compute ghost (dragged piece) screen position relative to board.
-  // Shown from the very first pointerdown so the piece centres on the cursor
-  // immediately, before the drag threshold is exceeded.
   const ghost = useMemo(() => {
     if (!drag || size === 0 || !boardRef.current) return null;
     const r = boardRef.current.getBoundingClientRect();
@@ -311,101 +435,22 @@ function ChessboardImpl({
       role="img"
       aria-label="Chess position"
     >
-      <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "repeat(8, 1fr)", gridTemplateRows: "repeat(8, 1fr)" }}>
-        {visualRanks.map((rank, rIdx) =>
-          visualFiles.map((file, fIdx) => {
-            const square = `${file}${rank}`;
-            const isLight = (rIdx + fIdx) % 2 === 0;
-            const isSel = selected === square;
-            const hasStar = stars.includes(square);
-            const isHighlighted = highlights.has(square);
-            const isLegal = legalSquares.includes(square);
-            const hasPieceOnLegal = isLegal && pieces.some(p => p.square === square);
-            const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
-            const isPremove = premoveSquares.includes(square);
-            return (
-              <button
-                type="button"
-                key={square}
-                onClick={() => {
-                  // Pointer drag handles square selection when it begins on a
-                  // piece; this fallback handles clicks on empty squares.
-                  if (drag) return;
-                  if (clickEnabled) onSquareClick?.(square);
-                }}
-                className={cn(
-                  "relative flex items-center justify-center p-0 m-0 outline-none transition-colors",
-                  isLight ? "bg-[#f0d9b5]" : "bg-[#b58863]",
-                )}
-              >
-                {isLastMove && !isSel && (
-                  <span className="absolute inset-0 bg-sky-400/40 pointer-events-none" />
-                )}
-                {isSel && (
-                  <span className="absolute inset-0 bg-sky-400/55 pointer-events-none" />
-                )}
-                {isHighlighted && (
-                  <span className="absolute inset-0 bg-red-500/55 pointer-events-none" />
-                )}
-                {isPremove && (
-                  <span
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ background: PREMOVE_TINT, boxShadow: `inset 0 0 0 2px ${PREMOVE_RING}` }}
-                  />
-                )}
-                {isLegal && !hasPieceOnLegal && (
-                  <span className="absolute rounded-full bg-black/30 pointer-events-none"
-                    style={{ width: "30%", height: "30%" }} />
-                )}
-                {isLegal && hasPieceOnLegal && (
-                  <span className="absolute inset-[6%] rounded-full pointer-events-none"
-                    style={{ boxShadow: "inset 0 0 0 4px rgba(0,0,0,0.35)" }} />
-                )}
-                {hasStar && (
-                  <svg viewBox="0 0 24 24" className="w-1/2 h-1/2 drop-shadow animate-scale-in" aria-hidden>
-                    <polygon
-                      points="12,2 14.9,9 22,9.3 16.5,13.9 18.4,21 12,16.9 5.6,21 7.5,13.9 2,9.3 9.1,9"
-                      fill="#facc15"
-                      stroke="#a16207"
-                      strokeWidth="0.8"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-                {fIdx === 0 && (
-                  <span
-                    className="absolute top-0.5 left-1 opacity-60 font-mono text-black leading-none"
-                    style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}
-                  >
-                    {rank}
-                  </span>
-                )}
-                {rIdx === 7 && (
-                  <span
-                    className="absolute bottom-0.5 right-1 opacity-60 font-mono text-black leading-none"
-                    style={{ fontSize: `${Math.max(8, sq * 0.18)}px` }}
-                  >
-                    {file}
-                  </span>
-                )}
-              </button>
-            );
-          })
-        )}
-      </div>
+      <BoardGrid
+        orientation={orientation} selected={selected} stars={stars} highlights={highlights}
+        legalSquares={legalSquares} pieces={pieces} lastMove={lastMove} premoveSquares={premoveSquares}
+        clickEnabled={clickEnabled} dragActive={!!drag} onSquareClick={onSquareClick} sq={sq}
+      />
 
       {size > 0 && pieces.map((p) => {
         const { col, row } = squareToXY(p.square, orientation);
         const color = pieceColor(p, dark);
         const url = PIECE_URL[`${color}${p.type as PieceType}`];
         const key = p.id ?? `${p.color}-${p.type}-${p.square}`;
-        // A piece is only interactive if the board is interactive AND
-        // (no ownership filter, or it matches interactiveColor).
-        // Non-interactive pieces let pointer events fall through to the
-        // square button beneath, so click-to-capture works.
         const ownershipOk = !interactiveColor || p.color === interactiveColor;
         const pieceInteractive = (clickEnabled || dragEnabled) && ownershipOk;
         const isBeingHeld = !!drag && drag.fromSquare === p.square;
+        const isHidden = !!p.hidden;
+        
         return (
           <img
             key={key}
@@ -418,16 +463,15 @@ function ChessboardImpl({
             onPointerCancel={pieceInteractive ? cancelPieceDrag : undefined}
             style={{
               position: "absolute",
-              left: `${(col / 8) * 100}%`,
-              top: `${(row / 8) * 100}%`,
-              width: `${100 / 8}%`,
-              height: `${100 / 8}%`,
-              padding: "0%",
+              width: "12.5%",
+              height: "12.5%",
+              // FIX: Replaced absolute positioning layout variables with GPU translate matrices
+              transform: `translate3d(${col * 100}%, ${row * 100}%, 0px)`,
               pointerEvents: pieceInteractive ? "auto" : "none",
               cursor: pieceInteractive ? (drag ? "grabbing" : "grab") : "default",
-              opacity: isBeingHeld ? 0 : 1,
+              opacity: isBeingHeld || isHidden ? 0 : 1,
               transition: animate && !isBeingHeld
-                ? `left ${animationMs}ms ease, top ${animationMs}ms ease`
+                ? `transform ${animationMs}ms cubic-bezier(0.2, 0, 0, 1)`
                 : undefined,
               touchAction: "none",
               zIndex: 1,
@@ -436,7 +480,7 @@ function ChessboardImpl({
         );
       })}
 
-      {/* Ghost piece — centered at cursor from the first pointerdown. */}
+      {/* Ghost piece — centered directly at the cursor coords from first click event */}
       {drag && ghost && (() => {
         const piece = pieces.find(p => p.square === drag.fromSquare);
         if (!piece) return null;
@@ -448,26 +492,21 @@ function ChessboardImpl({
             alt=""
             style={{
               position: "absolute",
-              left: ghost.x - sq / 2,
-              top: ghost.y - sq / 2,
+              left: 0, top: 0,
               width: sq,
               height: sq,
+              // FIX: Hardware accelerated 3D tracking map context layers
+              transform: `translate3d(${ghost.x - sq / 2}px, ${ghost.y - sq / 2}px, 0px)`,
               pointerEvents: "none",
               zIndex: 10,
-              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.35))",
+              filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.3))",
             }}
           />
         );
       })()}
 
       {size > 0 && (
-        <svg
-          className="absolute inset-0 pointer-events-none"
-          style={{ zIndex: 6 }}
-          viewBox={`0 0 ${size} ${size}`}
-          width={size}
-          height={size}
-        >
+        <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 6 }} viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
           {renderedArrows}
         </svg>
       )}
@@ -477,14 +516,12 @@ function ChessboardImpl({
         const meta = CLASS_META[moveBadge.kind];
         return (
           <div
-            className="absolute pointer-events-none flex items-center justify-center rounded-full text-[11px] font-bold shadow-md ring-2 ring-background"
+            className="absolute pointer-events-none flex items-center justify-center rounded-full text-[11px] font-bold shadow-md ring-2 ring-background text-white"
             style={{
-              left: `calc(${(col / 8) * 100}% + ${sq * 0.62}px)`,
-              top: `calc(${(row / 8) * 100}% - ${sq * 0.10}px)`,
+              transform: `translate3d(${col * sq + sq * 0.62}px, ${row * sq - sq * 0.10}px, 0px)`,
               width: sq * 0.42,
               height: sq * 0.42,
               background: meta.color,
-              color: "white",
             }}
             aria-hidden
           >

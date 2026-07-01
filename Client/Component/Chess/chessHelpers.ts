@@ -25,9 +25,30 @@ export function fenToPieces(game: Chess): PlacedPiece[] {
  * Chessboard can animate movement instead of remounting/re-sorting.
  */
 export class PieceTracker {
+  /** Manually move/clear an id without going through a chess.js move object. */
+  moveId(from: string, to: string, clearTarget = false) {
+    if (clearTarget) this.ids.delete(to);
+    const id = this.ids.get(from);
+    this.ids.delete(from);
+    if (id) this.ids.set(to, id);
+  }
+  clearId(square: string) {
+    this.ids.delete(square);
+  }
+  ensureId(square: string) {
+    if (!this.ids.has(square)) this.ids.set(square, `p${this.nextId++}`);
+  }
+  getId(square: string): string | undefined {
+    return this.ids.get(square);
+  }
   private ids = new Map<string, string>(); // square -> id
   private nextId = 1;
-
+  clone(): PieceTracker {
+    const t = new PieceTracker();
+    t.nextId = this.nextId;
+    t.ids = new Map(this.ids);
+    return t;
+  }
   reset(game: Chess) {
     this.ids.clear();
     this.nextId = 1;
