@@ -132,7 +132,7 @@ export function ChessLessonView({ category, subcategory, lessonId, onNext }: Pro
   useEffect(() => {
     if (phase !== "done" || !lesson) return;
     setCanAdvance(true);
-    const txt = lesson.done ? cName(lesson.done, uiLang) : "";
+    const txt = lesson.done ? resolveLessonText(lesson.done, uiLang) : "";
     if (txt && settings.speakNarration && typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
