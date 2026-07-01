@@ -243,3 +243,78 @@ export function getPuzzleByFen(fen: string): any | null {
   const match = Object.entries(allPuzzleFiles).find(([fp]) => fp.endsWith(`${fen}.json`));
   return match ? (match[1] as { default: any }).default : null;
 }
+
+// ─── Lesson intro translations ────────────────────────────────────────────────
+// Maps `lesson.*.intro` keys used in lesson JSON tuples to localized text.
+
+const LESSON_TEXTS: Record<string, Record<I18nLang, string>> = {
+  "lesson.king.intro": {
+    English: "The King moves one square in any direction. Move it to the highlighted star.",
+    Dutch:   "De koning zet één vakje in elke richting. Verplaats hem naar de gemarkeerde ster.",
+    Arabic:  "يتحرك الملك مربعًا واحدًا في أي اتجاه. حرّكه إلى النجمة المضاءة.",
+  },
+  "lesson.queen.intro": {
+    English: "The Queen moves any number of squares in a straight line or diagonally.",
+    Dutch:   "De dame zet in een rechte lijn of diagonaal zo ver als je wilt.",
+    Arabic:  "تتحرك الملكة بأي عدد من المربعات في خط مستقيم أو قطري.",
+  },
+  "lesson.rook.intro": {
+    English: "The Rook moves in straight lines: any number of squares along a rank or file.",
+    Dutch:   "De toren zet rechtdoor, langs een rij of kolom.",
+    Arabic:  "تتحرك القلعة في خطوط مستقيمة على الصف أو العمود.",
+  },
+  "lesson.bishop.intro": {
+    English: "The Bishop moves any number of squares diagonally.",
+    Dutch:   "De loper zet diagonaal zo ver als je wilt.",
+    Arabic:  "يتحرك الفيل قطريًا بأي عدد من المربعات.",
+  },
+  "lesson.knight.intro": {
+    English: "The Knight jumps in an L-shape: two squares one way and one square to the side.",
+    Dutch:   "Het paard springt in een L-vorm: twee vakjes recht en één opzij.",
+    Arabic:  "يقفز الحصان على شكل حرف L: مربعان في اتجاه ومربع جانبي.",
+  },
+  "lesson.pawn.intro": {
+    English: "The Pawn moves one square forward — or two on its first move. Reach the star.",
+    Dutch:   "De pion zet één vakje vooruit — of twee bij zijn eerste zet. Bereik de ster.",
+    Arabic:  "يتحرك البيدق مربعًا إلى الأمام — أو مربعين في نقلته الأولى. اصل إلى النجمة.",
+  },
+  "lesson.captures.intro": {
+    English: "Capture an enemy piece by moving onto its square.",
+    Dutch:   "Sla een tegenstander door op zijn vakje te zetten.",
+    Arabic:  "يمكنك أسر قطعة الخصم بالتحرك إلى مربعها.",
+  },
+  "lesson.check.intro": {
+    English: "Check! Attack the enemy King so it must respond.",
+    Dutch:   "Schaak! Val de vijandelijke koning aan.",
+    Arabic:  "كش! هاجم ملك الخصم لتجبره على الرد.",
+  },
+  "lesson.checkmate.intro": {
+    English: "Checkmate! Deliver a check the King cannot escape.",
+    Dutch:   "Schaakmat! Geef schaak waar de koning niet aan kan ontsnappen.",
+    Arabic:  "كش ملك! أعطِ كشًا لا يستطيع الملك الهروب منه.",
+  },
+  "lesson.escape-check.intro": {
+    English: "Your King is in check — move it to a safe square.",
+    Dutch:   "Je koning staat schaak — zet hem naar een veilig vakje.",
+    Arabic:  "ملكك في كش — انقله إلى مربع آمن.",
+  },
+  "lesson.castling.intro": {
+    English: "Castling: move the King two squares toward a Rook to castle.",
+    Dutch:   "Rokade: verplaats de koning twee vakjes richting een toren.",
+    Arabic:  "التبييت: حرّك الملك مربعين نحو القلعة.",
+  },
+  "lesson.en-passant.intro": {
+    English: "En passant: capture a pawn that just moved two squares as if it had moved one.",
+    Dutch:   "En passant: sla een pion die net twee vakjes zette alsof hij er één zette.",
+    Arabic:  "الأخذ بالتجاوز: اأسر بيدقًا تحرّك مربعين كما لو تحرّك مربعًا واحدًا.",
+  },
+};
+
+/** Resolve an intro key/string to its localized text. Non-key strings pass through. */
+export function resolveLessonText(value: string | Record<string, string> | undefined, lang: string): string {
+  if (!value) return "";
+  if (typeof value === "object") return cName(value, lang);
+  const entry = LESSON_TEXTS[value];
+  if (entry) return entry[lang as I18nLang] ?? entry.English ?? value;
+  return value;
+}
