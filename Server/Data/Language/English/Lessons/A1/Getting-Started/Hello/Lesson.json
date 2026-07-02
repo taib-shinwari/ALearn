@@ -1,6 +1,0 @@
-[
-  { "kind": "learn", "word": "Hello", "ipa": "/həˈloʊ/", "note": "The most common greeting in English." },
-  { "kind": "flashcard", "front": "Hello", "back": "A greeting" },
-  { "kind": "multipleChoice", "prompt": "Which one is a greeting?", "options": ["Bye", "Hello", "Apple", "Run"], "answer": 1 },
-  { "kind": "buildTranslation", "prompt": "Say hello.", "tokens": ["Hello", "Goodbye", "!"], "answer": [0, 2] }
-]

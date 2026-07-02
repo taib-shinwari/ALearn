@@ -1,8 +1,0 @@
-[
-  { "kind": "learn", "word": "Y", "ipa": "/waɪ/", "note": "Sometimes a vowel, sometimes a consonant." },
-  { "kind": "learn", "word": "W", "ipa": "/ˈdʌbəl.juː/", "note": "Longest pronunciation in the alphabet." },
-  { "kind": "learn", "word": "Q", "ipa": "/kjuː/", "note": "Almost always followed by U." },
-  { "kind": "multipleChoice", "prompt": "Which letter is almost always followed by U?", "options": ["Q", "W", "Y", "Z"], "answer": 0 },
-  { "kind": "multipleChoice", "prompt": "Y is sometimes used as a…", "options": ["punctuation", "vowel", "number", "symbol"], "answer": 1 },
-  { "kind": "flashcard", "front": "W", "back": "/ˈdʌbəl.juː/" }
-]

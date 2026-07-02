@@ -1,6 +1,0 @@
-[
-  { "kind": "learn", "word": "The English Alphabet", "note": "There are 26 letters: 5 vowels (A, E, I, O, U) and 21 consonants." },
-  { "kind": "multipleChoice", "prompt": "How many letters are in the English alphabet?", "options": ["24", "25", "26", "27"], "answer": 2 },
-  { "kind": "orderSentence", "prompt": "Put the vowels in order.", "tokens": ["A", "E", "I", "O", "U", "Y"], "answer": [0, 1, 2, 3, 4] },
-  { "kind": "matchPairs", "pairs": [["A", "/eɪ/"], ["E", "/iː/"], ["O", "/oʊ/"], ["U", "/juː/"]] }
-]
