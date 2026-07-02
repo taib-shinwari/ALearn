@@ -263,9 +263,138 @@ export function ImageSelectExercise({ step, onResult }: ExerciseProps) {
   );
 }
 
+// ── Objective ────────────────────────────────────────────────────────────────
+export function ObjectiveExercise({ step, onResult }: ExerciseProps) {
+  return (
+    <Container className="p-6 space-y-4">
+      <p className="text-xs uppercase tracking-wider opacity-60">Learning objective</p>
+      <h2 className="text-2xl font-bold text-center">{step.title}</h2>
+      <ul className="space-y-2 text-sm">
+        {(step.points ?? []).map((p: string, i: number) => (
+          <li key={i} className="flex gap-2"><span className="opacity-60">•</span><span>{p}</span></li>
+        ))}
+      </ul>
+      <Button active className="w-full" onClick={() => onResult(true)}>Let's go</Button>
+    </Container>
+  );
+}
+
+// ── Explanation (with optional inline mini-check) ────────────────────────────
+export function ExplanationExercise({ step, onResult }: ExerciseProps) {
+  const q = step.question;
+  const [picked, setPicked] = useState<number | null>(null);
+  const [checked, setChecked] = useState(false);
+  const correct = q ? picked === q.answer : true;
+
+  return (
+    <Container className="p-6 space-y-4">
+      <p className="text-xs uppercase tracking-wider opacity-60">Explanation</p>
+      {step.title && <h2 className="text-xl font-bold">{step.title}</h2>}
+      <p className="text-sm leading-relaxed">{step.body}</p>
+      {q && (
+        <div className="space-y-2 pt-2">
+          <p className="text-sm font-semibold">{q.prompt}</p>
+          <div className="grid gap-2">
+            {q.options.map((opt: string, i: number) => (
+              <button
+                key={i}
+                disabled={checked}
+                onClick={() => setPicked(i)}
+                className={cn(
+                  "px-4 py-2.5 rounded-[12px] border-2 text-left font-semibold text-sm transition-colors",
+                  !checked && picked === i && "border-foreground bg-muted",
+                  !checked && picked !== i && "border-border hover:bg-muted",
+                  checked && i === q.answer && "border-emerald-500 bg-emerald-500/15",
+                  checked && picked === i && i !== q.answer && "border-rose-500 bg-rose-500/15",
+                  checked && picked !== i && i !== q.answer && "opacity-50",
+                )}
+              >{opt}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {q ? (
+        !checked ? (
+          <Button active disabled={picked === null} className="w-full" onClick={() => setChecked(true)}>Check</Button>
+        ) : (
+          <Button active className="w-full" onClick={() => onResult(correct)}>Continue</Button>
+        )
+      ) : (
+        <Button active className="w-full" onClick={() => onResult(true)}>Continue</Button>
+      )}
+    </Container>
+  );
+}
+
+// ── Did You Know ─────────────────────────────────────────────────────────────
+export function DidYouKnowExercise({ step, onResult }: ExerciseProps) {
+  return (
+    <Container className="p-6 text-center space-y-4">
+      <p className="text-xs uppercase tracking-wider opacity-60">Did you know?</p>
+      <p className="text-base leading-relaxed">{step.fact}</p>
+      <Button active className="w-full" onClick={() => onResult(true)}>Cool</Button>
+    </Container>
+  );
+}
+
+// ── Vocab (letter/word with TTS) ─────────────────────────────────────────────
+export function VocabExercise({ step, onResult }: ExerciseProps) {
+  const speak = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(step.sound ?? step.letter ?? step.word ?? "");
+      u.lang = step.lang ?? "en-US";
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    } catch { /* noop */ }
+  };
+  useEffect(() => { speak(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  const main = step.letter ?? step.word ?? step.title;
+  return (
+    <Container className="p-6 text-center space-y-3">
+      <p className="text-xs uppercase tracking-wider opacity-60">Vocabulary</p>
+      <button onClick={speak} className="text-7xl font-bold py-4 w-full rounded-[16px] hover:bg-muted transition-colors">
+        {main}
+      </button>
+      {step.uppercase && step.lowercase && (
+        <p className="text-2xl font-mono opacity-80">{step.uppercase} · {step.lowercase}</p>
+      )}
+      {step.ipa && <p className="text-lg opacity-70 font-mono">{step.ipa}</p>}
+      {step.note && <p className="text-sm opacity-70">{step.note}</p>}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <Button onClick={speak}>Play sound</Button>
+        <Button active onClick={() => onResult(true)}>Next</Button>
+      </div>
+    </Container>
+  );
+}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+export function SummaryExercise({ step, onResult }: ExerciseProps) {
+  return (
+    <Container className="p-6 space-y-4">
+      <p className="text-xs uppercase tracking-wider opacity-60">Summary</p>
+      <h2 className="text-xl font-bold">{step.title ?? "You learned"}</h2>
+      <ul className="space-y-2 text-sm">
+        {(step.points ?? []).map((p: string, i: number) => (
+          <li key={i} className="flex gap-2"><span className="opacity-60">✓</span><span>{p}</span></li>
+        ))}
+      </ul>
+      <Button active className="w-full" onClick={() => onResult(true)}>Finish</Button>
+    </Container>
+  );
+}
+
 // ── Dispatcher ───────────────────────────────────────────────────────────────
 export function Exercise({ step, onResult }: ExerciseProps) {
   switch (step.kind) {
+    case "objective":        return <ObjectiveExercise step={step} onResult={onResult} />;
+    case "explanation":      return <ExplanationExercise step={step} onResult={onResult} />;
+    case "didYouKnow":       return <DidYouKnowExercise step={step} onResult={onResult} />;
+    case "vocab":            return <VocabExercise step={step} onResult={onResult} />;
+    case "summary":          return <SummaryExercise step={step} onResult={onResult} />;
+    case "activeRecall":     return <ExplanationExercise step={step} onResult={onResult} />;
     case "learn":            return <LearnExercise step={step} onResult={onResult} />;
     case "flashcard":        return <FlashcardExercise step={step} onResult={onResult} />;
     case "multipleChoice":   return <MultipleChoiceExercise step={step} onResult={onResult} />;
