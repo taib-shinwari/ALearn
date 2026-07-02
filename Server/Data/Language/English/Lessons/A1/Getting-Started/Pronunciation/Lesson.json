@@ -1,4 +1,0 @@
-[
-  { "kind": "learn", "word": "Pronunciation", "note": "How letters and words sound when spoken." },
-  { "kind": "multipleChoice", "prompt": "Which letter pair sound the same?", "options": ["C and S (in some words)", "A and Z", "M and W", "B and D"], "answer": 0 }
-]

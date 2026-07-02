@@ -1,7 +1,7 @@
-// New slug-based Lessons view: CEFR levels → units → lessons → sub-lessons → runner.
-// Locks progressively; triple-click on a locked card bypasses.
+// Lessons view: level → lesson → runner. Locks progressively; triple-click on
+// a locked card bypasses. Star mastery per lesson.
 import { useEffect, useMemo, useState } from "react";
-import { Lock, Check } from "lucide-react";
+import { Lock, Star } from "lucide-react";
 import { CardButton } from "Client/Component/UI/card-button";
 import { Button } from "Client/Component/UI/button";
 import { Container } from "Client/Component/UI/container";
@@ -11,51 +11,62 @@ import { useApp } from "Client/Context/App";
 import { Exercise } from "Client/Component/Lesson/Exercises";
 import {
   LEVELS,
-  getUnits,
   getLessons,
-  getSubLessons,
   getSteps,
   getDefaultLessonEntry,
   type LessonLevel,
 } from "Server/API/Lessons";
 import {
-  isCompleted,
+  getMastery,
   isUnlocked,
-  bypass,
-  markCompleted,
+  recordResult,
   lessonId,
-  subscribeUnlock,
+  subscribeMastery,
   hasVisited,
   markVisited,
-} from "Client/Library/lessonsUnlock";
+} from "Client/Library/lessonMastery";
+import { lessonProgress } from "Client/Library/lessonProgress";
 import type { SupportedLang } from "Server/API/Language";
 
 const GRID = "grid grid-cols-2 gap-3 w-full px-4";
 const CARD = "min-h-[64px] py-3 px-3 flex items-center justify-between gap-2 text-left";
 
-function useUnlockTick() {
+// Practice-style exercises count toward the "perfect" grading.
+const PRACTICE_KINDS = new Set([
+  "multipleChoice", "matchPairs", "buildTranslation", "orderSentence",
+  "fillBlank", "typeAnswer", "listenType", "imageSelect", "listenChoose",
+]);
+
+function useMasteryTick() {
   const [, set] = useState(0);
-  useEffect(() => { const off = subscribeUnlock(() => set(n => n + 1)); return () => { off(); }; }, []);
+  useEffect(() => { const off = subscribeMastery(() => set(n => n + 1)); return () => { off(); }; }, []);
+}
+
+function StarRow({ stars }: { stars: number }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map(n => (
+        <Star key={n} className={cn("h-3.5 w-3.5", n <= stars ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
+      ))}
+    </span>
+  );
 }
 
 interface LockableCardProps {
   title: string;
   subtitle?: string;
   locked: boolean;
-  done: boolean;
+  stars: number;
   onOpen: () => void;
-  onBypass: () => void;
 }
-function LockableCard({ title, subtitle, locked, done, onOpen, onBypass }: LockableCardProps) {
+function LockableCard({ title, subtitle, locked, stars, onOpen }: LockableCardProps) {
   const [clicks, setClicks] = useState(0);
-
   const onClick = () => {
     if (!locked) { onOpen(); return; }
     const next = clicks + 1;
     setClicks(next);
     if (next >= 3) {
       setClicks(0);
-      onBypass();
       toast({ title: "Unlocked" });
       onOpen();
     } else {
@@ -63,14 +74,13 @@ function LockableCard({ title, subtitle, locked, done, onOpen, onBypass }: Locka
       setTimeout(() => setClicks(c => (c === next ? 0 : c)), 1200);
     }
   };
-
   return (
     <CardButton onClick={onClick} className={cn(CARD, locked && "opacity-60")}>
       <span className="flex-1">
         <span className="block font-semibold text-sm">{title}</span>
         {subtitle && <span className="block text-xs opacity-70">{subtitle}</span>}
       </span>
-      {done ? <Check className="h-4 w-4 text-emerald-500" /> : locked ? <Lock className="h-4 w-4" /> : null}
+      {locked ? <Lock className="h-4 w-4" /> : <StarRow stars={stars} />}
     </CardButton>
   );
 }
@@ -78,108 +88,57 @@ function LockableCard({ title, subtitle, locked, done, onOpen, onBypass }: Locka
 interface Props { lang: SupportedLang }
 
 export function LessonsView({ lang }: Props) {
-  useUnlockTick();
+  useMasteryTick();
   const { browsePath, pushBrowse, setBrowsePath } = useApp();
-  // browsePath = ["language", code, "lessons", level?, unit?, lesson?, sub?]
+  // browsePath = ["language", code, "lessons", level?, lesson?]
   const level = browsePath[3];
-  const unit  = browsePath[4];
-  const lesson = browsePath[5];
-  const sub   = browsePath[6];
+  const lesson = browsePath[4];
 
-  // First-visit redirect into the default lesson.
+  // First-visit redirect to the default lesson.
   useEffect(() => {
     if (browsePath.length !== 3) return;
     if (hasVisited(lang)) return;
     const entry = getDefaultLessonEntry(lang);
     if (!entry) return;
     markVisited(lang);
-    setBrowsePath([browsePath[0], browsePath[1], "lessons", entry.level, entry.unit, entry.lesson, entry.sub]);
+    setBrowsePath([browsePath[0], browsePath[1], "lessons", entry.level, entry.lesson]);
   }, [browsePath, lang, setBrowsePath]);
 
   // ── Runner ─────────────────────────────────────────────────────────────
-  if (level && unit && lesson && sub) {
-    const steps = getSteps(lang, level, unit, lesson, sub);
+  if (level && lesson) {
+    const steps = getSteps(lang, level, lesson);
     if (!steps?.length) {
       return <div className="px-4 text-sm py-6 text-center opacity-60">Lesson is empty.</div>;
     }
     return (
       <LessonRunner
         lang={lang}
-        id={lessonId(level, unit, lesson, sub)}
+        id={lessonId(level, lesson)}
+        title={lesson.replace(/-/g, " ")}
         steps={steps}
         onDone={() => setBrowsePath(browsePath.slice(0, -1))}
       />
     );
   }
 
-  // ── Sub-lessons grid ───────────────────────────────────────────────────
-  if (level && unit && lesson) {
-    const subs = getSubLessons(lang, level, unit, lesson);
-    if (!subs.length) return <div className="px-4 text-sm py-6 text-center opacity-60">Empty.</div>;
-    return (
-      <div className={GRID}>
-        {subs.map((s, i) => {
-          const id = lessonId(level, unit, lesson, s.slug);
-          const prevId = i === 0 ? undefined : lessonId(level, unit, lesson, subs[i - 1].slug);
-          const locked = !isUnlocked(lang, id, prevId);
-          return (
-            <LockableCard
-              key={s.slug}
-              title={s.title}
-              locked={locked}
-              done={isCompleted(lang, id)}
-              onOpen={() => pushBrowse(s.slug)}
-              onBypass={() => bypass(lang, id)}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
   // ── Lessons grid ───────────────────────────────────────────────────────
-  if (level && unit) {
-    const lessons = getLessons(lang, level, unit);
-    if (!lessons.length) return <div className="px-4 text-sm py-6 text-center opacity-60">Empty.</div>;
+  if (level) {
+    const lessons = getLessons(lang, level);
+    if (!lessons.length) return <div className="px-4 text-sm py-6 text-center opacity-60">No lessons yet.</div>;
     return (
       <div className={GRID}>
         {lessons.map((l, i) => {
-          const id = lessonId(level, unit, l.slug);
-          const prevId = i === 0 ? undefined : lessonId(level, unit, lessons[i - 1].slug);
+          const id = lessonId(level, l.slug);
+          const prevId = i === 0 ? undefined : lessonId(level, lessons[i - 1].slug);
           const locked = !isUnlocked(lang, id, prevId);
+          const m = getMastery(lang, id);
           return (
             <LockableCard
               key={l.slug}
               title={l.title}
               locked={locked}
-              done={isCompleted(lang, id)}
+              stars={m.stars}
               onOpen={() => pushBrowse(l.slug)}
-              onBypass={() => bypass(lang, id)}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  // ── Units grid ─────────────────────────────────────────────────────────
-  if (level) {
-    const units = getUnits(lang, level);
-    if (!units.length) return <div className="px-4 text-sm py-6 text-center opacity-60">No units yet.</div>;
-    return (
-      <div className={GRID}>
-        {units.map((u, i) => {
-          const id = lessonId(level, u.slug);
-          const prevId = i === 0 ? undefined : lessonId(level, units[i - 1].slug);
-          const locked = !isUnlocked(lang, id, prevId);
-          return (
-            <LockableCard
-              key={u.slug}
-              title={u.title}
-              locked={locked}
-              done={isCompleted(lang, id)}
-              onOpen={() => pushBrowse(u.slug)}
-              onBypass={() => bypass(lang, id)}
             />
           );
         })}
@@ -193,17 +152,19 @@ export function LessonsView({ lang }: Props) {
       {LEVELS.map((lv: LessonLevel, i) => {
         const id = lessonId(lv);
         const prevId = i === 0 ? undefined : lessonId(LEVELS[i - 1]);
-        const locked = !isUnlocked(lang, id, prevId);
-        const hasUnits = getUnits(lang, lv).length > 0;
+        // A level is unlocked when the first lesson of the previous level has ≥1 star.
+        const firstOfPrev = i === 0 ? undefined : getLessons(lang, LEVELS[i - 1])[0];
+        const prevLessonId = firstOfPrev ? lessonId(LEVELS[i - 1], firstOfPrev.slug) : undefined;
+        const locked = i > 0 && !isUnlocked(lang, id, prevLessonId);
+        const hasLessons = getLessons(lang, lv).length > 0;
         return (
           <LockableCard
             key={lv}
             title={lv}
-            subtitle={hasUnits ? undefined : "Coming soon"}
+            subtitle={hasLessons ? undefined : "Coming soon"}
             locked={locked}
-            done={isCompleted(lang, id)}
+            stars={0}
             onOpen={() => pushBrowse(lv)}
-            onBypass={() => bypass(lang, id)}
           />
         );
       })}
@@ -213,29 +174,60 @@ export function LessonsView({ lang }: Props) {
 
 /* ─────────────────────────── Runner ─────────────────────────── */
 
-function LessonRunner({ lang, id, steps, onDone }: {
+function LessonRunner({ lang, id, title, steps, onDone }: {
   lang: SupportedLang;
   id: string;
+  title: string;
   steps: any[];
   onDone: () => void;
 }) {
   const [idx, setIdx] = useState(0);
-  const [correct, setCorrect] = useState(0);
+  const [practiceTotal, setPracticeTotal] = useState(0);
+  const [practiceOk, setPracticeOk] = useState(0);
+  const [result, setResult] = useState<null | ReturnType<typeof recordResult>>(null);
   const done = idx >= steps.length;
 
-  // Re-shuffle the queue between runs to avoid stale state.
-  const queue = useMemo(() => steps, [steps, id]);
+  useEffect(() => { setIdx(0); setPracticeTotal(0); setPracticeOk(0); setResult(null); }, [id]);
 
-  useEffect(() => { setIdx(0); setCorrect(0); }, [id]);
+  // Feed the header progress bar; hide it when unmounted.
+  useEffect(() => {
+    lessonProgress.set({ current: Math.min(idx, steps.length), total: steps.length });
+    return () => lessonProgress.set(null);
+  }, [idx, steps.length]);
+
+  // Finalize mastery once when we reach the end.
+  useEffect(() => {
+    if (!done || result) return;
+    const accuracy = practiceTotal ? practiceOk / practiceTotal : 1;
+    const perfect = practiceTotal > 0 && practiceOk === practiceTotal;
+    setResult(recordResult(lang, id, { perfect, accuracy }));
+  }, [done, result, practiceOk, practiceTotal, lang, id]);
 
   if (done) {
-    markCompleted(lang, id);
-    const pct = correct / Math.max(1, steps.length);
+    const accuracy = practiceTotal ? practiceOk / practiceTotal : 1;
+    const perfect = practiceTotal > 0 && practiceOk === practiceTotal;
+    const nextInDays = result?.nextReviewAt
+      ? Math.max(1, Math.round((result.nextReviewAt - Date.now()) / 86_400_000))
+      : null;
     return (
       <div className="px-4 max-w-md mx-auto py-10">
         <Container className="p-6 text-center space-y-4">
-          <h2 className="text-xl font-bold">Lesson complete!</h2>
-          <p className="text-sm opacity-70">{correct} / {steps.length} correct ({Math.round(pct * 100)}%)</p>
+          <h2 className="text-xl font-bold">Lesson complete</h2>
+          <p className="text-sm opacity-70 capitalize">{title}</p>
+          <div className="flex items-center justify-center gap-1 py-2">
+            {[1, 2, 3, 4, 5].map(n => (
+              <Star key={n} className={cn("h-7 w-7", (result?.stars ?? 0) >= n ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+            ))}
+          </div>
+          {practiceTotal > 0 && (
+            <p className="text-sm opacity-70">
+              Practice: {practiceOk} / {practiceTotal} ({Math.round(accuracy * 100)}%)
+              {perfect ? " — perfect!" : ""}
+            </p>
+          )}
+          {result?.stars === 5
+            ? <p className="text-sm font-semibold text-amber-500">Mastered ★</p>
+            : nextInDays !== null && <p className="text-xs opacity-60">Next review in {nextInDays} day{nextInDays === 1 ? "" : "s"}</p>}
           <Button active className="w-full" onClick={onDone}>Continue</Button>
         </Container>
       </div>
@@ -244,17 +236,15 @@ function LessonRunner({ lang, id, steps, onDone }: {
 
   return (
     <div className="px-4 max-w-md mx-auto w-full space-y-4 py-4">
-      <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full bg-foreground transition-all"
-          style={{ width: `${(idx / steps.length) * 100}%` }}
-        />
-      </div>
       <Exercise
         key={idx}
-        step={queue[idx]}
+        step={steps[idx]}
         onResult={(ok) => {
-          if (ok) setCorrect(c => c + 1);
+          const kind = steps[idx]?.kind;
+          if (PRACTICE_KINDS.has(kind)) {
+            setPracticeTotal(t => t + 1);
+            if (ok) setPracticeOk(c => c + 1);
+          }
           setIdx(i => i + 1);
         }}
       />
@@ -262,7 +252,7 @@ function LessonRunner({ lang, id, steps, onDone }: {
   );
 }
 
-// Legacy compat exports for Layout.tsx / older callers.
+// Legacy compat exports for Layout / older callers.
 export interface Unit { id: string; title: string }
 export function buildAllUnits(_lang: SupportedLang): Unit[] { return []; }
 export function findUnit(_unitId: string): Unit | undefined { return undefined; }
