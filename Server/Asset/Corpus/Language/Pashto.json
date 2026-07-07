@@ -1,0 +1,333 @@
+{
+  "vocabularyGrammar": {
+    "Grammar": {
+      "Basic-Grammar": {
+        "Articles": {
+          "A-An": [
+            ""
+          ],
+          "The-De": [
+            ""
+          ],
+          "The-Het": [
+            ""
+          ]
+        },
+        "Predicate-Nouns-NWD": {
+          "To-Be": [
+            ""
+          ],
+          "To-Become": [
+            ""
+          ],
+          "To-Stay-Remain": [
+            ""
+          ]
+        },
+        "Pronouns": {
+          "He": [
+            ""
+          ],
+          "I": [
+            ""
+          ],
+          "My": [
+            ""
+          ],
+          "She-They": [
+            ""
+          ],
+          "We": [
+            ""
+          ],
+          "You-Plural": [
+            ""
+          ],
+          "You": [
+            ""
+          ],
+          "Your": [
+            ""
+          ]
+        },
+        "Sentence-Structure": {
+          "Subject-Verb-Rest": [
+            ""
+          ],
+          "Subordinate-Clause-Verb-At-End": [
+            ""
+          ],
+          "Yes-No-Question-Inversion": [
+            ""
+          ]
+        },
+        "Verb-Tenses": {
+          "Past-Simple": [
+            ""
+          ],
+          "Present-Perfect": [
+            ""
+          ],
+          "Present-Simple": [
+            ""
+          ]
+        }
+      }
+    },
+    "Vocabulary": {
+      "Adjective": {
+        "Description": {
+          "Beautiful": [
+            ""
+          ],
+          "Big-Large": [
+            ""
+          ],
+          "Fast": [
+            ""
+          ],
+          "Slow": [
+            ""
+          ],
+          "Small": [
+            ""
+          ],
+          "Ugly": [
+            ""
+          ]
+        },
+        "Emotions": {
+          "Angry": [
+            ""
+          ],
+          "Happy": [
+            ""
+          ],
+          "Scared": [
+            ""
+          ],
+          "Tired": [
+            ""
+          ]
+        },
+        "Weather": {
+          "Cold": [
+            ""
+          ],
+          "Dry": [
+            ""
+          ],
+          "Warm-Hot": [
+            ""
+          ],
+          "Wet": [
+            ""
+          ]
+        }
+      },
+      "Adverb": {
+        "Frequency": {
+          "Always": [
+            ""
+          ],
+          "Never": [
+            ""
+          ],
+          "Sometimes": [
+            ""
+          ],
+          "Very": [
+            ""
+          ]
+        },
+        "Place": {
+          "Here": [
+            ""
+          ],
+          "There": [
+            ""
+          ]
+        }
+      },
+      "Noun": {
+        "Animal": {
+          "The-Bird": [
+            ""
+          ],
+          "The-Cat": [
+            ""
+          ],
+          "The-Dog": [
+            ""
+          ],
+          "The-Fish": [
+            ""
+          ],
+          "The-Horse": [
+            ""
+          ],
+          "The-Rabbit": [
+            ""
+          ]
+        },
+        "Body": {
+          "The-Eye": [
+            ""
+          ],
+          "The-Hand": [
+            ""
+          ],
+          "The-Head": [
+            ""
+          ],
+          "The-Leg": [
+            ""
+          ]
+        },
+        "Clothing": {
+          "The-Dress": [
+            ""
+          ],
+          "The-Jacket": [
+            ""
+          ],
+          "The-Pants": [
+            ""
+          ],
+          "The-Shoe": [
+            ""
+          ]
+        },
+        "Food": {
+          "The-Bread": [
+            ""
+          ],
+          "The-Cheese": [
+            ""
+          ],
+          "The-Rice": [
+            ""
+          ],
+          "The-Soup": [
+            ""
+          ]
+        },
+        "Fruit": {
+          "The-Apple": [
+            ""
+          ],
+          "The-Banana": [
+            ""
+          ],
+          "The-Grape": [
+            ""
+          ],
+          "The-Strawberry": [
+            ""
+          ]
+        },
+        "Greeting": {
+          "Bye": [
+            ""
+          ],
+          "Good-Afternoon": [
+            ""
+          ],
+          "Good-Evening": [
+            ""
+          ],
+          "Good-Morning": [
+            ""
+          ],
+          "Goodbye": [
+            ""
+          ],
+          "Hello": [
+            ""
+          ]
+        },
+        "Person": {
+          "The-Baby": [
+            ""
+          ],
+          "The-Child": [
+            ""
+          ],
+          "The-Man": [
+            ""
+          ],
+          "The-Woman": [
+            ""
+          ]
+        },
+        "Vegetable": {
+          "The-Carrot": [
+            ""
+          ],
+          "The-Onion": [
+            ""
+          ],
+          "The-Potato": [
+            ""
+          ],
+          "The-Tomato": [
+            ""
+          ]
+        }
+      },
+      "Verb": {
+        "Communication": {
+          "To-Answer": [
+            ""
+          ],
+          "To-Ask": [
+            ""
+          ],
+          "To-Listen": [
+            ""
+          ],
+          "To-Talk": [
+            ""
+          ]
+        },
+        "Daily-Actions": {
+          "To-Drink": [
+            ""
+          ],
+          "To-Eat": [
+            ""
+          ],
+          "To-Read": [
+            ""
+          ],
+          "To-Sleep": [
+            ""
+          ],
+          "To-Walk-Run": [
+            ""
+          ],
+          "To-Write": [
+            ""
+          ]
+        },
+        "Movement": {
+          "To-Cycle": [
+            ""
+          ],
+          "To-Jump": [
+            ""
+          ],
+          "To-Run": [
+            ""
+          ],
+          "To-Swim": [
+            ""
+          ]
+        }
+      }
+    }
+  },
+  "arabicAlphabet": {},
+  "lessons": {},
+  "labels": {}
+}

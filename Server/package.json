@@ -1,0 +1,23 @@
+{
+  "name": "language-chess-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "Dist/Index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node Dist/Index.js",
+    "dev": "tsx watch Source/Index.ts",
+    "corpus:lang": "node Script/Build-Language-Corpus.mjs",
+    "corpus:chess": "node Script/Build-Chess-Corpus.mjs",
+    "corpus:all": "npm run corpus:lang && npm run corpus:chess"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3"
+  }
+}

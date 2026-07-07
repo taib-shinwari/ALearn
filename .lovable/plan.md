@@ -32,15 +32,15 @@
 **New**
 - `Server/Data/Language/<Lang>/Lessons/A1/Getting-Started/<lesson>/<sublesson>.json` — step arrays.
 - `Server/API/Lessons.ts` — glob-load lesson tree, expose `getLevels(lang)`, `getUnits`, `getLessons`, `getSubLessons`, `getSteps`.
-- `Client/Library/lessonsUnlock.ts` — unlock/bypass persistence (extends existing `lessonProgress.ts`).
-- `Client/Component/Lesson/LessonRunner.tsx` — drives step sequence.
-- `Client/Component/Lesson/Exercises/*.tsx` — one per exercise kind.
+- `@/Library/lessonsUnlock.ts` — unlock/bypass persistence (extends existing `lessonProgress.ts`).
+- `@/Component/Lesson/LessonRunner.tsx` — drives step sequence.
+- `@/Component/Lesson/Exercises/*.tsx` — one per exercise kind.
 
 **Edited**
-- `Client/Component/Lesson/LessonsView.tsx` — replace old browse with level/unit/lesson/sub-lesson grid, lock + triple-click bypass, first-visit redirect.
-- `Client/Page/Navigation.tsx` — route the new path depths to the right view.
-- `Client/Library/navigation.ts` — slug ↔ browsePath mapping for the new depth.
-- `Client/Component/View/Chess.tsx` — use `t()` for menu labels.
+- `@/Component/Lesson/LessonsView.tsx` — replace old browse with level/unit/lesson/sub-lesson grid, lock + triple-click bypass, first-visit redirect.
+- `@/Page/Navigation.tsx` — route the new path depths to the right view.
+- `@/Library/navigation.ts` — slug ↔ browsePath mapping for the new depth.
+- `@/Component/View/Chess.tsx` — use `t()` for menu labels.
 
 ## Lesson step JSON shape
 
