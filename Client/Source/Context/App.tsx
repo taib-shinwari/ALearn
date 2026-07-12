@@ -3,6 +3,9 @@ import { ReviewState, createReviewState, updateReview } from "@/Library/spacedRe
 import type { RecallItem, RecallScope } from "@/Library/recall";
 import { browsePathToUrl, sameBrowsePath, urlToBrowsePath } from "@/Library/navigation";
 
+// Master list of supported languages
+export const ALL_LANGUAGES = ["English", "Nederlands", "Arabic", "Pashto"];
+
 export interface Course {
   fromLang: string;
   concept: string;
@@ -23,7 +26,7 @@ export interface ActiveRecall {
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
-  interfaceLanguage: string | null;
+  interfaceLanguage: string; // Guaranteed fallback to string
   selectedConcept: string | null;
   learningLanguage: string | null;
   introductionCompleted: boolean;
@@ -39,6 +42,12 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
+  // Calculated Language Selectors
+  availableLearningLanguages: string[];
+  activeLanguages: string[];
+  inactiveLanguages: string[];
+  
+  // Actions
   login: (email: string, password: string) => boolean;
   signup: (firstName: string, email: string, password: string) => boolean;
   logout: () => void;
@@ -74,7 +83,7 @@ export function useApp() {
 const defaultState: AppState = {
   isAuthenticated: false,
   user: null,
-  interfaceLanguage: "en",
+  interfaceLanguage: "English",
   selectedConcept: "language",
   learningLanguage: null,
   introductionCompleted: false,
@@ -122,6 +131,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return urlPath ? { ...defaultState, browsePath: urlPath } : defaultState;
   });
 
+  // Dynamic Language Filtering Logic
+  const currentInterface = state.interfaceLanguage;
+
+  // 1. Available languages to learn (Hides the active interface language completely)
+  const availableLearningLanguages = ALL_LANGUAGES.filter(
+    (lang) => lang.toLowerCase() !== currentInterface.toLowerCase()
+  );
+
+  // 2. Active Languages (Languages the user has established a course tracking footprint in)
+  const activeLanguages = ALL_LANGUAGES.filter((lang) =>
+    state.courses.some((course) => course.toLang.toLowerCase() === lang.toLowerCase())
+  );
+
+  // 3. Inactive Languages (Languages remaining at start state, excluding active learning targets)
+  const inactiveLanguages = ALL_LANGUAGES.filter(
+    (lang) => !activeLanguages.includes(lang) && lang.toLowerCase() !== currentInterface.toLowerCase()
+  );
+
   useEffect(() => {
     localStorage.setItem("appState", JSON.stringify(state));
   }, [state]);
@@ -160,11 +187,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.theme, state.textSize, state.highContrast]);
 
   const ensureCourse = (s: AppState, fromLang: string): AppState => {
-    const toLang = s.learningLanguage && s.learningLanguage !== fromLang
+    const toLang = s.learningLanguage && s.learningLanguage.toLowerCase() !== fromLang.toLowerCase()
       ? s.learningLanguage
-      : (["en", "nl", "ar"].find(l => l !== fromLang) ?? "en");
+      : (ALL_LANGUAGES.find(l => l.toLowerCase() !== fromLang.toLowerCase()) ?? "English");
     const course: Course = { fromLang, concept: "language", toLang };
-    const exists = s.courses.some(c => c.fromLang === fromLang && c.concept === "language" && c.toLang === toLang);
+    const exists = s.courses.some(c => c.fromLang.toLowerCase() === fromLang.toLowerCase() && c.concept === "language" && c.toLang.toLowerCase() === toLang.toLowerCase());
     return {
       ...s,
       learningLanguage: toLang,
@@ -174,14 +201,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, password: string) => {
     if (email === "a@mail.com" && password === "A") {
-      setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }, s.interfaceLanguage ?? "en"));
+      setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName: "Demo", email } }, s.interfaceLanguage ?? "English"));
       return true;
     }
     return false;
   };
 
   const signup = (firstName: string, email: string, _password: string) => {
-    setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName, email } }, s.interfaceLanguage ?? "en"));
+    setState(s => ensureCourse({ ...s, isAuthenticated: true, user: { firstName, email } }, s.interfaceLanguage ?? "English"));
     return true;
   };
 
@@ -191,25 +218,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setInterfaceLanguage = (lang: string) => setState(s => {
     let learningLanguage = s.learningLanguage;
-    if (learningLanguage === lang) {
-      const fallback = ["en", "nl", "ar"].find(l => l !== lang) ?? null;
+    // Hide the targeted interface language from being chosen as the target learning track
+    if (learningLanguage?.toLowerCase() === lang.toLowerCase()) {
+      const fallback = ALL_LANGUAGES.find(l => l.toLowerCase() !== lang.toLowerCase()) ?? null;
       learningLanguage = fallback;
     }
     return { ...s, interfaceLanguage: lang, learningLanguage };
   });
+
   const setSelectedConcept = (concept: string) => setState(s => ({ ...s, selectedConcept: concept }));
+  
   const setLearningLanguage = (lang: string) => {
     setState(s => {
-      const course: Course = { fromLang: s.interfaceLanguage!, concept: s.selectedConcept!, toLang: lang };
-      const exists = s.courses.some(c => c.fromLang === course.fromLang && c.concept === course.concept && c.toLang === course.toLang);
+      const course: Course = { fromLang: s.interfaceLanguage, concept: s.selectedConcept!, toLang: lang };
+      const exists = s.courses.some(c => c.fromLang.toLowerCase() === course.fromLang.toLowerCase() && c.concept === course.concept && c.toLang.toLowerCase() === course.toLang.toLowerCase());
       const courses = exists ? s.courses : [...s.courses, course];
       return { ...s, learningLanguage: lang, courses };
     });
   };
+
   const completeIntroduction = () => setState(s => ({ ...s, introductionCompleted: true }));
 
   const addCourse = (course: Course): boolean => {
-    const exists = state.courses.some(c => c.fromLang === course.fromLang && c.concept === course.concept && c.toLang === course.toLang);
+    const exists = state.courses.some(c => c.fromLang.toLowerCase() === course.fromLang.toLowerCase() && c.concept === course.concept && c.toLang.toLowerCase() === course.toLang.toLowerCase());
     if (exists) return false;
     setState(s => ({
       ...s,
@@ -271,7 +302,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      ...state, login, signup, logout, setInterfaceLanguage, setSelectedConcept,
+      ...state, 
+      availableLearningLanguages,
+      activeLanguages,
+      inactiveLanguages,
+      login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
       getReview, recordReview,
       setTheme, setTextSize, setHighContrast,

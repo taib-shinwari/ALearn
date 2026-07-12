@@ -1,9 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
-import { useIsMobile } from "@/Hook/use-mobile";
-import { settingsStore } from "@/Component/Settings/store";
-import { SettingsMobileBar } from "@/Component/Settings/SettingsMobileBar";
 import { lessonProgress, type LessonProgressState } from "@/Library/lessonProgress";
 import { Header } from "./Header";
 
@@ -11,56 +8,38 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
-  const navigate = useNavigate();
+export function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const { uiLang, t } = useCourseLanguage();
-
-  const lowerPath = location.pathname.toLowerCase();
-  const isSettings = lowerPath.startsWith("/settings");
+  const { uiLang } = useCourseLanguage();
   const [searchOpen, setSearchOpen] = useState(false);
-
+  const [lessonState, setLessonState] = useState<LessonProgressState | null>(null);
+  
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSearchOpen(prev => !prev);
+    const checkProgress = () => {
+      const currentProgress = lessonProgress.get();
+      if (currentProgress && typeof currentProgress === 'object' && 'current' in currentProgress) {
+        setLessonState(currentProgress);
+      } else {
+        setLessonState(null);
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
-
-  const [settingsBar, setSettingsBar] = useState(settingsStore.getState());
-  useEffect(() => {
-    const unsub = settingsStore.subscribe(() => setSettingsBar(settingsStore.getState()));
-    return () => { unsub(); };
-  }, []);
-
-  const useSettingsBar = isMobile && isSettings && settingsBar.active;
-
-  const [lessonState, setLessonState] = useState<LessonProgressState>(lessonProgress.get());
-  useEffect(() => lessonProgress.subscribe(() => setLessonState(lessonProgress.get())), []);
-
-  if (useSettingsBar) {
-    return (
-      <SettingsMobileBar
-        settingsBar={settingsBar}
-        conceptPrefix="/"
-        navigate={navigate}
-        t={t}
-        uiLang={uiLang}
-      >
-        {children}
-      </SettingsMobileBar>
-    );
-  }
+    checkProgress();
+    return lessonProgress.subscribe(checkProgress);
+  }, [location.pathname]);
 
   return (
-    <div className="min-h-screen pb-8" dir={uiLang === "ar" ? "rtl" : "ltr"}>
-      <Header searchOpen={searchOpen} setSearchOpen={setSearchOpen} lessonState={lessonState} />
-      <div className="px-2 sm:px-4 pb-4">{children}</div>
+    <div 
+      className="min-h-screen w-full flex flex-col bg-background relative" 
+      dir={uiLang === "ar" ? "rtl" : "ltr"}
+    >
+      <Header 
+        searchOpen={searchOpen} 
+        setSearchOpen={setSearchOpen} 
+        lessonState={lessonState} 
+      />
+      <main className="flex-1 w-full flex flex-col pt-16 md:h-[calc(100vh-64px)] md:overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }

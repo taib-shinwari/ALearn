@@ -1,8 +1,8 @@
 import { CardButton } from "@/Component/UI/card-button";
 import { Container } from "@/Component/UI/container";
-import { ChessLessonView } from "@/Component/Chess/ChessLessonView";
-import { ChessPlayView } from "@/Component/Chess/ChessPlayView";
-import { ChessPuzzleView } from "@/Component/Chess/ChessPuzzleView";
+import { ChessLessonView } from "@/Component/Chess/View/Lesson";
+import { ChessPlayView } from "@/Component/Chess/View/Play/Index";
+import { ChessPuzzleView } from "@/Component/Chess/View/Puzzle";
 import { useApp } from "@/Context/App";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useEffect, useState, useMemo } from "react";

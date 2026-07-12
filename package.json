@@ -8,11 +8,15 @@
   ],
   "scripts": {
     "install:all": "npm install",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"Client,Server\" -c \"cyan,green\" \"npm run dev --workspace=Client\" \"npm run dev --workspace=Server\"",
-    "dev:orchestrate": "npm run dev --silent",
+    "dev": "npm run dev:orchestrate --silent",
+    "dev:orchestrate": "concurrently -k -p \"[{name}]\" -n \"Client,Server\" -c \"cyan,green\" \"npm run dev --workspace=Client\" \"npm run dev --workspace=Server\"",
     "build:all": "npm run build --workspace=Client && npm run build --workspace=Server"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
   }
 }
