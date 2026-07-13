@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useApp } from "@/Context/App";
-import { EXTRA_LANGS } from "@/Library/Language";
 import { NavigatorLayout } from "@/Component/Layout/Utility";
 import { Button } from "@/Component/UI/button"; 
 
@@ -12,7 +11,7 @@ export function Add() {
   const navigate = useNavigate();
   const location = useLocation();
   const { uiLang } = useCourseLanguage();
-  const { setLearningLanguage } = useApp();
+  const { setLearningLanguage, inactiveLanguages } = useApp();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -23,8 +22,8 @@ export function Add() {
     return null;
   }
 
-  const handlePick = (code: string, name: string) => {
-    if (code !== "ps") setLearningLanguage(code);
+  const handlePick = (name: string) => {
+    setLearningLanguage(name);
     setIsOpen(false);
     setIsSearching(false);
     setSearchQuery("");
@@ -36,8 +35,9 @@ export function Add() {
     uiLang === "ar" ? "اختر لغة إضافية:" : 
     "Add Language";
 
-  const filteredLanguages = EXTRA_LANGS.filter((l) =>
-    !searchQuery || l.label.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  // Filter using your contextual master list of current inactive options
+  const filteredLanguages = inactiveLanguages.filter((lang) =>
+    !searchQuery || lang.toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
 
   const renderHeaderLeft = () => (
@@ -62,20 +62,17 @@ export function Add() {
       customTrigger={<Plus className="h-5 w-5" />}
     >
       <div className="flex flex-col gap-1.5 px-3 pt-2 sm:p-2 w-full relative">
-        {filteredLanguages.map((l) => (
+        {filteredLanguages.map((lang) => (
           <Button
-            key={l.code}
+            key={lang}
             type="button"
             variant="default"
-            fullWidth={true}
-            onClick={() => handlePick(l.code, l.name)}
-            /* Removed manually duplicated rounded styles, bg-transparent, 
-               and padding utilities so it utilizes your component's real parameters.
-            */
-            className="justify-between text-left"
+            className="justify-between text-left w-full"
+            onClick={() => handlePick(lang)}
           >
-            <span>{l.label}</span>
-            {l.preview && (
+            <span>{lang}</span>
+            {/* If Pashto acts as a specialized placeholder track, we render a preview chip */}
+            {lang.toLowerCase() === "pashto" && (
               <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-background border border-border text-muted-foreground">
                 Preview
               </span>

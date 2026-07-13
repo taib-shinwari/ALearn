@@ -70,6 +70,7 @@ interface AppContextType extends AppState {
   resetBrowse: () => void;
   setActiveRecall: (r: ActiveRecall | null) => void;
   setRecallReturnPath: (p: string[] | null) => void;
+  removeCourse: (courseName: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -146,7 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // 3. Inactive Languages (Languages remaining at start state, excluding active learning targets)
   const inactiveLanguages = ALL_LANGUAGES.filter(
-    (lang) => !activeLanguages.includes(lang) && lang.toLowerCase() !== currentInterface.toLowerCase()
+    (lang) => !activeLanguages.some(al => al.toLowerCase() === lang.toLowerCase()) && lang.toLowerCase() !== currentInterface.toLowerCase()
   );
 
   useEffect(() => {
@@ -218,7 +219,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setInterfaceLanguage = (lang: string) => setState(s => {
     let learningLanguage = s.learningLanguage;
-    // Hide the targeted interface language from being chosen as the target learning track
     if (learningLanguage?.toLowerCase() === lang.toLowerCase()) {
       const fallback = ALL_LANGUAGES.find(l => l.toLowerCase() !== lang.toLowerCase()) ?? null;
       learningLanguage = fallback;
@@ -281,6 +281,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeCourse = (courseName: string) => {
+    setState(s => {
+      const updatedCourses = s.courses.filter(
+        c => c.concept !== "language" || c.toLang.toLowerCase() !== courseName.toLowerCase()
+      );
+
+      let learningLanguage = s.learningLanguage;
+      if (learningLanguage?.toLowerCase() === courseName.toLowerCase()) {
+        const remaining = updatedCourses.find(c => c.concept === "language");
+        learningLanguage = remaining ? remaining.toLang : null;
+      }
+
+      return {
+        ...s,
+        courses: updatedCourses,
+        learningLanguage
+      };
+    });
+  };
+
   const setTheme = (theme: ThemeChoice) => setState(s => ({ ...s, theme }));
   const setTextSize = (textSize: TextSize) => setState(s => ({ ...s, textSize }));
   const setHighContrast = (highContrast: boolean) => setState(s => ({ ...s, highContrast }));
@@ -308,7 +328,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       inactiveLanguages,
       login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
-      getReview, recordReview,
+      getReview, recordReview, removeCourse,
       setTheme, setTextSize, setHighContrast,
       addRecallItem, removeRecallItem,
       setBrowsePath, pushBrowse, popBrowse, resetBrowse, setActiveRecall, setRecallReturnPath,
