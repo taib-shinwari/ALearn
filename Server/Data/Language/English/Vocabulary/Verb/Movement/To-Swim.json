@@ -1,0 +1,12 @@
+[
+  "To Swim",
+  "To move through water.",
+  {
+    "I": "swim",
+    "you": "swim",
+    "he/she": "swims",
+    "we": "swim",
+    "they": "swim"
+  },
+  "I swim in the pool."
+]

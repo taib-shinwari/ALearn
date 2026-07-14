@@ -1,0 +1,13 @@
+[
+  "Drinken",
+  "Vloeistof consumeren.",
+  {
+    "ik": "drink",
+    "jij": "drinkt",
+    "hij/zij": "drinkt",
+    "wij": "drinken",
+    "jullie": "drinken",
+    "zij (mv)": "drinken"
+  },
+  "Ik drink water."
+]

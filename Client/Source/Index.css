@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design system. All colors HSL.
+  - Default light: soft, near-black foreground on warm white.
+  - .hc (high contrast): pure black/white.
+  - .dark: inverts surfaces.
+  - .dark.hc: pure white-on-black.
+  - Text size scaling via html.text-sm/md/lg.
+*/
+
+@layer base {
+  :root {
+    /* Soft, friendly defaults (not pure black/white) */
+    --background: 40 14% 98%;          /* warm off-white */
+    --foreground: 222 15% 18%;         /* soft ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 15% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 15% 18%;
+
+    --primary: 222 15% 18%;
+    --primary-foreground: 40 14% 98%;
+
+    --secondary: 210 16% 94%;
+    --secondary-foreground: 222 15% 18%;
+
+    --muted: 210 16% 94%;
+    --muted-foreground: 222 10% 42%;
+
+    --accent: 210 16% 94%;
+    --accent-foreground: 222 15% 18%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 222 15% 35%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* High contrast – the current pure black/white look */
+  .hc {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 25%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
+  }
+
+  .dark {
+    --background: 222 18% 9%;
+    --foreground: 40 10% 94%;
+    --card: 222 18% 11%;
+    --card-foreground: 40 10% 94%;
+    --popover: 222 18% 11%;
+    --popover-foreground: 40 10% 94%;
+    --primary: 40 10% 94%;
+    --primary-foreground: 222 18% 9%;
+    --secondary: 222 14% 18%;
+    --secondary-foreground: 40 10% 94%;
+    --muted: 222 14% 18%;
+    --muted-foreground: 222 8% 65%;
+    --accent: 222 14% 18%;
+    --accent-foreground: 40 10% 94%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 40 10% 94%;
+    --border: 222 14% 26%;
+    --input: 222 14% 22%;
+    --ring: 222 10% 60%;
+  }
+
+  .dark.hc {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 0%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 80%;
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 0 0% 100%;
+  }
+
+  /* Text size scaling */
+  html.text-sm  { font-size: 14px; }
+  html.text-md  { font-size: 16px; }
+  html.text-lg  { font-size: 18px; }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}

@@ -1,0 +1,13 @@
+[
+  "Eten",
+  "Voedsel consumeren.",
+  {
+    "ik": "eet",
+    "jij": "eet",
+    "hij/zij": "eet",
+    "wij": "eten",
+    "jullie": "eten",
+    "zij (mv)": "eten"
+  },
+  "Wij eten samen."
+]

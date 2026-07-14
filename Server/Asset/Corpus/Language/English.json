@@ -1,0 +1,1192 @@
+{
+  "vocabularyGrammar": {
+    "Grammar": {
+      "Basic-Grammar": {
+        "Articles": {
+          "A-An": [
+            "a / an",
+            "Indefinite article.",
+            "I see a cat."
+          ],
+          "The-De": [
+            "the (de)",
+            "Definite article for common-gender and plural nouns.",
+            "The dog barks."
+          ],
+          "The-Het": [
+            "the (het)",
+            "Definite article for neuter nouns.",
+            "The house is large."
+          ]
+        },
+        "Predicate-Nouns-NWD": {
+          "To-Be": [
+            "'to be' ",
+            "Links subject to a property or state.",
+            "The sky is blue."
+          ],
+          "To-Become": [
+            "to become",
+            "Linking verb expressing change.",
+            "He becomes a doctor."
+          ],
+          "To-Stay-Remain": [
+            "to stay/remain",
+            "Linking verb of persistence.",
+            "She stays calm."
+          ]
+        },
+        "Pronouns": {
+          "He": [
+            "he",
+            "3rd person masculine pronoun.",
+            "He reads a book."
+          ],
+          "I": [
+            "I",
+            "1st person singular pronoun.",
+            "I walk home."
+          ],
+          "My": [
+            "my",
+            "Possessive (1st person sing.).",
+            "That is my book."
+          ],
+          "She-They": [
+            "she / they",
+            "3rd person feminine or plural pronoun.",
+            "She sings beautifully."
+          ],
+          "We": [
+            "we",
+            "1st person plural pronoun.",
+            "We are going to the beach."
+          ],
+          "You-Plural": [
+            "you (plural)",
+            "2nd person plural pronoun.",
+            "You all are welcome."
+          ],
+          "You": [
+            "you",
+            "2nd person singular pronoun.",
+            "You are smart."
+          ],
+          "Your": [
+            "your",
+            "Possessive (2nd person sing.).",
+            "Where is your coat?"
+          ]
+        },
+        "Sentence-Structure": {
+          "Subject-Verb-Rest": [
+            "Subject + Verb + Rest",
+            "Standard main clause order.",
+            "I (S) eat (V) an apple."
+          ],
+          "Subordinate-Clause-Verb-At-End": [
+            "Subordinate clause: verb at end",
+            "Finite verb moves to the end.",
+            "…because I am tired."
+          ],
+          "Yes-No-Question-Inversion": [
+            "Yes/no question (inversion)",
+            "Finite verb precedes the subject.",
+            "Do you eat an apple?"
+          ]
+        },
+        "Verb-Tenses": {
+          "Past-Simple": [
+            "Past simple",
+            "Completed action in the past.",
+            "I worked yesterday."
+          ],
+          "Present-Perfect": [
+            "Present perfect",
+            "Auxiliary + past participle.",
+            "I have worked."
+          ],
+          "Present-Simple": [
+            "Present simple",
+            "Describes now or a habit.",
+            "I work today."
+          ]
+        }
+      }
+    },
+    "Vocabulary": {
+      "Adjective": {
+        "Description": {
+          "Beautiful": [
+            "Beautiful",
+            "Attractive to look at.",
+            "What a beautiful painting!"
+          ],
+          "Big-Large": [
+            "Big/Large",
+            "Of great size.",
+            "The house is big."
+          ],
+          "Fast": [
+            "Fast",
+            "With great speed.",
+            "The car is fast."
+          ],
+          "Slow": [
+            "Slow",
+            "With low speed.",
+            "The turtle is slow."
+          ],
+          "Small": [
+            "Small",
+            "Of small size.",
+            "The mouse is small."
+          ],
+          "Ugly": [
+            "Ugly",
+            "Not attractive to look at.",
+            "The weather is ugly today."
+          ]
+        },
+        "Emotions": {
+          "Angry": [
+            "Angry",
+            "A feeling of anger.",
+            "He is angry at his brother."
+          ],
+          "Happy": [
+            "Happy",
+            "A feeling of joy.",
+            "I am happy today!"
+          ],
+          "Scared": [
+            "Scared",
+            "A feeling of fear.",
+            "She is scared in the dark."
+          ],
+          "Tired": [
+            "Tired",
+            "A feeling of fatigue.",
+            "I am tired after work."
+          ]
+        },
+        "Weather": {
+          "Cold": [
+            "Cold",
+            "Low temperature.",
+            "It is cold in the winter."
+          ],
+          "Dry": [
+            "Dry",
+            "Without water.",
+            "The desert is dry."
+          ],
+          "Warm-Hot": [
+            "Warm/Hot",
+            "High temperature.",
+            "It is warm in the summer."
+          ],
+          "Wet": [
+            "Wet",
+            "Covered with water.",
+            "The street is wet from the rain."
+          ]
+        }
+      },
+      "Adverb": {
+        "Frequency": {
+          "Always": [
+            "Always",
+            "At all times.",
+            "I always drink coffee."
+          ],
+          "Never": [
+            "Never",
+            "At no time.",
+            "I never go to bed late."
+          ],
+          "Sometimes": [
+            "Sometimes",
+            "Occasionally.",
+            "Sometimes it rains."
+          ],
+          "Very": [
+            "Very",
+            "To a great degree.",
+            "The food is very tasty."
+          ]
+        },
+        "Place": {
+          "Here": [
+            "Here",
+            "In this place.",
+            "Come here!"
+          ],
+          "There": [
+            "There",
+            "In that place.",
+            "The book is there."
+          ]
+        }
+      },
+      "Noun": {
+        "Animal": {
+          "The-Bird": [
+            "The Bird",
+            "An animal that can fly.",
+            "Birds",
+            "Birdie",
+            "The bird sings in the tree."
+          ],
+          "The-Cat": [
+            "The Cat",
+            "A pet.",
+            "Cats",
+            "Kitty",
+            "The cat sleeps on the couch.",
+            "[kat]"
+          ],
+          "The-Dog": [
+            "The Dog",
+            "A pet.",
+            "Dogs",
+            "Doggy",
+            "The dog barks.",
+            "[dawg]"
+          ],
+          "The-Fish": [
+            "The Fish",
+            "An animal that lives in water.",
+            "Fish",
+            "Fishy",
+            "The fish swims in the pond."
+          ],
+          "The-Horse": [
+            "The Horse",
+            "A large animal.",
+            "Horses",
+            "Pony",
+            "The horse runs through the field."
+          ],
+          "The-Rabbit": [
+            "The Rabbit",
+            "A small mammal with long ears.",
+            "Rabbits",
+            "Bunny",
+            "The rabbit eats a carrot."
+          ]
+        },
+        "Body": {
+          "The-Eye": [
+            "The Eye",
+            "Body part used for seeing.",
+            "Eyes",
+            "She has blue eyes."
+          ],
+          "The-Hand": [
+            "The Hand",
+            "Body part at the end of the arm.",
+            "Hands",
+            "Wash your hands before eating."
+          ],
+          "The-Head": [
+            "The Head",
+            "The upper part of the body.",
+            "Heads",
+            "My head hurts."
+          ],
+          "The-Leg": [
+            "The Leg",
+            "Body part used for walking.",
+            "Legs",
+            "He has long legs."
+          ]
+        },
+        "Clothing": {
+          "The-Dress": [
+            "The Dress",
+            "A garment for women.",
+            "Dresses",
+            "She wears a beautiful dress."
+          ],
+          "The-Jacket": [
+            "The Jacket",
+            "Outerwear garment.",
+            "Jackets",
+            "Put on your jacket, it's cold."
+          ],
+          "The-Pants": [
+            "The Pants",
+            "Garment for the legs.",
+            "Pants",
+            "I wear blue pants."
+          ],
+          "The-Shoe": [
+            "The Shoe",
+            "Footwear.",
+            "Shoes",
+            "My shoes are new."
+          ]
+        },
+        "Food": {
+          "The-Bread": [
+            "The Bread",
+            "A staple food made from dough.",
+            "Breads",
+            "I eat bread for breakfast."
+          ],
+          "The-Cheese": [
+            "The Cheese",
+            "A dairy product.",
+            "Cheeses",
+            "The Netherlands is famous for cheese."
+          ],
+          "The-Rice": [
+            "The Rice",
+            "A grain product.",
+            "We eat rice with chicken."
+          ],
+          "The-Soup": [
+            "The Soup",
+            "A warm liquid dish.",
+            "Soups",
+            "The soup is nice and warm."
+          ]
+        },
+        "Fruit": {
+          "The-Apple": [
+            "The Apple",
+            "A popular fruit.",
+            "Apples",
+            "I eat an apple .",
+            "[a-puhl]"
+          ],
+          "The-Banana": [
+            "The Banana",
+            "A yellow fruit.",
+            "Bananas",
+            "The monkey eats a banana.",
+            "[buh-na-nuh]"
+          ],
+          "The-Grape": [
+            "The Grape",
+            "A small fruit in clusters.",
+            "Grapes",
+            "Wine is made from grapes."
+          ],
+          "The-Strawberry": [
+            "The Strawberry",
+            "A red, sweet fruit.",
+            "Strawberries",
+            "Strawberries are delicious with cream."
+          ]
+        },
+        "Greeting": {
+          "Bye": [
+            "Bye",
+            "Informal farewell.",
+            "Bye, see you tomorrow!"
+          ],
+          "Good-Afternoon": [
+            "Good afternoon",
+            "Greeting used in the afternoon.",
+            "Good afternoon, ma'am."
+          ],
+          "Good-Evening": [
+            "Good evening",
+            "Greeting used in the evening.",
+            "Good evening everyone!"
+          ],
+          "Good-Morning": [
+            "Good morning",
+            "Greeting used in the morning.",
+            "Good morning, did you sleep well?"
+          ],
+          "Goodbye": [
+            "Goodbye",
+            "Formal farewell.",
+            "Goodbye and have a nice day!"
+          ],
+          "Hello": [
+            "Hello",
+            "An informal greeting.",
+            "Hello, how are you?"
+          ]
+        },
+        "Person": {
+          "The-Baby": [
+            "The Baby",
+            "A very young child.",
+            "Babies",
+            "The baby sleeps."
+          ],
+          "The-Child": [
+            "The Child",
+            "A young person.",
+            "Children",
+            "The child plays outside."
+          ],
+          "The-Man": [
+            "The Man",
+            "An adult male person.",
+            "Men",
+            "The man reads a book.",
+            "[man]",
+            "m"
+          ],
+          "The-Woman": [
+            "The Woman",
+            "An adult female person.",
+            "Women",
+            "The woman cooks food.",
+            "[wuh-muhn]",
+            "f"
+          ]
+        },
+        "Vegetable": {
+          "The-Carrot": [
+            "The Carrot",
+            "An orange vegetable.",
+            "Carrots",
+            "I eat a carrot."
+          ],
+          "The-Onion": [
+            "The Onion",
+            "A vegetable with layers.",
+            "Onions",
+            "The onion makes you cry."
+          ],
+          "The-Potato": [
+            "The Potato",
+            "A commonly used vegetable.",
+            "Potatoes",
+            "We eat potatoes for dinner."
+          ],
+          "The-Tomato": [
+            "The Tomato",
+            "A red vegetable/fruit.",
+            "Tomatoes",
+            "The tomato is red and juicy."
+          ]
+        }
+      },
+      "Verb": {
+        "Communication": {
+          "To-Answer": [
+            "To Answer",
+            "To respond to a question.",
+            {
+              "I": "answer",
+              "you": "answer",
+              "he/she": "answers",
+              "we": "answer",
+              "they": "answer"
+            },
+            "Can you answer?"
+          ],
+          "To-Ask": [
+            "To Ask",
+            "To pose a question.",
+            {
+              "I": "ask",
+              "you": "ask",
+              "he/she": "asks",
+              "we": "ask",
+              "they": "ask"
+            },
+            "May I ask something?"
+          ],
+          "To-Listen": [
+            "To Listen",
+            "To hear attentively.",
+            {
+              "I": "listen",
+              "you": "listen",
+              "he/she": "listens",
+              "we": "listen",
+              "they": "listen"
+            },
+            "Listen to the music."
+          ],
+          "To-Talk": [
+            "To Talk",
+            "To speak words.",
+            {
+              "I": "talk",
+              "you": "talk",
+              "he/she": "talks",
+              "we": "talk",
+              "they": "talk"
+            },
+            "We talk about the weather."
+          ]
+        },
+        "Daily-Actions": {
+          "To-Drink": [
+            "To Drink",
+            "To consume liquid.",
+            {
+              "I": "drink",
+              "you": "drink",
+              "he/she": "drinks",
+              "we": "drink",
+              "they": "drink"
+            },
+            "I drink water."
+          ],
+          "To-Eat": [
+            "To Eat",
+            "To consume food.",
+            {
+              "I": "eat",
+              "you": "eat",
+              "he/she": "eats",
+              "we": "eat",
+              "they": "eat"
+            },
+            "We eat together."
+          ],
+          "To-Read": [
+            "To Read",
+            "To interpret text.",
+            {
+              "I": "read",
+              "you": "read",
+              "he/she": "reads",
+              "we": "read",
+              "they": "read"
+            },
+            "She reads a book."
+          ],
+          "To-Sleep": [
+            "To Sleep",
+            "To rest with eyes closed.",
+            {
+              "I": "sleep",
+              "you": "sleep",
+              "he/she": "sleeps",
+              "we": "sleep",
+              "they": "sleep"
+            },
+            "The baby sleeps."
+          ],
+          "To-Walk-Run": [
+            "To Walk/Run",
+            "To move on foot.",
+            {
+              "I": "walk",
+              "you": "walk",
+              "he/she": "walks",
+              "we": "walk",
+              "they": "walk"
+            },
+            "I walk to school."
+          ],
+          "To-Write": [
+            "To Write",
+            "To produce text.",
+            {
+              "I": "write",
+              "you": "write",
+              "he/she": "writes",
+              "we": "write",
+              "they": "write"
+            },
+            "He writes a letter."
+          ]
+        },
+        "Movement": {
+          "To-Cycle": [
+            "To Cycle",
+            "To ride a bicycle.",
+            {
+              "I": "cycle",
+              "you": "cycle",
+              "he/she": "cycles",
+              "we": "cycle",
+              "they": "cycle"
+            },
+            "The Dutch cycle a lot."
+          ],
+          "To-Jump": [
+            "To Jump",
+            "To leave the ground.",
+            {
+              "I": "jump",
+              "you": "jump",
+              "he/she": "jumps",
+              "we": "jump",
+              "they": "jump"
+            },
+            "The rabbit jumps high."
+          ],
+          "To-Run": [
+            "To Run",
+            "To move fast on foot.",
+            {
+              "I": "run",
+              "you": "run",
+              "he/she": "runs",
+              "we": "run",
+              "they": "run"
+            },
+            "The children run in the park."
+          ],
+          "To-Swim": [
+            "To Swim",
+            "To move through water.",
+            {
+              "I": "swim",
+              "you": "swim",
+              "he/she": "swims",
+              "we": "swim",
+              "they": "swim"
+            },
+            "I swim in the pool."
+          ]
+        }
+      }
+    }
+  },
+  "arabicAlphabet": {},
+  "lessons": {
+    "I": {
+      "The-Alphabet": {
+        "slug": "The-Alphabet",
+        "steps": [
+          [
+            "Objective",
+            "The English Alphabet",
+            [
+              "Learn all 26 letters — uppercase and lowercase",
+              "Hear how each letter sounds",
+              "Recognize vowels and consonants",
+              "Put letters in alphabetical order"
+            ]
+          ],
+          [
+            "Explanation",
+            "<h3>What is the Alphabet?</h3><p>The <b>English alphabet</b> is a set of letters used to write every word in the language.<br>Each letter has a name and one or more sounds.</p>"
+          ],
+          [
+            "Multiple Choice",
+            "How many letters does the English alphabet have?",
+            [
+              "24",
+              "26",
+              "28",
+              "30"
+            ],
+            1
+          ],
+          [
+            "Explanation",
+            "<h3>Uppercase and lowercase</h3><p>Every letter has two forms:<br>An <b>UPPERCASE form</b> (A, B, C) used at the start of sentences and names, and a <b>lowercase form</b> (a, b, c) used in the rest of the word.</p>"
+          ],
+          [
+            "Multiple Choice",
+            "Which is the lowercase form of 'G'?",
+            [
+              "g",
+              "q",
+              "j",
+              "y"
+            ],
+            0
+          ],
+          [
+            "Explanation",
+            "<h3>Vowels and consonants</h3><p>There are <b>5 vowels</b>: A, E, I, O, U (Y is sometimes a vowel). The other 21 letters are <b>consonants</b>.<br><br>English has 26 letters but roughly <b>40 distinct sounds</b>, because letters combine to make new sounds like 'sh', 'ch' and 'th'.</p>"
+          ],
+          [
+            "Multiple Choice",
+            "Which letter is a vowel?",
+            [
+              "B",
+              "K",
+              "O",
+              "T"
+            ],
+            2
+          ],
+          [
+            "Did You Know",
+            "The word 'alphabet' comes from the first two Greek letters — alpha (α) and beta (β)."
+          ],
+          [
+            "Vocab",
+            [
+              [
+                "A",
+                "/eɪ/",
+                "A",
+                "a"
+              ],
+              [
+                "B",
+                "/biː/",
+                "B",
+                "b"
+              ],
+              [
+                "C",
+                "/siː/",
+                "C",
+                "c"
+              ],
+              [
+                "D",
+                "/diː/",
+                "D",
+                "d"
+              ],
+              [
+                "E",
+                "/iː/",
+                "E",
+                "e"
+              ],
+              [
+                "F",
+                "/ɛf/",
+                "F",
+                "f"
+              ],
+              [
+                "G",
+                "/dʒiː/",
+                "G",
+                "g"
+              ],
+              [
+                "H",
+                "/eɪtʃ/",
+                "H",
+                "h"
+              ],
+              [
+                "I",
+                "/aɪ/",
+                "I",
+                "i"
+              ],
+              [
+                "J",
+                "/dʒeɪ/",
+                "J",
+                "j"
+              ],
+              [
+                "K",
+                "/keɪ/",
+                "K",
+                "k"
+              ],
+              [
+                "L",
+                "/ɛl/",
+                "L",
+                "l"
+              ],
+              [
+                "M",
+                "/ɛm/",
+                "M",
+                "m"
+              ],
+              [
+                "N",
+                "/ɛn/",
+                "N",
+                "n"
+              ],
+              [
+                "O",
+                "/oʊ/",
+                "O",
+                "o"
+              ],
+              [
+                "P",
+                "/piː/",
+                "P",
+                "p"
+              ],
+              [
+                "Q",
+                "/kjuː/",
+                "Q",
+                "q"
+              ],
+              [
+                "R",
+                "/ɑːr/",
+                "R",
+                "r"
+              ],
+              [
+                "S",
+                "/ɛs/",
+                "S",
+                "s"
+              ],
+              [
+                "T",
+                "/tiː/",
+                "T",
+                "t"
+              ],
+              [
+                "U",
+                "/juː/",
+                "U",
+                "u"
+              ],
+              [
+                "V",
+                "/viː/",
+                "V",
+                "v"
+              ],
+              [
+                "W",
+                "/ˈdʌbəl.juː/",
+                "W",
+                "w"
+              ],
+              [
+                "X",
+                "/ɛks/",
+                "X",
+                "x"
+              ],
+              [
+                "Y",
+                "/waɪ/",
+                "Y",
+                "y"
+              ],
+              [
+                "Z",
+                "/ziː/",
+                "Z",
+                "z"
+              ]
+            ]
+          ],
+          [
+            "Practice",
+            [
+              [
+                "Match Pairs",
+                [
+                  [
+                    "Match uppercase with lowercase",
+                    [
+                      [
+                        "A",
+                        "a"
+                      ],
+                      [
+                        "B",
+                        "b"
+                      ],
+                      [
+                        "D",
+                        "d"
+                      ],
+                      [
+                        "E",
+                        "e"
+                      ],
+                      [
+                        "G",
+                        "g"
+                      ],
+                      [
+                        "R",
+                        "r"
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "Multiple Choice",
+                [
+                  [
+                    "Which letter is a consonant?",
+                    [
+                      "A",
+                      "E",
+                      "M",
+                      "U"
+                    ],
+                    2
+                  ],
+                  [
+                    "Which is the UPPERCASE of 'h'?",
+                    [
+                      "H",
+                      "N",
+                      "K",
+                      "M"
+                    ],
+                    0
+                  ]
+                ]
+              ],
+              [
+                "Match Pairs",
+                [
+                  [
+                    "Match uppercase with lowercase",
+                    [
+                      [
+                        "H",
+                        "h"
+                      ],
+                      [
+                        "K",
+                        "k"
+                      ],
+                      [
+                        "M",
+                        "m"
+                      ],
+                      [
+                        "N",
+                        "n"
+                      ],
+                      [
+                        "Q",
+                        "q"
+                      ],
+                      [
+                        "T",
+                        "t"
+                      ]
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "Type Answer",
+                [
+                  [
+                    "Type the letter that comes after 'M'",
+                    "N"
+                  ],
+                  [
+                    "Type the first vowel of the alphabet",
+                    "A"
+                  ],
+                  [
+                    "Type the LAST letter of the alphabet",
+                    "Z"
+                  ]
+                ]
+              ],
+              [
+                "Order Sentence",
+                [
+                  [
+                    "Put these letters in alphabetical order",
+                    [
+                      "D",
+                      "A",
+                      "C",
+                      "B"
+                    ],
+                    [
+                      1,
+                      3,
+                      2,
+                      0
+                    ]
+                  ],
+                  [
+                    "Put these letters in alphabetical order",
+                    [
+                      "R",
+                      "P",
+                      "S",
+                      "Q"
+                    ],
+                    [
+                      1,
+                      3,
+                      0,
+                      2
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Summary",
+            "You learned",
+            [
+              "The English alphabet has 26 letters",
+              "Every letter has an uppercase and lowercase form",
+              "5 letters are vowels: A, E, I, O, U",
+              "The other 21 letters are consonants"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "labels": {
+    "practice": "Practice",
+    "back": "Back",
+    "definition": "Definition",
+    "plural": "Plural",
+    "diminutive": "Diminutive",
+    "conjugation": "Conjugation",
+    "example": "Example",
+    "categories": "Categories",
+    "words": "Words",
+    "practiceThis": "Practice this",
+    "tapToFlip": "Tap to flip",
+    "whatDoes": "What does",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "correctAnswer": "Correct answer",
+    "check": "Check",
+    "skip": "Skip",
+    "continue": "Continue",
+    "finish": "Finish",
+    "noWords": "No words available for practice.",
+    "backToHome": "Back to Home",
+    "yourCourses": "Your Courses",
+    "noCourses": "No courses yet. Tap + to add one.",
+    "whatLangSpeak": "What language do you speak?",
+    "selectConcept": "Select concept",
+    "whatLearn": "What do you want to learn?",
+    "alreadyAdded": "(already added)",
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "sessionComplete": "Session complete!",
+    "wordsLearned": "Words practiced",
+    "accuracy": "Accuracy",
+    "greatJob": "Great job!",
+    "keepGoing": "Keep going!",
+    "nice": "Nice!",
+    "perfect": "Perfect!",
+    "wellDone": "Well done!",
+    "awesome": "Awesome!",
+    "profile": "Profile",
+    "root": "Root",
+    "search": "Search",
+    "courses": "Courses",
+    "notFound": "Not found.",
+    "interfaceLanguage": "Interface language",
+    "selectInterfaceLanguage": "Select interface language",
+    "selectConceptShort": "Select concept",
+    "selectCourse": "Select course",
+    "create": "Create",
+    "cancel": "Cancel",
+    "language": "Language",
+    "typeAnswer": "Type the answer",
+    "listenAndType": "Listen and type what you hear",
+    "speakAnswer": "Speak the answer",
+    "tapToSpeak": "Tap to speak",
+    "play": "Play",
+    "yourAnswer": "Your answer",
+    "selectMeaning": "Select the meaning",
+    "submit": "Submit",
+    "account": "Account",
+    "courseSettings": "Course",
+    "about": "About",
+    "activeCourse": "Active course",
+    "changeInterfaceLanguage": "Change interface language",
+    "changeCourse": "Change active course",
+    "appVersion": "App version",
+    "builtWith": "Built with Lovable",
+    "searchSettings": "Search settings",
+    "noResults": "No results",
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirm": "Are you sure? This cannot be undone.",
+    "dictionary": "Dictionary",
+    "marked": "Marked",
+    "noMarkedWords": "No marked words yet.",
+    "mark": "Mark",
+    "unmark": "Unmark",
+    "learningPath": "Learning Path",
+    "currentUnit": "Current Unit",
+    "unit": "Unit",
+    "speakNow": "Speak now",
+    "listenAndSpeak": "Listen and speak the word",
+    "speakWord": "Speak the word",
+    "tryAgain": "Try again",
+    "pronunciation": "Pronunciation",
+    "gender": "Gender",
+    "masculine": "masculine",
+    "feminine": "feminine",
+    "neuter": "neuter",
+    "common": "common (de-word)",
+    "yourAnswerWas": "Your answer",
+    "chess": "Chess",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "manageCourses": "Manage courses",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "accessibility": "Accessibility",
+    "textSize": "Text size",
+    "textSizeSmall": "Small",
+    "textSizeMedium": "Medium",
+    "textSizeLarge": "Large",
+    "highContrast": "High contrast",
+    "highContrastDesc": "Pure black & white borders and text",
+    "other": "Other",
+    "chessPractice": "Practice",
+    "chessPuzzles": "Puzzles",
+    "completed": "Completed",
+    "lesson": "Lesson",
+    "puzzle": "Puzzle",
+    "whiteToMove": "White to move",
+    "blackToMove": "Black to move",
+    "yourTurn": "Your turn",
+    "correctMove": "Correct move!",
+    "wrongMove": "Wrong move, try again",
+    "resetBoard": "Reset board",
+    "revisit": "Revisit",
+    "activeTab": "Active",
+    "recallTab": "Recall",
+    "recall": "Recall",
+    "noActive": "Nothing cooling down.",
+    "noReady": "Nothing to recall yet.",
+    "flip": "Flip",
+    "rateRecall": "How well did you recall?",
+    "ratingLow": "Barely",
+    "ratingHigh": "Perfect",
+    "select": "Select",
+    "recallSelected": "Recall Selected",
+    "notLoggedIn": "Not Logged In",
+    "signIn": "Sign In",
+    "signInToSync": "Sign in to save your progress.",
+    "languages": "languages",
+    "letters": "letters",
+    "masteryProgress": "Progress",
+    "dueNow": "Due Now",
+    "coolingDown": "Cooling Down",
+    "startRecall": "Start Recall",
+    "deleteItem": "Delete",
+    "addWord": "Add",
+    "editWord": "Edit word",
+    "save": "Save",
+    "delete": "Delete",
+    "favorite": "Favorite",
+    "unfavorite": "Unfavorite",
+    "favorites": "Favorites",
+    "custom": "Custom",
+    "all": "All",
+    "filter": "Filter"
+  }
+}

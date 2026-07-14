@@ -1,0 +1,846 @@
+{
+  "vocabularyGrammar": {
+    "Grammar": {
+      "Basic": {
+        "Articles": {
+          "De": [
+            "de",
+            "Bepaald lidwoord voor mannelijke, vrouwelijke en meervoudige zelfstandige naamwoorden.",
+            "De hond blaft."
+          ],
+          "Een": [
+            "een",
+            "Onbepaald lidwoord.",
+            "Ik zie een kat."
+          ],
+          "Het": [
+            "het",
+            "Bepaald lidwoord voor onzijdige zelfstandige naamwoorden.",
+            "Het huis is groot."
+          ]
+        },
+        "Predicate-Nouns-NWD": {
+          "Blijven": [
+            "blijven",
+            "Koppelwerkwoord dat een blijvende toestand uitdrukt.",
+            "Zij blijft kalm."
+          ],
+          "Worden": [
+            "worden",
+            "Koppelwerkwoord dat verandering aanduidt.",
+            "Hij wordt arts."
+          ],
+          "Zijn-Als-Koppelwerkwoord": [
+            "zijn als koppelwerkwoord",
+            "Verbindt onderwerp met een eigenschap of toestand.",
+            "De lucht is blauw."
+          ]
+        },
+        "Pronouns": {
+          "Hij": [
+            "hij",
+            "Persoonlijk voornaamwoord, 3e persoon mannelijk.",
+            "Hij leest een boek."
+          ],
+          "Ik": [
+            "ik",
+            "Persoonlijk voornaamwoord, 1e persoon enkelvoud.",
+            "Ik loop naar huis."
+          ],
+          "Jij-Je": [
+            "jij / je",
+            "Persoonlijk voornaamwoord, 2e persoon enkelvoud.",
+            "Jij bent slim."
+          ],
+          "Jouw-Je": [
+            "jouw / je",
+            "Bezittelijk voornaamwoord (2e persoon ev).",
+            "Waar is jouw jas?"
+          ],
+          "Jullie": [
+            "jullie",
+            "Persoonlijk voornaamwoord, 2e persoon meervoud.",
+            "Jullie zijn welkom."
+          ],
+          "Mijn": [
+            "mijn",
+            "Bezittelijk voornaamwoord (1e persoon ev).",
+            "Dat is mijn boek."
+          ],
+          "Wij-We": [
+            "wij / we",
+            "Persoonlijk voornaamwoord, 1e persoon meervoud.",
+            "Wij gaan naar het strand."
+          ],
+          "Zij-Ze": [
+            "zij / ze",
+            "Persoonlijk voornaamwoord, 3e persoon vrouwelijk / meervoud.",
+            "Zij zingt mooi."
+          ]
+        },
+        "Sentence-Structure": {
+          "Bijzin-Werkwoord-Achteraan": [
+            "Bijzin: werkwoord achteraan",
+            "In een bijzin staat de persoonsvorm aan het einde.",
+            "…omdat ik moe ben."
+          ],
+          "Onderwerp-Werkwoord-Rest": [
+            "Onderwerp + Werkwoord + Rest",
+            "Standaard hoofdzin: onderwerp, persoonsvorm, dan rest.",
+            "Ik (O) eet (W) een appel."
+          ],
+          "Vraagzin-Inversie": [
+            "Vraagzin (inversie)",
+            "Bij ja/nee-vragen komt de persoonsvorm vóór het onderwerp.",
+            "Eet (W) jij (O) een appel?"
+          ]
+        },
+        "Verb-Tenses": {
+          "OTT-Tegenwoordige-Tijd": [
+            "OTT (tegenwoordige tijd)",
+            "Beschrijft nu of een gewoonte.",
+            "Ik werk vandaag."
+          ],
+          "OVT-Verleden-Tijd": [
+            "OVT (verleden tijd)",
+            "Beschrijft een afgesloten gebeurtenis.",
+            "Ik werkte gisteren."
+          ],
+          "VTT-Voltooid-Tegenwoordige-Tijd": [
+            "VTT (voltooid tegenwoordige tijd)",
+            "Hulpwerkwoord hebben/zijn + voltooid deelwoord.",
+            "Ik heb gewerkt."
+          ]
+        }
+      }
+    },
+    "Vocabulary": {
+      "Adjective": {
+        "Description": {
+          "Groot": [
+            "Groot",
+            "Van grote omvang.",
+            "Het huis is groot."
+          ],
+          "Klein": [
+            "Klein",
+            "Van kleine omvang.",
+            "Kleintje",
+            "De muis is klein."
+          ],
+          "Langzaam": [
+            "Langzaam",
+            "Met lage snelheid.",
+            "De schildpad is langzaam."
+          ],
+          "Lelijk": [
+            "Lelijk",
+            "Niet aantrekkelijk om te zien.",
+            "Het weer is lelijk vandaag."
+          ],
+          "Mooi": [
+            "Mooi",
+            "Aantrekkelijk om te zien.",
+            "Wat een mooi schilderij!"
+          ],
+          "Snel": [
+            "Snel",
+            "Met grote snelheid.",
+            "De auto is snel."
+          ]
+        },
+        "Emotions": {
+          "Bang": [
+            "Bang",
+            "Een gevoel van angst.",
+            "Ze is bang in het donker."
+          ],
+          "Blij": [
+            "Blij",
+            "Een gevoel van geluk.",
+            "Ik ben blij vandaag!"
+          ],
+          "Boos": [
+            "Boos",
+            "Een gevoel van woede.",
+            "Hij is boos op zijn broer."
+          ],
+          "Moe": [
+            "Moe",
+            "Een gevoel van vermoeidheid.",
+            "Ik ben moe na het werk."
+          ]
+        },
+        "Weather": {
+          "Droog": [
+            "Droog",
+            "Zonder water.",
+            "De woestijn is droog."
+          ],
+          "Koud": [
+            "Koud",
+            "Lage temperatuur.",
+            "Het is koud in de winter."
+          ],
+          "Nat": [
+            "Nat",
+            "Bedekt met water.",
+            "De straat is nat van de regen."
+          ],
+          "Warm": [
+            "Warm",
+            "Hoge temperatuur.",
+            "Het is warm in de zomer."
+          ]
+        }
+      },
+      "Adverb": {
+        "Frequency": {
+          "Altijd": [
+            "Altijd",
+            "Op elk moment.",
+            "Ik drink altijd koffie."
+          ],
+          "Heel": [
+            "Heel",
+            "In grote mate.",
+            "Het eten is heel lekker."
+          ],
+          "Nooit": [
+            "Nooit",
+            "Op geen enkel moment.",
+            "Ik ga nooit naar bed laat."
+          ],
+          "Soms": [
+            "Soms",
+            "Af en toe.",
+            "Soms regent het."
+          ]
+        },
+        "Place": {
+          "Daar": [
+            "Daar",
+            "Op die plek.",
+            "Het boek ligt daar."
+          ],
+          "Hier": [
+            "Hier",
+            "Op deze plek.",
+            "Kom hier!"
+          ]
+        }
+      },
+      "Noun": {
+        "Animal": {
+          "De-Hond": [
+            "De Hond",
+            "Een huisdier.",
+            "Honden",
+            "Hondje",
+            "De hond blaft.",
+            "[hont]",
+            "c"
+          ],
+          "De-Kat": [
+            "De Kat",
+            "Een huisdier.",
+            "Katten",
+            "Katje",
+            "De kat slaapt op de bank.",
+            "[kaht]",
+            "c"
+          ],
+          "De-Vis": [
+            "De Vis",
+            "Een dier dat in water leeft.",
+            "Vissen",
+            "Visje",
+            "De vis zwemt in de vijver."
+          ],
+          "De-Vogel": [
+            "De Vogel",
+            "Een dier dat kan vliegen.",
+            "Vogels",
+            "Vogeltje",
+            "De vogel zingt in de boom."
+          ],
+          "Het-Konijn": [
+            "Het Konijn",
+            "Een klein zoogdier met lange oren.",
+            "Konijnen",
+            "Konijntje",
+            "Het konijn eet een wortel."
+          ],
+          "Het-Paard": [
+            "Het Paard",
+            "Een groot dier.",
+            "Paarden",
+            "Paardje",
+            "Het paard rent door het veld."
+          ]
+        },
+        "Body": {
+          "De-Hand": [
+            "De Hand",
+            "Lichaamsdeel aan het eind van de arm.",
+            "Handen",
+            "Handje",
+            "Was je handen voor het eten."
+          ],
+          "Het-Been": [
+            "Het Been",
+            "Lichaamsdeel om mee te lopen.",
+            "Benen",
+            "Beentje",
+            "Hij heeft lange benen."
+          ],
+          "Het-Hoofd": [
+            "Het Hoofd",
+            "Het bovenste deel van het lichaam.",
+            "Hoofden",
+            "Hoofdje",
+            "Mijn hoofd doet pijn."
+          ],
+          "Het-Oog": [
+            "Het Oog",
+            "Lichaamsdeel om mee te zien.",
+            "Ogen",
+            "Oogje",
+            "Ze heeft blauwe ogen."
+          ]
+        },
+        "Clothing": {
+          "De-Broek": [
+            "De Broek",
+            "Kledingstuk voor de benen.",
+            "Broeken",
+            "Broekje",
+            "Ik draag een blauwe broek."
+          ],
+          "De-Jas": [
+            "De Jas",
+            "Kledingstuk voor buitenshuis.",
+            "Jassen",
+            "Jasje",
+            "Trek je jas aan, het is koud."
+          ],
+          "De-Jurk": [
+            "De Jurk",
+            "Een kledingstuk voor vrouwen.",
+            "Jurken",
+            "Jurkje",
+            "Ze draagt een mooie jurk."
+          ],
+          "De-Schoen": [
+            "De Schoen",
+            "Schoeisel voor de voet.",
+            "Schoenen",
+            "Schoentje",
+            "Mijn schoenen zijn nieuw."
+          ]
+        },
+        "Food": {
+          "De-Kaas": [
+            "De Kaas",
+            "Een zuivelproduct.",
+            "Kazen",
+            "Kaasje",
+            "Nederland is beroemd om kaas."
+          ],
+          "De-Rijst": [
+            "De Rijst",
+            "Een graanproduct.",
+            "We eten rijst met kip."
+          ],
+          "De-Soep": [
+            "De Soep",
+            "Een warm vloeibaar gerecht.",
+            "Soepen",
+            "Soepje",
+            "De soep is lekker warm."
+          ],
+          "Het-Brood": [
+            "Het Brood",
+            "Een basisvoedsel gemaakt van deeg.",
+            "Broden",
+            "Broodje",
+            "Ik eet brood bij het ontbijt."
+          ]
+        },
+        "Fruit": {
+          "De-Aardbei": [
+            "De Aardbei",
+            "Een rode, zoete vrucht.",
+            "Aardbeien",
+            "Aardbeitje",
+            "Aardbeien zijn lekker met slagroom."
+          ],
+          "De-Appel": [
+            "De Appel",
+            "Een populaire vrucht.",
+            "Appels",
+            "Appeltje",
+            "Ik eet een appel als snack.",
+            "[ah-puhl]",
+            "c"
+          ],
+          "De-Banaan": [
+            "De Banaan",
+            "Een gele vrucht.",
+            "Bananen",
+            "Banaantje",
+            "De aap eet een banaan.",
+            "[bah-naan]",
+            "c"
+          ],
+          "De-Druif": [
+            "De Druif",
+            "Een kleine vrucht in trossen.",
+            "Druiven",
+            "Druifje",
+            "Wijn wordt gemaakt van druiven."
+          ]
+        },
+        "Greeting": {
+          "Doei": [
+            "Doei",
+            "Informeel afscheid.",
+            "Doei, tot morgen!"
+          ],
+          "Goedemiddag": [
+            "Goedemiddag",
+            "Begroeting gebruikt in de middag.",
+            "Goedemiddag mevrouw."
+          ],
+          "Goedemorgen": [
+            "Goedemorgen",
+            "Begroeting gebruikt in de ochtend.",
+            "Goedemorgen, lekker geslapen?"
+          ],
+          "Goedenavond": [
+            "Goedenavond",
+            "Begroeting gebruikt in de avond.",
+            "Goedenavond allemaal!"
+          ],
+          "Hallo": [
+            "Hallo",
+            "Een informele begroeting.",
+            "Hallo, hoe gaat het?"
+          ],
+          "Tot-Ziens": [
+            "Tot ziens",
+            "Formeel afscheid.",
+            "Tot ziens en een fijne dag!"
+          ]
+        },
+        "Person": {
+          "De-Baby": [
+            "De Baby",
+            "Een heel jong kind.",
+            "Baby's",
+            "Babytje",
+            "De baby slaapt."
+          ],
+          "De-Man": [
+            "De Man",
+            "Een volwassen mannelijk persoon.",
+            "Mannen",
+            "Mannetje",
+            "De man leest een boek.",
+            "[mahn]",
+            "m"
+          ],
+          "De-Vrouw": [
+            "De Vrouw",
+            "Een volwassen vrouwelijk persoon.",
+            "Vrouwen",
+            "Vrouwtje",
+            "De vrouw kookt eten.",
+            "[vrow]",
+            "f"
+          ],
+          "Het-Kind": [
+            "Het Kind",
+            "Een jong persoon.",
+            "Kinderen",
+            "Kindje",
+            "Het kind speelt buiten."
+          ]
+        },
+        "Vegetable": {
+          "De-Aardappel": [
+            "De Aardappel",
+            "Een veelgebruikte groente.",
+            "Aardappelen",
+            "Aardappeltje",
+            "We eten aardappelen bij het avondeten."
+          ],
+          "De-Tomaat": [
+            "De Tomaat",
+            "Een rode groente/vrucht.",
+            "Tomaten",
+            "Tomaatje",
+            "De tomaat is rood en sappig."
+          ],
+          "De-Ui": [
+            "De Ui",
+            "Een groente met lagen.",
+            "Uien",
+            "Uitje",
+            "De ui maakt je aan het huilen."
+          ],
+          "De-Wortel": [
+            "De Wortel",
+            "Een oranje groente.",
+            "Wortels",
+            "Worteltje",
+            "Ik eet een wortel."
+          ]
+        }
+      },
+      "Verb": {
+        "Communication": {
+          "Antwoorden": [
+            "Antwoorden",
+            "Reageren op een vraag.",
+            {
+              "ik": "antwoord",
+              "jij": "antwoordt",
+              "hij/zij": "antwoordt",
+              "wij": "antwoorden",
+              "jullie": "antwoorden",
+              "zij (mv)": "antwoorden"
+            },
+            "Kun je antwoorden?"
+          ],
+          "Luisteren": [
+            "Luisteren",
+            "Aandachtig horen.",
+            {
+              "ik": "luister",
+              "jij": "luistert",
+              "hij/zij": "luistert",
+              "wij": "luisteren",
+              "jullie": "luisteren",
+              "zij (mv)": "luisteren"
+            },
+            "Luister naar de muziek."
+          ],
+          "Praten": [
+            "Praten",
+            "Woorden spreken.",
+            {
+              "ik": "praat",
+              "jij": "praat",
+              "hij/zij": "praat",
+              "wij": "praten",
+              "jullie": "praten",
+              "zij (mv)": "praten"
+            },
+            "We praten over het weer."
+          ],
+          "Vragen": [
+            "Vragen",
+            "Een vraag stellen.",
+            {
+              "ik": "vraag",
+              "jij": "vraagt",
+              "hij/zij": "vraagt",
+              "wij": "vragen",
+              "jullie": "vragen",
+              "zij (mv)": "vragen"
+            },
+            "Mag ik iets vragen?"
+          ]
+        },
+        "Daily-Actions": {
+          "Drinken": [
+            "Drinken",
+            "Vloeistof consumeren.",
+            {
+              "ik": "drink",
+              "jij": "drinkt",
+              "hij/zij": "drinkt",
+              "wij": "drinken",
+              "jullie": "drinken",
+              "zij (mv)": "drinken"
+            },
+            "Ik drink water."
+          ],
+          "Eten": [
+            "Eten",
+            "Voedsel consumeren.",
+            {
+              "ik": "eet",
+              "jij": "eet",
+              "hij/zij": "eet",
+              "wij": "eten",
+              "jullie": "eten",
+              "zij (mv)": "eten"
+            },
+            "Wij eten samen."
+          ],
+          "Lezen": [
+            "Lezen",
+            "Tekst interpreteren.",
+            {
+              "ik": "lees",
+              "jij": "leest",
+              "hij/zij": "leest",
+              "wij": "lezen",
+              "jullie": "lezen",
+              "zij (mv)": "lezen"
+            },
+            "Zij leest een boek."
+          ],
+          "Lopen": [
+            "Lopen",
+            "Zich voortbewegen te voet.",
+            {
+              "ik": "loop",
+              "jij": "loopt",
+              "hij/zij": "loopt",
+              "wij": "lopen",
+              "jullie": "lopen",
+              "zij (mv)": "lopen"
+            },
+            "Ik loop naar school."
+          ],
+          "Schrijven": [
+            "Schrijven",
+            "Tekst produceren.",
+            {
+              "ik": "schrijf",
+              "jij": "schrijft",
+              "hij/zij": "schrijft",
+              "wij": "schrijven",
+              "jullie": "schrijven",
+              "zij (mv)": "schrijven"
+            },
+            "Hij schrijft een brief."
+          ],
+          "Slapen": [
+            "Slapen",
+            "Rusten met gesloten ogen.",
+            {
+              "ik": "slaap",
+              "jij": "slaapt",
+              "hij/zij": "slaapt",
+              "wij": "slapen",
+              "jullie": "slapen",
+              "zij (mv)": "slapen"
+            },
+            "De baby slaapt."
+          ]
+        },
+        "Movement": {
+          "Fietsen": [
+            "Fietsen",
+            "Rijden op een fiets.",
+            {
+              "ik": "fiets",
+              "jij": "fietst",
+              "hij/zij": "fietst",
+              "wij": "fietsen",
+              "jullie": "fietsen",
+              "zij (mv)": "fietsen"
+            },
+            "Nederlanders fietsen veel."
+          ],
+          "Rennen": [
+            "Rennen",
+            "Snel lopen.",
+            {
+              "ik": "ren",
+              "jij": "rent",
+              "hij/zij": "rent",
+              "wij": "rennen",
+              "jullie": "rennen",
+              "zij (mv)": "rennen"
+            },
+            "De kinderen rennen in het park."
+          ],
+          "Springen": [
+            "Springen",
+            "Van de grond af komen.",
+            {
+              "ik": "spring",
+              "jij": "springt",
+              "hij/zij": "springt",
+              "wij": "springen",
+              "jullie": "springen",
+              "zij (mv)": "springen"
+            },
+            "Het konijn springt hoog."
+          ],
+          "Zwemmen": [
+            "Zwemmen",
+            "Bewegen door water.",
+            {
+              "ik": "zwem",
+              "jij": "zwemt",
+              "hij/zij": "zwemt",
+              "wij": "zwemmen",
+              "jullie": "zwemmen",
+              "zij (mv)": "zwemmen"
+            },
+            "Ik zwem in het zwembad."
+          ]
+        }
+      }
+    }
+  },
+  "arabicAlphabet": {},
+  "lessons": {},
+  "labels": {
+    "practice": "Oefenen",
+    "back": "Terug",
+    "definition": "Definitie",
+    "plural": "Meervoud",
+    "diminutive": "Verkleinwoord",
+    "conjugation": "Vervoeging",
+    "example": "Voorbeeld",
+    "categories": "Categorieën",
+    "words": "Woorden",
+    "practiceThis": "Oefen dit",
+    "tapToFlip": "Tik om te draaien",
+    "whatDoes": "Wat betekent",
+    "correct": "Correct!",
+    "incorrect": "Fout",
+    "correctAnswer": "Juiste antwoord",
+    "check": "Controleer",
+    "skip": "Overslaan",
+    "continue": "Doorgaan",
+    "finish": "Klaar",
+    "noWords": "Geen woorden beschikbaar.",
+    "backToHome": "Terug naar home",
+    "yourCourses": "Jouw Cursussen",
+    "noCourses": "Nog geen cursussen. Tik op + om er een toe te voegen.",
+    "whatLangSpeak": "Welke taal spreek je?",
+    "selectConcept": "Selecteer concept",
+    "whatLearn": "Wat wil je leren?",
+    "alreadyAdded": "(al toegevoegd)",
+    "settings": "Instellingen",
+    "signOut": "Uitloggen",
+    "sessionComplete": "Sessie voltooid!",
+    "wordsLearned": "Woorden geoefend",
+    "accuracy": "Nauwkeurigheid",
+    "greatJob": "Goed bezig!",
+    "keepGoing": "Ga zo door!",
+    "nice": "Netjes!",
+    "perfect": "Perfect!",
+    "wellDone": "Goed gedaan!",
+    "awesome": "Geweldig!",
+    "profile": "Profiel",
+    "root": "Start",
+    "search": "Zoeken",
+    "courses": "Cursussen",
+    "notFound": "Niet gevonden.",
+    "interfaceLanguage": "Interface-taal",
+    "selectInterfaceLanguage": "Kies interface-taal",
+    "selectConceptShort": "Kies concept",
+    "selectCourse": "Kies cursus",
+    "create": "Aanmaken",
+    "cancel": "Annuleren",
+    "language": "Taal",
+    "typeAnswer": "Typ het antwoord",
+    "listenAndType": "Luister en typ wat je hoort",
+    "speakAnswer": "Spreek het antwoord uit",
+    "tapToSpeak": "Tik om te spreken",
+    "play": "Afspelen",
+    "yourAnswer": "Jouw antwoord",
+    "selectMeaning": "Kies de betekenis",
+    "submit": "Verstuur",
+    "account": "Account",
+    "courseSettings": "Cursus",
+    "about": "Over",
+    "activeCourse": "Actieve cursus",
+    "changeInterfaceLanguage": "Wijzig interface-taal",
+    "changeCourse": "Wijzig actieve cursus",
+    "appVersion": "App-versie",
+    "builtWith": "Gemaakt met Lovable",
+    "searchSettings": "Instellingen zoeken",
+    "noResults": "Geen resultaten",
+    "deleteAccount": "Verwijder account",
+    "deleteAccountConfirm": "Weet je het zeker? Dit kan niet ongedaan worden gemaakt.",
+    "dictionary": "Woordenboek",
+    "marked": "Gemarkeerd",
+    "noMarkedWords": "Nog geen gemarkeerde woorden.",
+    "mark": "Markeer",
+    "unmark": "Markering verwijderen",
+    "learningPath": "Leerpad",
+    "currentUnit": "Huidige unit",
+    "unit": "Unit",
+    "speakNow": "Spreek nu",
+    "listenAndSpeak": "Luister en spreek het woord",
+    "speakWord": "Spreek het woord uit",
+    "tryAgain": "Probeer opnieuw",
+    "pronunciation": "Uitspraak",
+    "gender": "Geslacht",
+    "masculine": "mannelijk",
+    "feminine": "vrouwelijk",
+    "neuter": "onzijdig",
+    "common": "de-woord",
+    "yourAnswerWas": "Jouw antwoord",
+    "chess": "Schaken",
+    "beginner": "Beginner",
+    "intermediate": "Gemiddeld",
+    "advanced": "Gevorderd",
+    "manageCourses": "Cursussen beheren",
+    "theme": "Thema",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "themeSystem": "Systeem",
+    "accessibility": "Toegankelijkheid",
+    "textSize": "Tekstgrootte",
+    "textSizeSmall": "Klein",
+    "textSizeMedium": "Normaal",
+    "textSizeLarge": "Groot",
+    "highContrast": "Hoog contrast",
+    "highContrastDesc": "Pure zwart-witte randen en tekst",
+    "other": "Overig",
+    "chessPractice": "Oefenen",
+    "chessPuzzles": "Puzzels",
+    "completed": "Voltooid",
+    "lesson": "Les",
+    "puzzle": "Puzzel",
+    "whiteToMove": "Wit aan zet",
+    "blackToMove": "Zwart aan zet",
+    "yourTurn": "Jouw zet",
+    "correctMove": "Correcte zet!",
+    "wrongMove": "Verkeerde zet, probeer opnieuw",
+    "resetBoard": "Reset bord",
+    "revisit": "Herhalen",
+    "activeTab": "Actief",
+    "recallTab": "Te herhalen",
+    "recall": "Herhaling",
+    "noActive": "Niets aan het afkoelen.",
+    "noReady": "Nog niets om te herhalen.",
+    "flip": "Draaien",
+    "rateRecall": "Hoe goed wist je het?",
+    "ratingLow": "Nauwelijks",
+    "ratingHigh": "Perfect",
+    "select": "Selecteer",
+    "recallSelected": "Herhaal geselecteerde",
+    "notLoggedIn": "Niet ingelogd",
+    "signIn": "Inloggen",
+    "signInToSync": "Log in om voortgang te bewaren.",
+    "languages": "talen",
+    "letters": "letters",
+    "masteryProgress": "Voortgang",
+    "dueNow": "Nu te doen",
+    "coolingDown": "Aan het afkoelen",
+    "startRecall": "Start herhaling",
+    "deleteItem": "Verwijderen",
+    "addWord": "Toevoegen",
+    "editWord": "Bewerk woord",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "favorite": "Favoriet",
+    "unfavorite": "Verwijder favoriet",
+    "favorites": "Favorieten",
+    "custom": "Eigen",
+    "all": "Alles",
+    "filter": "Filter"
+  }
+}

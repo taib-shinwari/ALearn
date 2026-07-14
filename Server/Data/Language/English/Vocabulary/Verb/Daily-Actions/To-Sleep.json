@@ -1,0 +1,12 @@
+[
+  "To Sleep",
+  "To rest with eyes closed.",
+  {
+    "I": "sleep",
+    "you": "sleep",
+    "he/she": "sleeps",
+    "we": "sleep",
+    "they": "sleep"
+  },
+  "The baby sleeps."
+]

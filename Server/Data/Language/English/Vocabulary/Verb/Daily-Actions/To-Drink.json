@@ -1,0 +1,12 @@
+[
+  "To Drink",
+  "To consume liquid.",
+  {
+    "I": "drink",
+    "you": "drink",
+    "he/she": "drinks",
+    "we": "drink",
+    "they": "drink"
+  },
+  "I drink water."
+]

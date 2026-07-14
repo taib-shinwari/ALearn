@@ -1,0 +1,12 @@
+[
+  "To Eat",
+  "To consume food.",
+  {
+    "I": "eat",
+    "you": "eat",
+    "he/she": "eats",
+    "we": "eat",
+    "they": "eat"
+  },
+  "We eat together."
+]

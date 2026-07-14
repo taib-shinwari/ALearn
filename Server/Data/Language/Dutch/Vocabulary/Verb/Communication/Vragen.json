@@ -1,0 +1,13 @@
+[
+  "Vragen",
+  "Een vraag stellen.",
+  {
+    "ik": "vraag",
+    "jij": "vraagt",
+    "hij/zij": "vraagt",
+    "wij": "vragen",
+    "jullie": "vragen",
+    "zij (mv)": "vragen"
+  },
+  "Mag ik iets vragen?"
+]
