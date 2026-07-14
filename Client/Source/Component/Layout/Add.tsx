@@ -119,6 +119,7 @@ export function Add() {
       showGoBack={false}
       disableHeaderContainer={true}
       customTrigger={renderTriggerIcon()}
+
     >
       <div className="flex flex-col gap-1.5 px-3 pt-2 sm:p-2 w-full relative">
         {filteredLanguages.map((lang) => (

@@ -8,7 +8,6 @@ import { Layout } from "@/Component/Layout/Index";
 
 // Pages
 import AuthPage from "@/Page/Authorization";
-import FlashcardsPage from "@/Page/Flashcard";
 import NotFound from "@/Page/NotFound";
 
 // Modularized Views
@@ -41,7 +40,6 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/Sign" element={<AuthPage />} />
-              <Route path="/Recall" element={<FlashcardsPage />} />
 
               {/* Layout-wrapped application paths */}
               <Route element={<RouteLayout />}>

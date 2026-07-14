@@ -11,9 +11,11 @@ import { Input } from "@/Component/UI/Input";
 import { TitleBar } from "@/Component/UI/title-bar";
 import { HeaderSearch } from "@/Component/Search/HeaderSearch";
 import { RecallQueueButton } from "./AR"; 
-import { RecallButton } from "./Recall"; // Imported sibling RecallButton
-import { AICallButton } from "@/Component/AICallButton";
+import { RecallButton } from "./Recall"; 
 import { Add } from "./Add";
+import { AddWord } from "./AddWord";
+import { SelectButton } from "./Select"; // Imported the new Select component
+import { AICallButton } from "@/Component/AICallButton";
 import { mobileSettingsStore } from "@/Component/Settings/mobileSettingsStore";
 
 interface HeaderProps {
@@ -142,15 +144,24 @@ export const Header = memo(function Header({
   // --- Dynamic Adjective/Vocabulary Route Validator ---
   const showRecallButton = useMemo(() => {
     const segments = location.pathname.split("/").filter(Boolean);
-    // Path structure check: /Language/:langName/Dictionary/Vocabulary/Adjective/...
     const isUnderAdjectiveVocab =
       segments[0]?.toLowerCase() === "language" &&
       segments[2]?.toLowerCase() === "dictionary" &&
       segments[3]?.toLowerCase() === "vocabulary" &&
       segments[4]?.toLowerCase() === "adjective";
 
-    // Only render if we are at least inside a subcategory under Adjective (length >= 6)
     return isUnderAdjectiveVocab && segments.length >= 6;
+  }, [location.pathname]);
+
+  // --- Strict Subcategory "AddWord" & "Select" Validator ---
+  const showSubcategoryControls = useMemo(() => {
+    const segments = location.pathname.split("/").filter(Boolean);
+    return (
+      segments[0]?.toLowerCase() === "language" &&
+      segments[2]?.toLowerCase() === "dictionary" &&
+      segments[3]?.toLowerCase() === "vocabulary" &&
+      segments.length === 6
+    );
   }, [location.pathname]);
 
   useEffect(() => {
@@ -335,7 +346,7 @@ export const Header = memo(function Header({
       )}
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* ROW 1: BACK BUTTON, ORIGINAL TITLE CONTAINER, INLINE RECALL IF NOT SPLIT */}
+      {/* ROW 1: BACK BUTTON, TITLE, ADD, ADDWORD & INLINE CONTROLS */}
       <div
         ref={leftGroupRef}
         className={cn(
@@ -381,16 +392,25 @@ export const Header = memo(function Header({
           </div>
         )}
 
+        {/* Global Track Language Add Button */}
         {!inLesson && !searchOpen && !isDesktopSettingsOpen && !isRootHome && isLanguageRootOnly && (
           <div className={cn("flex items-center gap-2 shrink-0 h-[40px]", isSplitLayout ? (isRtl ? "mr-auto" : "ml-auto") : "")}>
             <Add />
           </div>
         )}
 
-        {/* Inline RecallButton when layout is NOT split (Row 1 sibling layout) */}
-        {!isSplitLayout && showRecallButton && (
-          <div className="flex items-center shrink-0 h-[40px]">
-            <RecallButton />
+        {/* Word Creation Dropdown Trigger */}
+        {!inLesson && !searchOpen && !isDesktopSettingsOpen && !isRootHome && showSubcategoryControls && (
+          <div className={cn("flex items-center gap-2 shrink-0 h-[40px]", isSplitLayout ? (isRtl ? "mr-auto" : "ml-auto") : "")}>
+            <AddWord />
+          </div>
+        )}
+
+        {/* Inline Select & Recall Buttons (Row 1 inline sibling layout) */}
+        {!isSplitLayout && showSubcategoryControls && (
+          <div className="flex items-center gap-2 shrink-0 h-[40px]">
+            <SelectButton />
+            {showRecallButton && <RecallButton />}
           </div>
         )}
       </div>
@@ -411,10 +431,15 @@ export const Header = memo(function Header({
             !isSplitLayout && cn("w-auto shrink-0", isRtl ? "mr-auto" : "ml-auto")
           )}
         >
-          {/* Split Row 2 left: AR button & Split-positioned RecallButton */}
+          {/* Split Row 2 left: AR queue, Select Button, & Split-positioned RecallButton */}
           <div className="flex items-center shrink-0 h-[40px] gap-2">
             {isLanguageTree && recallQueue.length > 0 && <RecallQueueButton />}
-            {isSplitLayout && showRecallButton && <RecallButton />}
+            {isSplitLayout && showSubcategoryControls && (
+              <>
+                <SelectButton />
+                {showRecallButton && <RecallButton />}
+              </>
+            )}
           </div>
 
           <div className={cn("flex items-center gap-2 shrink-0 h-[40px]", isSplitLayout && (isRtl ? "mr-auto" : "ml-auto"))}>

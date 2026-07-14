@@ -13,7 +13,7 @@ export type SupportedLang = "Dutch" | "English" | "Arabic" | "Pashto";
 export type I18nLang = "Dutch" | "English" | "Arabic";
 
 // Pull directly from the build-time injected environment variables
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://upgraded-yodel-jjxvv67g9rx6hp775-4000.app.github.dev";
+const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://organic-space-guacamole-5gpjqpg7xgqrc4j55-4000.app.github.dev";
 
 // Legacy short-code → I18nLang map used by the UI layer
 const TO_I18N: Record<string, I18nLang> = {

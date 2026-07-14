@@ -71,6 +71,10 @@ interface AppContextType extends AppState {
   setRecallReturnPath: (p: string[] | null) => void;
   removeCourse: (courseName: string) => void;
   setSettingsSidebarOpen: (open: boolean) => void; // Added setter type
+  selectMode: boolean;
+  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
+  selected: Set<string>;
+  setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -320,7 +324,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const resetBrowse = () => setState(s => ({ ...s, browsePath: [] }));
   const setActiveRecall = (activeRecall: ActiveRecall | null) => setState(s => ({ ...s, activeRecall }));
   const setRecallReturnPath = (recallReturnPath: string[] | null) => setState(s => ({ ...s, recallReturnPath }));
-
+const [selectMode, setSelectMode] = useState<boolean>(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   return (
     <AppContext.Provider value={{
       ...state, 
@@ -329,6 +334,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       availableLearningLanguages,
       activeLanguages,
       inactiveLanguages,
+      selectMode,
+      setSelectMode,
+      selected,
+      setSelected,
       login, signup, logout, setInterfaceLanguage, setSelectedConcept,
       setLearningLanguage, completeIntroduction, addCourse, setActiveCourse,
       getReview, recordReview, removeCourse,

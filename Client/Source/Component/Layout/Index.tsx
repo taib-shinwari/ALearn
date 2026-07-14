@@ -1,11 +1,12 @@
-// @/Component/Layout.tsx (or wherever your layout file resides) COPYCAT
+// @/Component/Layout.tsx
 import { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { lessonProgress, type LessonProgressState } from "@/Library/lessonProgress";
 import { cn } from "@/Library/utils";
 import { Header } from "./Header";
-import { SettingsSidebar } from "@/Component/Settings/Index"; // Imported matching your updated file path
+import { SettingsSidebar } from "@/Component/Settings/Index"; 
+import RecallOverlay from "@/Component/Flashcard"; // 🚀 Imported your Flashcard overlay component
 
 interface LayoutProps {
   children: ReactNode;
@@ -58,8 +59,11 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* FIXED: Placed Sidebar element directly inside the DOM tree layout hook just like the original */}
+      {/* Global utility overlays and sidebars */}
       <SettingsSidebar />
+      
+      {/* 🚀 Rendered here so it actively listens to URL parameters across all pages */}
+      <RecallOverlay />
     </div>
   );
 }

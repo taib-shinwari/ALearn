@@ -28,7 +28,9 @@ interface NavigatorLayoutProps {
   onGoBack?: () => void;
   children: ReactNode;
   customTrigger?: ReactNode;
-  disableHeaderContainer?: boolean; // New prop to skip the wrapping Container component
+  disableHeaderContainer?: boolean; // Skip the wrapping Container component
+  width?: string;                    // Custom desktop width class (e.g., "sm:w-[400px]")
+  height?: string;                   // Custom desktop scroll max-height class (e.g., "sm:max-h-[500px]")
 }
 
 export function NavigatorLayout({
@@ -47,6 +49,8 @@ export function NavigatorLayout({
   children,
   customTrigger,
   disableHeaderContainer = false,
+  width = "sm:w-72",               // Default fallback width matching the closed trigger
+  height = "sm:max-h-[288px]",     // Default fallback scroll height
 }: NavigatorLayoutProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +100,7 @@ export function NavigatorLayout({
         className={cn(
           "transition-all duration-200 shadow-none select-none inline-flex items-center justify-center text-foreground cursor-pointer text-sm font-medium",
           isOpen
-            ? "max-sm:hidden sm:w-72 px-2 cursor-default rounded-t-[40px] rounded-b-none border border-border/30 border-b-transparent z-0 justify-between bg-[#fafafa] dark:bg-zinc-900 h-8 sm:h-9"
+            ? cn("max-sm:hidden px-2 cursor-default rounded-t-[40px] rounded-b-none border border-border/30 border-b-transparent z-0 justify-between bg-[#fafafa] dark:bg-zinc-900 h-8 sm:h-9", width)
             : customTrigger
               ? "rounded-[40px] bg-background border border-border hover:bg-muted/60 p-2 gap-2"
               : "w-auto max-w-[150px] sm:max-w-[250px] px-3.5 h-8 sm:h-9 rounded-[40px] bg-[#fafafa] dark:bg-zinc-900 border border-border/30 hover:bg-accent justify-between"
@@ -112,7 +116,10 @@ export function NavigatorLayout({
 
       {isOpen && (
         // PAGE — the main container. Everything else lives inside this.
-        <div className="max-sm:fixed max-sm:inset-0 max-sm:w-screen max-sm:h-[100dvh] max-sm:bg-background max-sm:z-[9999] max-sm:flex max-sm:flex-col sm:absolute sm:top-0 sm:left-0 sm:right-0 sm:z-50">
+        <div className={cn(
+          "max-sm:fixed max-sm:inset-0 max-sm:w-screen max-sm:h-[100dvh] max-sm:bg-background max-sm:z-[9999] max-sm:flex max-sm:flex-col sm:absolute sm:top-0 sm:left-0 sm:z-50",
+          width
+        )}>
 
           <div className="bg-background text-foreground w-full max-sm:rounded-none max-sm:border-0 max-sm:flex-1 max-sm:flex max-sm:flex-col sm:rounded-[32px] sm:border sm:border-border/30 overflow-visible relative [.high-contrast_&]:border-black">
 
@@ -293,9 +300,10 @@ export function NavigatorLayout({
             {/* SCROLL CONTAINER */}
             <div
               className={cn(
-                "space-y-1.5 sm:space-y-0 max-sm:flex-1 max-sm:h-full sm:max-h-[288px] overflow-y-auto max-sm:px-4 select-none pb-4 relative z-10 max-sm:rounded-none sm:rounded-[32px]",
+                "space-y-1.5 sm:space-y-0 max-sm:flex-1 max-sm:h-full overflow-y-auto max-sm:px-4 select-none pb-4 relative z-10 max-sm:rounded-none sm:rounded-[32px]",
                 "max-sm:pt-14 sm:pt-11",
-                "scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                "scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+                height
               )}
             >
               {children}

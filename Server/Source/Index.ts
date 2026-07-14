@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Enable CORS middleware to allow requests from your frontend codespace port
 app.use(cors({
-  origin: "https://upgraded-yodel-jjxvv67g9rx6hp775-8080.app.github.dev",
+  origin: "https://organic-space-guacamole-5gpjqpg7xgqrc4j55-8080.app.github.dev",
   credentials: true
 }));
 
