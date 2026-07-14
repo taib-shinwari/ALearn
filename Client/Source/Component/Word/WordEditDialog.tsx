@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FullPageDialog } from "@/Component/UI/full-page-dialog";
-import { Button } from "@/Component/UI/button";
-import { Input } from "@/Component/UI/input";
+import { Button } from "@/Component/UI/Button";
+import { Input } from "@/Component/UI/Input";
 import { Textarea } from "@/Component/UI/textarea";
 import type { WordDetail } from "@/Hook/useCustomWords";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";

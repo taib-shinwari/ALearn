@@ -7,7 +7,7 @@ export type I18nLang = "Dutch" | "English" | "Arabic";
 export type ShortLang = "en" | "nl" | "ar" | "ps";
 
 // FIX: Pull directly from the build-time injected environment variables
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://solid-xylophone-x5j776p4xrx636vrp-4000.app.github.dev";
+const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://upgraded-yodel-jjxvv67g9rx6hp775-4000.app.github.dev";
 
 const SHORT_TO_I18N: Record<string, I18nLang> = {
   en: "English",

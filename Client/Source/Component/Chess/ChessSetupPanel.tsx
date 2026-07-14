@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Container } from "@/Component/UI/container";
 import { TitleBar } from "@/Component/UI/title-bar";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Slider } from "@/Component/UI/slider";
 import { Switch } from "@/Component/UI/switch";
 import { cn } from "@/Library/utils";

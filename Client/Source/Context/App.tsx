@@ -1,9 +1,9 @@
+// @/Context/App.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ReviewState, createReviewState, updateReview } from "@/Library/spacedRepetition";
 import type { RecallItem, RecallScope } from "@/Library/recall";
 import { browsePathToUrl, sameBrowsePath, urlToBrowsePath } from "@/Library/navigation";
 
-// Master list of supported languages
 export const ALL_LANGUAGES = ["English", "Nederlands", "Arabic", "Pashto"];
 
 export interface Course {
@@ -26,7 +26,7 @@ export interface ActiveRecall {
 interface AppState {
   isAuthenticated: boolean;
   user: { firstName: string; email: string } | null;
-  interfaceLanguage: string; // Guaranteed fallback to string
+  interfaceLanguage: string;
   selectedConcept: string | null;
   learningLanguage: string | null;
   introductionCompleted: boolean;
@@ -39,15 +39,14 @@ interface AppState {
   browsePath: string[];
   activeRecall: ActiveRecall | null;
   recallReturnPath: string[] | null;
+  isSettingsSidebarOpen: boolean; // Added state flag
 }
 
 interface AppContextType extends AppState {
-  // Calculated Language Selectors
   availableLearningLanguages: string[];
   activeLanguages: string[];
   inactiveLanguages: string[];
   
-  // Actions
   login: (email: string, password: string) => boolean;
   signup: (firstName: string, email: string, password: string) => boolean;
   logout: () => void;
@@ -71,6 +70,7 @@ interface AppContextType extends AppState {
   setActiveRecall: (r: ActiveRecall | null) => void;
   setRecallReturnPath: (p: string[] | null) => void;
   removeCourse: (courseName: string) => void;
+  setSettingsSidebarOpen: (open: boolean) => void; // Added setter type
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -97,6 +97,7 @@ const defaultState: AppState = {
   browsePath: [],
   activeRecall: null,
   recallReturnPath: null,
+  isSettingsSidebarOpen: false, // Added default state
 };
 
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
@@ -126,32 +127,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       merged.browsePath = urlPath ?? (Array.isArray(merged.browsePath) ? merged.browsePath : []);
       merged.activeRecall = merged.activeRecall ?? null;
       merged.recallReturnPath = merged.recallReturnPath ?? null;
+      merged.isSettingsSidebarOpen = false; // Reset sidebar state on refresh
       return merged;
     }
     const urlPath = typeof window !== "undefined" ? urlToBrowsePath(window.location.pathname) : null;
     return urlPath ? { ...defaultState, browsePath: urlPath } : defaultState;
   });
 
-  // Dynamic Language Filtering Logic
+  const [isSettingsSidebarOpen, setSettingsSidebarOpen] = useState(false);
+
   const currentInterface = state.interfaceLanguage;
 
-  // 1. Available languages to learn (Hides the active interface language completely)
   const availableLearningLanguages = ALL_LANGUAGES.filter(
     (lang) => lang.toLowerCase() !== currentInterface.toLowerCase()
   );
 
-  // 2. Active Languages (Languages the user has established a course tracking footprint in)
   const activeLanguages = ALL_LANGUAGES.filter((lang) =>
     state.courses.some((course) => course.toLang.toLowerCase() === lang.toLowerCase())
   );
 
-  // 3. Inactive Languages (Languages remaining at start state, excluding active learning targets)
   const inactiveLanguages = ALL_LANGUAGES.filter(
     (lang) => !activeLanguages.some(al => al.toLowerCase() === lang.toLowerCase()) && lang.toLowerCase() !== currentInterface.toLowerCase()
   );
 
   useEffect(() => {
-    localStorage.setItem("appState", JSON.stringify(state));
+    const { isSettingsSidebarOpen, ...stateToSave } = state;
+    localStorage.setItem("appState", JSON.stringify(stateToSave));
   }, [state]);
 
   useEffect(() => {
@@ -323,6 +324,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       ...state, 
+      isSettingsSidebarOpen, // Bound to live state
+      setSettingsSidebarOpen, // Bound to live setter function
       availableLearningLanguages,
       activeLanguages,
       inactiveLanguages,

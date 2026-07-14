@@ -6,9 +6,7 @@ import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useMarkedWords } from "@/Hook/useMarkedWords";
 import { useFavoriteWords } from "@/Hook/useFavoriteWords";
 import { useCustomWords } from "@/Hook/useCustomWords";
-import { WordDetailView } from "@/Component/View/Word";
-import { RecallButton } from "@/Component/RecallButton";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { CardButton } from "@/Component/UI/card-button";
 import { WordEditDialog } from "@/Component/Word/WordEditDialog";
 import { cn } from "@/Library/utils";
@@ -32,8 +30,6 @@ export default function DictionaryWord() {
   const [resolvedWords, setResolvedWords] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const [activeWordId, setActiveWordId] = useState<string | null>(null);
-
   useEffect(() => {
     if (!categoryId || !subcategoryId) return;
 
@@ -41,10 +37,8 @@ export default function DictionaryWord() {
     fetch(`${BACKEND_BASE_URL}/api/language-corpus?lang=${encodeURIComponent(activeLangName)}`)
       .then(res => res.ok ? res.json() : null)
       .then(corpus => {
-        // Extract words object map from the nested tree structure
         const subcategoryData = corpus?.vocabularyGrammar?.[DEFAULT_SECTION]?.[categoryId]?.[subcategoryId] || {};
         
-        // Map over data keys (wordSlugs) and format them inline matching wordDetailFromApi transformations
         const compiled = Object.keys(subcategoryData).map(slug => 
           wordDetailFromApi(slug, subcategoryData[slug], activeLangName)
         );
@@ -73,17 +67,6 @@ export default function DictionaryWord() {
     return <div className="p-4 text-sm">Loading...</div>;
   }
 
-  if (activeWordId) {
-    const raw = allWords.find(w => w.id === activeWordId);
-    if (!raw) return <div className="px-4 text-sm">{t("notFound")}</div>;
-    return (
-      <div className="space-y-4">
-        <Button onClick={() => setActiveWordId(null)} className="ml-4">← Back to words</Button>
-        <WordDetailView categoryId={categoryId || ""} subcategoryId={subcategoryId || ""} word={raw} isCustom={customWords.some(w => w.id === activeWordId)} />
-      </div>
-    );
-  }
-
   const now = Date.now();
   const wordCooling = (wid: string) => {
     const item = recallQueue.find(r => r.scope === "word" && r.categoryId === categoryId && r.subcategoryId === subcategoryId && r.wordId === wid);
@@ -102,7 +85,6 @@ export default function DictionaryWord() {
   return (
     <div className="space-y-4 px-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <RecallButton scope="subcategory" categoryId={categoryId || ""} subcategoryId={subcategoryId || ""} className="flex-1 min-w-[160px]" />
         <Button onClick={() => setFilter(f => f === "all" ? "marked" : f === "marked" ? "favorites" : f === "favorites" ? "custom" : "all")} active={filter !== "all"}>
           <Filter className="h-4 w-4 mr-2" />
           {filter.toUpperCase()}
@@ -132,9 +114,18 @@ export default function DictionaryWord() {
           return (
             <CardButton
               key={word.id}
-              onClick={() => selectMode ? toggle(word.id) : setActiveWordId(word.id)}
+              onClick={() => {
+                if (selectMode) {
+                  toggle(word.id);
+                } else {
+                  navigate(`/Language/${activeLangName}/Dictionary/Vocabulary/${categoryId}/${subcategoryId}/${encodeURIComponent(word.id)}`);
+                }
+              }}
               disabled={selectMode && cooling}
-              className={cn("min-h-[80px] flex flex-col justify-between relative", selectMode && isSel && "bg-foreground text-background border-foreground")}
+              className={cn(
+                "min-h-[80px] flex flex-col justify-between relative rounded-lg", 
+                selectMode && isSel && "bg-foreground text-background border-foreground"
+              )}
             >
               {selectMode && (
                 <span className="absolute top-2 right-2">

@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { Chess } from "chess.js";
-import { PieceTracker } from "../../chessHelpers";
+import { PieceTracker } from "../chessHelpers";
 import { random960Fen } from "@/Library/chess960";
 import { playMoveSound } from "./Use-Audio";
-import type { GameConfig } from "../../ChessSetupPanel";
-import type { PerMove } from "../../analysis/classification";
-import type { VariationCursor } from "../../MovesList";
+import type { GameConfig } from "../ChessSetupPanel";
+import type { PerMove } from "../analysis/classification";
+import type { VariationCursor } from "../MovesList";
 import type { PlayState } from "./Types";
 import type { Premove } from "./Use-Premove";
 

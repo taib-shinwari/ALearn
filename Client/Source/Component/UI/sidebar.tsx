@@ -3,10 +3,10 @@ import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 
-import { useIsMobile } from "@/Hook/use-mobile";
+import { useIsMobile } from "@/Hook/Use-Mobile";
 import { cn } from "@/Library/utils";
-import { Button } from "@/Component/UI/button";
-import { Input } from "@/Component/UI/input";
+import { Button } from "@/Component/UI/Button";
+import { Input } from "@/Component/UI/Input";
 import { Separator } from "@/Component/UI/separator";
 import { Sheet, SheetContent } from "@/Component/UI/sheet";
 import { Skeleton } from "@/Component/UI/skeleton";

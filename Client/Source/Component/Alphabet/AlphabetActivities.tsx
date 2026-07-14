@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Volume2, Check, X as XIcon, Repeat, Ear, Layers3, BookOpen } from "lucide-react";
 import { Container } from "@/Component/UI/container";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { TitleBar } from "@/Component/UI/title-bar";
 import { cn } from "@/Library/utils";
 import { speak, isSpeechAvailable } from "@/Component/Practice/speech";

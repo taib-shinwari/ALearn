@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Brain, Clock } from "lucide-react";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { useApp } from "@/Context/App";
 import { formatCountdown, isReady, recallId, type RecallScope } from "@/Library/recall";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";

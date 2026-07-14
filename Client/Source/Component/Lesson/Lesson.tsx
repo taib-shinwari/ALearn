@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lock, Star } from "lucide-react";
 import { CardButton } from "@/Component/UI/card-button";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { cn } from "@/Library/utils";
 import { toast } from "@/Component/UI/use-toast";

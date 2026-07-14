@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Inbox, Trash2, Clock, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { FullPageDialog } from "@/Component/UI/full-page-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Component/UI/tabs";

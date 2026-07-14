@@ -1,5 +1,5 @@
 import { Card } from "@/Component/UI/card";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { cn } from "@/Library/utils";
 import { CLASS_META, CLASS_ORDER, type ClassKind, type PerMove, type PlayerSummary } from "./classification";
 import { EvalChart } from "./EvalChart";

@@ -8,7 +8,6 @@ import { Layout } from "@/Component/Layout/Index";
 
 // Pages
 import AuthPage from "@/Page/Authorization";
-import SettingsPage from "@/Page/Settings";
 import FlashcardsPage from "@/Page/Flashcard";
 import NotFound from "@/Page/NotFound";
 
@@ -22,6 +21,7 @@ import DictionaryRoot from "@/Page/Language/Dictionary/Root";
 import DictionaryCategory from "@/Page/Language/Dictionary/Category";
 import DictionarySubcategory from "@/Page/Language/Dictionary/Subcategory";
 import DictionaryWord from "@/Page/Language/Dictionary/Word";
+import WordDetailView from "@/Page/Language/Dictionary/Detail"; // Clean integration!
 
 const queryClient = new QueryClient();
 
@@ -41,13 +41,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/Sign" element={<AuthPage />} />
-              <Route path="/Settings" element={<SettingsPage />} />
               <Route path="/Recall" element={<FlashcardsPage />} />
-              
-              {/* Legacy lowercase aliases */}
-              <Route path="/sign" element={<AuthPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/recall" element={<FlashcardsPage />} />
 
               {/* Layout-wrapped application paths */}
               <Route element={<RouteLayout />}>
@@ -66,7 +60,10 @@ export default function App() {
                       <Route path="Vocabulary">
                         <Route index element={<DictionaryCategory />} />
                         <Route path=":categoryId" element={<DictionarySubcategory />} />
+                        {/* Render word cards list */}
                         <Route path=":categoryId/:subcategoryId" element={<DictionaryWord />} />
+                        {/* Dedicated Page for Word Card Details (No duplicate preceding route) */}
+                        <Route path=":categoryId/:subcategoryId/:wordId" element={<WordDetailView />} />
                       </Route>
                     </Route>
                   </Route>

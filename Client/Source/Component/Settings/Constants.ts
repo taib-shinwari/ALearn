@@ -1,5 +1,5 @@
 import { User, Globe, LogOut, Trash2, BookMarked, Palette, Accessibility, Crown } from "lucide-react";
-import type { SettingsCategoryConfig, SettingsSubcategoryConfig } from "./types";
+import type { SettingsCategoryConfig, SettingsSubcategoryConfig } from "./Types";
 
 export const SETTINGS_CATEGORIES: SettingsCategoryConfig[] = [
   { id: "profile",       labelKey: "account",            fallback: "Account",            icon: User,           hasSubcategories: true },

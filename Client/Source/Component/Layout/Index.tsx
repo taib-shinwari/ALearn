@@ -1,9 +1,11 @@
+// @/Component/Layout.tsx (or wherever your layout file resides) COPYCAT
 import { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { lessonProgress, type LessonProgressState } from "@/Library/lessonProgress";
 import { cn } from "@/Library/utils";
 import { Header } from "./Header";
+import { SettingsSidebar } from "@/Component/Settings/Index"; // Imported matching your updated file path
 
 interface LayoutProps {
   children: ReactNode;
@@ -43,6 +45,7 @@ export function Layout({ children }: LayoutProps) {
         // Pass down the state setter callback
         onLayoutChange={setIsHeaderSplit}
       />
+      
       <main 
         className={cn(
           "flex-1 w-full flex flex-col md:overflow-hidden",
@@ -54,6 +57,9 @@ export function Layout({ children }: LayoutProps) {
       >
         {children}
       </main>
+
+      {/* FIXED: Placed Sidebar element directly inside the DOM tree layout hook just like the original */}
+      <SettingsSidebar />
     </div>
   );
 }

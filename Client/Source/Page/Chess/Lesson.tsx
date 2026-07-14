@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chessboard } from "@/Component/Chess/Chessboard";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { ChevronRight, Star, Trophy } from "lucide-react";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";

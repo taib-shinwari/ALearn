@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Phone } from "lucide-react";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { AICallOverlay } from "./AICallOverlay";
 
 /**

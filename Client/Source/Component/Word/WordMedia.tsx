@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, Mic, MicOff } from "lucide-react";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { speak, isSpeechAvailable } from "@/Component/Practice/speech";
 import { fetchWordImage } from "@/Library/wordImage";

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Volume2, RotateCcw } from "lucide-react";
 import { Layout } from "@/Component/Layout/Index";
 import { CardButton } from "@/Component/UI/card-button";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { TitleBar } from "@/Component/UI/title-bar";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
@@ -12,10 +12,8 @@ import { speak, isSpeechAvailable } from "@/Component/Practice/speech";
 import { scheduleNext, recallId, type RecallItem } from "@/Library/recall";
 import { cn } from "@/Library/utils";
 
-// FIX: Localized type boundaries to prevent backend cross-contamination
 export type SupportedLang = "Dutch" | "English" | "Arabic" | "Pashto";
 
-// Helper mapper to translate internal UI shorthand codes to API expected Type names
 const MAP_LANG_CODE: Record<string, SupportedLang> = {
   nl: "Dutch",
   en: "English",
@@ -33,34 +31,39 @@ export default function FlashcardsPage() {
 
   const apiLangName = activeRecall ? (MAP_LANG_CODE[courseLang] || "English") : "English";
 
-  // Check if configuration exists safely via key matching arrays
-  const hasValidContext = useMemo(() => {
-    return !!activeRecall;
-  }, [activeRecall]);
+  const hasValidContext = useMemo(() => !!activeRecall, [activeRecall]);
 
-  // Dynamic state for matching flashcard content matrix from remote backend stream
+  // Client-side state managers
   const [deckSlugs, setDeckSlugs] = useState<string[]>([]);
-  const [activeWordData, setActiveWordData] = useState<any | null>(null);
+  const [subcategoryWords, setSubcategoryWords] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [ratings, setRatings] = useState<(1 | 2 | 3 | 4 | 5)[]>([]);
 
-  // 1. Fetch entire active list layout/slugs for this category bundle
+  // 1. Fetch entire active list layout from the EXISTING corpus endpoint
   useEffect(() => {
     if (!hasValidContext || !activeRecall) {
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-    fetch(
-      `${baseUrl}/api/word-slugs?lang=${encodeURIComponent(apiLangName)}&category=${encodeURIComponent(
-        activeRecall.categoryId
-      )}&subcategory=${encodeURIComponent(activeRecall.subcategoryId)}`
-    )
-      .then((res) => (res.ok ? res.json() : []))
-      .then((allSlugs: string[]) => {
+    
+    // REUSED WORKING ENDPOINT
+    fetch(`${baseUrl}/api/language-corpus?lang=${encodeURIComponent(apiLangName)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((corpus) => {
+        if (!corpus) return;
+
+        // Drill down to the specific subcategory (matching your dictionary routing)
+        const category = activeRecall.categoryId;
+        const subcategory = activeRecall.subcategoryId;
+        const subcategoryData = corpus?.vocabularyGrammar?.["Vocabulary"]?.[category]?.[subcategory] || {};
+        
+        const allSlugs = Object.keys(subcategoryData);
+
         if (activeRecall.wordId) {
           setDeckSlugs(allSlugs.includes(activeRecall.wordId) ? [activeRecall.wordId] : []);
         } else if (activeRecall.wordIds && activeRecall.wordIds.length) {
@@ -69,29 +72,25 @@ export default function FlashcardsPage() {
         } else {
           setDeckSlugs(allSlugs);
         }
+
+        // Cache the entire words map locally in state
+        setSubcategoryWords(subcategoryData);
       })
-      .catch((err) => console.error("Error fetching card layouts:", err))
+      .catch((err) => console.error("Error loading corpus client-side:", err))
       .finally(() => setLoading(false));
   }, [hasValidContext, activeRecall, apiLangName]);
 
-  // 2. Fetch specific word content metadata whenever track index increments
+  // 2. Client-side state derivation (No more network request needed here!)
   const currentSlug = deckSlugs[idx];
-  useEffect(() => {
-    if (!currentSlug || !activeRecall) {
-      setActiveWordData(null);
-      return;
-    }
-
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-    fetch(
-      `${baseUrl}/api/word-detail?lang=${encodeURIComponent(apiLangName)}&category=${encodeURIComponent(
-        activeRecall.categoryId
-      )}&subcategory=${encodeURIComponent(activeRecall.subcategoryId)}&wordId=${encodeURIComponent(currentSlug)}`
-    )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setActiveWordData(data))
-      .catch((err) => console.error("Failed loading exact word fields:", err));
-  }, [currentSlug, activeRecall, apiLangName]);
+  const activeWordData = useMemo(() => {
+    if (!currentSlug || !subcategoryWords) return null;
+    const rawData = subcategoryWords[currentSlug] || {};
+    return {
+      word: currentSlug,
+      meaning: rawData.translation || rawData.meaning || currentSlug,
+      ...rawData
+    };
+  }, [currentSlug, subcategoryWords]);
 
   const exitToReturn = () => {
     if (recallReturnPath) {
@@ -101,7 +100,6 @@ export default function FlashcardsPage() {
     navigate("/");
   };
 
-  // ── Body renderer: mirrors HomePage's renderBody() pattern ───────────
   const renderBody = () => {
     if (loading) {
       return <div className="text-sm py-12 text-center opacity-60">Synchronizing your flashcard collection...</div>;
@@ -116,11 +114,9 @@ export default function FlashcardsPage() {
       );
     }
 
-    // Parse fields safely out of the standard active state entry or local data parameters
     const target = currentSlug || "";
     const meaning = activeWordData?.meaning || currentSlug || "";
 
-    // Dynamic optional properties safely extracted down from the remote network state hook
     const definition = activeWordData?.definition;
     const plural = activeWordData?.plural;
     const diminutive = activeWordData?.diminutive;
@@ -188,7 +184,6 @@ export default function FlashcardsPage() {
 
     return (
       <div className="px-4 max-w-md mx-auto space-y-4">
-
         <Container className="flex items-center justify-between text-xs px-3 py-2">
           <span className="opacity-70">{idx + 1} / {deckSlugs.length}</span>
           <span className="font-medium truncate ml-2">

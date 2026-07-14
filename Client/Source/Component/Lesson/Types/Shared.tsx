@@ -1,5 +1,5 @@
 // Shared types + helpers used across every exercise type.
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { cn } from "@/Library/utils";
 
 export interface ExerciseProps {

@@ -2,28 +2,28 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Chess } from "chess.js";
 import { Chessboard } from "@/Component/Chess/Chessboard";
 import { Container } from "@/Component/UI/container";
-import { ChessSetupPanel, type GameConfig } from "../../ChessSetupPanel";
-import { ChessClock } from "../../ChessClock";
-import { MovesList } from "../../MovesList";
-import { MoveDetailPanel } from "../../MoveDetailPanel";
-import { PieceTracker } from "../../chessHelpers";
+import { ChessSetupPanel, type GameConfig } from "@/Component/Chess/ChessSetupPanel";
+import { ChessClock } from "@/Component/Chess/ChessClock";
+import { MovesList } from "@/Component/Chess/MovesList";
+import { MoveDetailPanel } from "@/Component/Chess/MoveDetailPanel";
+import { PieceTracker } from "@/Component/Chess/chessHelpers";
 import { findBestMove, findThreat, evaluate } from "@/Library/chessEngine";
 import { useChessSettings } from "@/Library/chessSettings";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Flag, Undo2, Lightbulb, Play, RotateCcw, BarChart3 } from "lucide-react";
 import { cn } from "@/Library/utils";
-import { analyseGame, summarisePlayer, type PerMove } from "../../analysis/classification";
-import { EvalBar } from "./Evalbar";
-import { playMoveSound } from "./Use-Audio";
-import { isPremoveLegal, boardFromFen, sqToRC, applyPremoveToFen } from "./ChessboardFEN";
-import { evalCache, bestCache, threatCache, ENGINE_REPLY_DELAY_MS } from "./EngineCache";
-import { usePremoves } from "./Use-Premove";
-import { useChessEngine } from "./Use-Chess-Engine";
-import { useVariations } from "./Use-Variation";
-import { useGameActions } from "./Use-Game-Action";
-import type { PlayState } from "./Types";
+import { analyseGame, summarisePlayer, type PerMove } from "../../Component/Chess/analysis/classification";
+import { EvalBar } from "@/Component/Chess/Play/Evalbar";
+import { playMoveSound } from "@/Component/Chess/Play/Use-Audio";
+import { isPremoveLegal, boardFromFen, sqToRC, applyPremoveToFen } from "@/Component/Chess/Play/ChessboardFEN";
+import { evalCache, bestCache, threatCache, ENGINE_REPLY_DELAY_MS } from "@/Component/Chess/Play/EngineCache";
+import { usePremoves } from "@/Component/Chess/Play/Use-Premove";
+import { useChessEngine } from "@/Component/Chess/Play/Use-Chess-Engine";
+import { useVariations } from "@/Component/Chess/Play/Use-Variation";
+import { useGameActions } from "@/Component/Chess/Play/Use-Game-Action";
+import type { PlayState } from "@/Component/Chess/Play/Types";
 
-const AnalysisReport = lazy(() => import("../../analysis/AnalysisReport").then(m => ({ default: m.AnalysisReport })));
+const AnalysisReport = lazy(() => import("../../Component/Chess/analysis/AnalysisReport").then(m => ({ default: m.AnalysisReport })));
 
 export function ChessPlayView() {
   const [settings] = useChessSettings();

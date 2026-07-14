@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "@/Context/App";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useMarkedWords } from "@/Hook/useMarkedWords";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { TitleBar } from "@/Component/UI/title-bar";
 

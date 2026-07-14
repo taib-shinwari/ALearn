@@ -1,7 +1,7 @@
-// @/Component/Layout/Header/Navigator/Utility.tsx
+// @/Component/Layout/Utility.tsx
 import { useEffect, useRef, ReactNode } from "react";
 import { ChevronDown, Search, X, ArrowLeft } from "lucide-react";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { cn } from "@/Library/utils";
 
@@ -28,6 +28,7 @@ interface NavigatorLayoutProps {
   onGoBack?: () => void;
   children: ReactNode;
   customTrigger?: ReactNode;
+  disableHeaderContainer?: boolean; // New prop to skip the wrapping Container component
 }
 
 export function NavigatorLayout({
@@ -45,6 +46,7 @@ export function NavigatorLayout({
   onGoBack,
   children,
   customTrigger,
+  disableHeaderContainer = false,
 }: NavigatorLayoutProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -132,9 +134,13 @@ export function NavigatorLayout({
                         <ArrowLeft className="h-5 w-5" />
                       </Button>
                     )}
-                    <Container className="flex items-center justify-center text-center max-w-full h-8 !py-0 px-4">
-                      {renderMobileHeaderLeft()}
-                    </Container>
+                    {disableHeaderContainer ? (
+                      renderMobileHeaderLeft()
+                    ) : (
+                      <Container className="flex items-center justify-center text-center max-w-full h-8 !py-0 px-4">
+                        {renderMobileHeaderLeft()}
+                      </Container>
+                    )}
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Button
@@ -210,9 +216,13 @@ export function NavigatorLayout({
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
                     )}
-                    <Container className="flex items-center justify-center text-center max-w-full h-7 !py-0 px-3">
-                      {renderDesktopHeaderLeft()}
-                    </Container>
+                    {disableHeaderContainer ? (
+                      renderDesktopHeaderLeft()
+                    ) : (
+                      <Container className="flex items-center justify-center text-center max-w-full h-7 !py-0 px-3">
+                        {renderDesktopHeaderLeft()}
+                      </Container>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0 mr-1">
                     <Button

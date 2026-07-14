@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "@/Context/App";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { Container } from "@/Component/UI/container";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { TitleBar } from "@/Component/UI/title-bar";
 import { LogOut, LogIn, Trash2 } from "lucide-react";
 

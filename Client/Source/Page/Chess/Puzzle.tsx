@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chessboard } from "@/Component/Chess/Chessboard";
 import { Container } from "@/Component/UI/container";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 
 // FIX: Localized type boundaries to eliminate backend build leakage

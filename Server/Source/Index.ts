@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Enable CORS middleware to allow requests from your frontend codespace port
 app.use(cors({
-  origin: "https://solid-xylophone-x5j776p4xrx636vrp-8080.app.github.dev",
+  origin: "https://upgraded-yodel-jjxvv67g9rx6hp775-8080.app.github.dev",
   credentials: true
 }));
 

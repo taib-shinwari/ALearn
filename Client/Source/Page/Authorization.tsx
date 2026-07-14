@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/Context/App";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/Component/UI/button";
+import { Button } from "@/Component/UI/Button";
 import { Checkbox } from "@/Component/UI/checkbox";
 import { cn } from "@/Library/utils";
 
