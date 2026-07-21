@@ -1,12 +1,9 @@
+// @/Component/Word/WordDetailView.tsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Bookmark, BookmarkCheck, Pencil, Star, Volume2 } from "lucide-react";
 import { CardButton } from "@/Component/UI/card-button";
 import { WordEditDialog } from "@/Component/Word/WordEditDialog";
-import { speak, isSpeechAvailable } from "@/Component/Practice/speech";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
-import { useMarkedWords } from "@/Hook/useMarkedWords";
-import { useFavoriteWords } from "@/Hook/useFavoriteWords";
 import { useCustomWords } from "@/Hook/useCustomWords";
 import { fetchWordImage } from "@/Library/wordImage";
 import { cn } from "@/Library/utils";
@@ -40,8 +37,6 @@ export default function WordDetailView() {
   const [flip, setFlip] = useState<FlipState>(0);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   
-  const { isMarked, toggle } = useMarkedWords();
-  const { isFavorite, toggle: toggleFav } = useFavoriteWords();
   const { customWords, updateCustomWord, removeCustomWord, setOverride } = useCustomWords(categoryId || "", subcategoryId || "");
   const [editOpen, setEditOpen] = useState(false);
 
@@ -133,8 +128,6 @@ export default function WordDetailView() {
 
   const targetText = (cLang === "ar" ? word.ar?.word : word[cLang]?.word) ?? word.en?.word;
   const frontPron  = (cLang === "ar" ? word.ar?.pronunciation : word[cLang]?.pronunciation) ?? undefined;
-  const marked  = isMarked(courseLang as any, word.id);
-  const favored = isFavorite(courseLang as any, word.id);
   const isFront = flip === 0;
 
   const isCustom = customWords.some(w => w.id === word.id);
@@ -145,54 +138,14 @@ export default function WordDetailView() {
         onClick={handleFlip}
         className={cn("w-full relative rounded-2xl", isFront ? "min-h-[140px]" : "min-h-[260px]")}
       >
-        {/* Action buttons */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-          {!isFront && (
+        {/* Floating Indicator for active flipping Language context */}
+        {!isFront && (
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
             <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
               {showLang}
             </span>
-          )}
-          {isSpeechAvailable() && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); speak(targetText, cLang); }}
-              className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
-              aria-label={t("play")}
-            >
-              <Volume2 className="h-4 w-4" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); toggle(courseLang as any, word.id); }}
-            className={cn(
-              "rounded-full p-2 border-2 border-border transition-colors",
-              marked ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background",
-            )}
-            aria-label={marked ? t("unmark") : t("mark")}
-          >
-            {marked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); toggleFav(courseLang as any, word.id); }}
-            className={cn(
-              "rounded-full p-2 border-2 border-border transition-colors",
-              favored ? "bg-foreground text-background" : "bg-background hover:bg-foreground hover:text-background",
-            )}
-            aria-label={favored ? (t("unfavorite") || "Unfavorite") : (t("favorite") || "Favorite")}
-          >
-            {favored ? <Star className="h-4 w-4 fill-current" /> : <Star className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
-            className="rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors"
-            aria-label={t("editWord") || "Edit word"}
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-        </div>
+          </div>
+        )}
 
         {/* Card body */}
         <div className="flex flex-col h-full text-left">
@@ -254,6 +207,7 @@ export default function WordDetailView() {
         </div>
       </CardButton>
 
+      {/* Global State/Trigger-Controlled Edit Dialog */}
       <WordEditDialog
         open={editOpen}
         onOpenChange={setEditOpen}

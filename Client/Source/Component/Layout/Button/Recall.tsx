@@ -80,14 +80,14 @@ export function RecallButton() {
     <button
       type="button"
       onClick={handleRecallClick}
-      className="relative flex items-center justify-center rounded-full p-2 bg-background border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+      className="w-10 h-10 shrink-0 relative flex items-center justify-center rounded-full bg-background border-2 border-border text-foreground hover:bg-foreground hover:text-background transition-colors"
       aria-label="Recall"
     >
       <Brain className="h-5 w-5" />
       
-      {/* Dynamic selection badge */}
+      {/* Dynamic selection badge adjusted for 40x40px alignment */}
       {hasSelections && (
-        <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold ring-2 ring-background">
+        <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-foreground text-background text-[10px] font-bold ring-2 ring-background">
           {selected.size}
         </span>
       )}

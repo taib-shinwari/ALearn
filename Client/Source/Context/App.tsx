@@ -14,6 +14,7 @@ export interface Course {
 
 export type ThemeChoice = "light" | "dark" | "system";
 export type TextSize = "sm" | "md" | "lg";
+export type FilterType = "all" | "marked" | "favorites" | "custom";
 
 export interface ActiveRecall {
   scope: RecallScope;
@@ -39,7 +40,7 @@ interface AppState {
   browsePath: string[];
   activeRecall: ActiveRecall | null;
   recallReturnPath: string[] | null;
-  isSettingsSidebarOpen: boolean; // Added state flag
+  isSettingsSidebarOpen: boolean; 
 }
 
 interface AppContextType extends AppState {
@@ -70,11 +71,21 @@ interface AppContextType extends AppState {
   setActiveRecall: (r: ActiveRecall | null) => void;
   setRecallReturnPath: (p: string[] | null) => void;
   removeCourse: (courseName: string) => void;
-  setSettingsSidebarOpen: (open: boolean) => void; // Added setter type
+  setSettingsSidebarOpen: (open: boolean) => void; 
   selectMode: boolean;
   setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   selected: Set<string>;
   setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
+  
+  // Filter System Props
+  filterOpen: boolean;
+  setFilterOpen: (open: boolean) => void;
+  selectedFilter: FilterType; 
+  setSelectedFilter: (filter: FilterType) => void;
+  
+  // 🚀 Aliases added to support both naming systems flawlessly
+  filter: FilterType;
+  setFilter: (filter: FilterType) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -101,7 +112,7 @@ const defaultState: AppState = {
   browsePath: [],
   activeRecall: null,
   recallReturnPath: null,
-  isSettingsSidebarOpen: false, // Added default state
+  isSettingsSidebarOpen: false, 
 };
 
 function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
@@ -131,7 +142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       merged.browsePath = urlPath ?? (Array.isArray(merged.browsePath) ? merged.browsePath : []);
       merged.activeRecall = merged.activeRecall ?? null;
       merged.recallReturnPath = merged.recallReturnPath ?? null;
-      merged.isSettingsSidebarOpen = false; // Reset sidebar state on refresh
+      merged.isSettingsSidebarOpen = false; 
       return merged;
     }
     const urlPath = typeof window !== "undefined" ? urlToBrowsePath(window.location.pathname) : null;
@@ -324,13 +335,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const resetBrowse = () => setState(s => ({ ...s, browsePath: [] }));
   const setActiveRecall = (activeRecall: ActiveRecall | null) => setState(s => ({ ...s, activeRecall }));
   const setRecallReturnPath = (recallReturnPath: string[] | null) => setState(s => ({ ...s, recallReturnPath }));
-const [selectMode, setSelectMode] = useState<boolean>(false);
+  
+  const [selectMode, setSelectMode] = useState<boolean>(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  
+  // States for filter mechanism
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
+
   return (
     <AppContext.Provider value={{
       ...state, 
-      isSettingsSidebarOpen, // Bound to live state
-      setSettingsSidebarOpen, // Bound to live setter function
+      isSettingsSidebarOpen, 
+      setSettingsSidebarOpen, 
       availableLearningLanguages,
       activeLanguages,
       inactiveLanguages,
@@ -344,6 +361,14 @@ const [selectMode, setSelectMode] = useState<boolean>(false);
       setTheme, setTextSize, setHighContrast,
       addRecallItem, removeRecallItem,
       setBrowsePath, pushBrowse, popBrowse, resetBrowse, setActiveRecall, setRecallReturnPath,
+      filterOpen,
+      setFilterOpen,
+      selectedFilter,
+      setSelectedFilter,
+      
+      // 🚀 EXPOSING ALIASES: Resolves the component system updates!
+      filter: selectedFilter,
+      setFilter: setSelectedFilter,
     }}>
       {children}
     </AppContext.Provider>

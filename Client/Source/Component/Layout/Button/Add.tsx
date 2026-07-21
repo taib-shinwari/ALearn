@@ -1,3 +1,4 @@
+// @/Component/Header/Add.tsx
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, Minus } from "lucide-react";
@@ -69,7 +70,6 @@ export function Add() {
   ];
 
   const renderHeader = () => {
-    // Shared container styling that aligns directly with the layout size of your SlidingPill
     const containerClasses = "flex items-center justify-center h-7 w-9 rounded-full bg-muted border border-border/40 text-muted-foreground/80 !py-0 !px-0";
 
     if (!hasActive) {
@@ -97,12 +97,8 @@ export function Add() {
     );
   };
 
-  const renderTriggerIcon = () => {
-    if (!hasInactive) {
-      return <Minus className="h-5 w-5" />;
-    }
-    return <Plus className="h-5 w-5" />;
-  };
+  // Dynamically determine the trigger icon based on whether courses are available to be added
+  const closedIcon = !hasInactive ? <Minus /> : <Plus />;
 
   return (
     <NavigatorLayout
@@ -118,8 +114,7 @@ export function Add() {
       renderDesktopHeaderLeft={renderHeader}
       showGoBack={false}
       disableHeaderContainer={true}
-      customTrigger={renderTriggerIcon()}
-
+      closedIcon={closedIcon} // <-- Passing clean, customized dynamic icon
     >
       <div className="flex flex-col gap-1.5 px-3 pt-2 sm:p-2 w-full relative">
         {filteredLanguages.map((lang) => (

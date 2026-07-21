@@ -1,8 +1,7 @@
-import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Volume2, RotateCcw } from "lucide-react";
-import { Layout } from "@/Component/Layout/Index";
-import { CardButton } from "@/Component/UI/card-button";
+// @/Component/Flashcard.tsx
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Volume2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { TitleBar } from "@/Component/UI/title-bar";
@@ -21,66 +20,113 @@ const MAP_LANG_CODE: Record<string, SupportedLang> = {
   ps: "Pashto"
 };
 
-export default function FlashcardsPage() {
+export default function RecallOverlay() {
   const navigate = useNavigate();
-  const {
-    activeRecall, addRecallItem, recallQueue,
-    recallReturnPath, setRecallReturnPath, setBrowsePath,
-  } = useApp();
+  const location = useLocation();
+  const { activeRecall, addRecallItem, recallQueue } = useApp();
   const { courseLang, t } = useCourseLanguage();
 
+  const isRecallActive = location.search.includes("Recall");
   const apiLangName = activeRecall ? (MAP_LANG_CODE[courseLang] || "English") : "English";
+  const hasValidContext = !!activeRecall;
 
-  const hasValidContext = useMemo(() => !!activeRecall, [activeRecall]);
-
-  // Client-side state managers
   const [deckSlugs, setDeckSlugs] = useState<string[]>([]);
   const [subcategoryWords, setSubcategoryWords] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState<boolean>(true);
-  const [idx, setIdx] = useState(0);
+  const [loading, setLoading] = useState<boolean>(false);
   const [flipped, setFlipped] = useState(false);
+  const [idx, setIdx] = useState(0);
   const [ratings, setRatings] = useState<(1 | 2 | 3 | 4 | 5)[]>([]);
 
-  // 1. Fetch entire active list layout from the EXISTING corpus endpoint
+  // Ref to track what deck we have loaded to prevent redundant triggers
+  const loadedDeckKeyRef = useRef<string | null>(null);
+
+  const persistenceKey = useMemo(() => {
+    if (!activeRecall) return null;
+    return `recall_state_${activeRecall.categoryId}_${activeRecall.subcategoryId}`;
+  }, [activeRecall]);
+
+  // Load corpus and initialize state
   useEffect(() => {
-    if (!hasValidContext || !activeRecall) {
-      setLoading(false);
+    if (!hasValidContext || !activeRecall || !isRecallActive) {
+      // Clear key if deactivated
+      if (!isRecallActive) {
+        loadedDeckKeyRef.current = null;
+      }
+      return;
+    }
+
+    const currentSessionKey = `${activeRecall.categoryId}_${activeRecall.subcategoryId}_${activeRecall.wordId || ""}_${activeRecall.wordIds?.join(",") || ""}`;
+    
+    // Prevent execution if this deck configuration is already loaded
+    if (loadedDeckKeyRef.current === currentSessionKey) {
       return;
     }
 
     setLoading(true);
     const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
     
-    // REUSED WORKING ENDPOINT
     fetch(`${baseUrl}/api/language-corpus?lang=${encodeURIComponent(apiLangName)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((corpus) => {
         if (!corpus) return;
 
-        // Drill down to the specific subcategory (matching your dictionary routing)
         const category = activeRecall.categoryId;
         const subcategory = activeRecall.subcategoryId;
         const subcategoryData = corpus?.vocabularyGrammar?.["Vocabulary"]?.[category]?.[subcategory] || {};
         
         const allSlugs = Object.keys(subcategoryData);
+        let resolvedSlugs: string[] = [];
 
         if (activeRecall.wordId) {
-          setDeckSlugs(allSlugs.includes(activeRecall.wordId) ? [activeRecall.wordId] : []);
+          resolvedSlugs = allSlugs.includes(activeRecall.wordId) ? [activeRecall.wordId] : [];
         } else if (activeRecall.wordIds && activeRecall.wordIds.length) {
           const ids = new Set(activeRecall.wordIds);
-          setDeckSlugs(allSlugs.filter((slug) => ids.has(slug)));
+          resolvedSlugs = allSlugs.filter((slug) => ids.has(slug));
         } else {
-          setDeckSlugs(allSlugs);
+          resolvedSlugs = allSlugs;
         }
 
-        // Cache the entire words map locally in state
+        setDeckSlugs(resolvedSlugs);
         setSubcategoryWords(subcategoryData);
-      })
-      .catch((err) => console.error("Error loading corpus client-side:", err))
-      .finally(() => setLoading(false));
-  }, [hasValidContext, activeRecall, apiLangName]);
+        loadedDeckKeyRef.current = currentSessionKey;
 
-  // 2. Client-side state derivation (No more network request needed here!)
+        // Safely load progress
+        if (persistenceKey) {
+          const saved = localStorage.getItem(persistenceKey);
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (parsed.deckLength === resolvedSlugs.length && parsed.idx < resolvedSlugs.length) {
+                setIdx(parsed.idx);
+                setRatings(parsed.ratings || []);
+              } else {
+                setIdx(0);
+                setRatings([]);
+              }
+            } catch (e) {
+              setIdx(0);
+              setRatings([]);
+            }
+          } else {
+            setIdx(0);
+            setRatings([]);
+          }
+        }
+      })
+      .catch((err) => console.error("Error loading corpus:", err))
+      .finally(() => setLoading(false));
+  }, [isRecallActive, hasValidContext, activeRecall, apiLangName, persistenceKey]);
+
+  // Persist current session progress
+  useEffect(() => {
+    if (!persistenceKey || deckSlugs.length === 0 || !isRecallActive) return;
+    localStorage.setItem(persistenceKey, JSON.stringify({
+      idx,
+      ratings,
+      deckLength: deckSlugs.length
+    }));
+  }, [idx, ratings, deckSlugs.length, persistenceKey, isRecallActive]);
+
   const currentSlug = deckSlugs[idx];
   const activeWordData = useMemo(() => {
     if (!currentSlug || !subcategoryWords) return null;
@@ -92,13 +138,20 @@ export default function FlashcardsPage() {
     };
   }, [currentSlug, subcategoryWords]);
 
-  const exitToReturn = () => {
-    if (recallReturnPath) {
-      setBrowsePath(recallReturnPath);
-      setRecallReturnPath(null);
-    }
-    navigate("/");
+  const handleCloseRecall = () => {
+    navigate(location.pathname);
   };
+
+  const clearPersistedSession = () => {
+    if (persistenceKey) {
+      localStorage.removeItem(persistenceKey);
+    }
+    setIdx(0);
+    setRatings([]);
+    setFlipped(false);
+  };
+
+  if (!isRecallActive) return null;
 
   const renderBody = () => {
     if (loading) {
@@ -107,9 +160,9 @@ export default function FlashcardsPage() {
 
     if (!hasValidContext || !activeRecall || deckSlugs.length === 0) {
       return (
-        <div className="px-4 max-w-md mx-auto space-y-4 text-center">
+        <div className="px-4 max-w-md mx-auto space-y-4 text-center mt-12">
           <p className="text-sm opacity-70">{t("noActive") || "No deck selected."}</p>
-          <Button onClick={exitToReturn} fullWidth>{t("back") || "Back"}</Button>
+          <Button onClick={handleCloseRecall} fullWidth>{t("back") || "Back"}</Button>
         </div>
       );
     }
@@ -173,7 +226,9 @@ export default function FlashcardsPage() {
           };
           addRecallItem(subItem);
         }
-        exitToReturn();
+        
+        clearPersistedSession();
+        handleCloseRecall();
         return;
       }
 
@@ -183,7 +238,7 @@ export default function FlashcardsPage() {
     };
 
     return (
-      <div className="px-4 max-w-md mx-auto space-y-4">
+      <div className="px-4 max-w-md mx-auto space-y-4 mt-6">
         <Container className="flex items-center justify-between text-xs px-3 py-2">
           <span className="opacity-70">{idx + 1} / {deckSlugs.length}</span>
           <span className="font-medium truncate ml-2">
@@ -191,14 +246,23 @@ export default function FlashcardsPage() {
           </span>
         </Container>
 
-        <CardButton
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setFlipped(f => !f)}
-          className={cn("relative", flipped ? "min-h-[320px]" : "min-h-[240px]")}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setFlipped(f => !f); }}
+          className={cn(
+            "relative w-full text-left bg-card hover:bg-accent/40 border border-border rounded-xl p-6 transition-all cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none", 
+            flipped ? "min-h-[320px]" : "min-h-[240px]"
+          )}
         >
           {isSpeechAvailable() && (
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); speak(target, courseLang as any); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                speak(target, courseLang as any); 
+              }}
               className="absolute top-3 right-3 rounded-full p-2 bg-background border-2 border-border hover:bg-foreground hover:text-background transition-colors z-10"
               aria-label={t("play") || "Play"}
             >
@@ -206,7 +270,7 @@ export default function FlashcardsPage() {
             </button>
           )}
           {!flipped ? (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center gap-1">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] text-center gap-1 w-full">
               <h1 className="text-3xl font-bold">{target}</h1>
               {pronunciation && <p className="text-sm opacity-70 font-mono">{pronunciation}</p>}
               <p className="text-xs opacity-50 mt-6">{t("tapToFlip") || "Tap to flip"}</p>
@@ -242,7 +306,7 @@ export default function FlashcardsPage() {
               {example && <Section label={t("example") || "Example"} italic>{example}</Section>}
             </div>
           )}
-        </CardButton>
+        </div>
 
         {!flipped ? (
           <Button onClick={() => setFlipped(true)} active fullWidth>
@@ -275,7 +339,19 @@ export default function FlashcardsPage() {
     );
   };
 
-  return <Layout>{renderBody()}</Layout>;
+  return (
+    <div className="fixed inset-0 bg-background z-[100] flex flex-col p-4 animate-in fade-in slide-in-from-bottom-5 duration-200 overflow-y-auto">
+      <div className="flex items-center justify-between pb-3 border-b border-border">
+        <h2 className="text-base font-bold">Recall Session</h2>
+        <Button size="icon" variant="ghost" className="rounded-full h-9 w-9" onClick={handleCloseRecall}>
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+      <div className="flex-1 flex flex-col justify-center">
+        {renderBody()}
+      </div>
+    </div>
+  );
 }
 
 function Section({ label, children, italic }: { label: string; children: React.ReactNode; italic?: boolean }) {

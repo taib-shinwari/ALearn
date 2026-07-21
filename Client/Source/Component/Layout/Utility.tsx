@@ -1,5 +1,5 @@
 // @/Component/Layout/Utility.tsx
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 import { ChevronDown, Search, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
@@ -27,10 +27,11 @@ interface NavigatorLayoutProps {
   showGoBack?: boolean;
   onGoBack?: () => void;
   children: ReactNode;
-  customTrigger?: ReactNode;
-  disableHeaderContainer?: boolean; // Skip the wrapping Container component
-  width?: string;                    // Custom desktop width class (e.g., "sm:w-[400px]")
-  height?: string;                   // Custom desktop scroll max-height class (e.g., "sm:max-h-[500px]")
+  disableHeaderContainer?: boolean;
+  width?: string;                    
+  height?: string;                   
+  align?: "auto" | "left" | "right" | "center" | "top"; 
+  closedIcon?: ReactNode; 
 }
 
 export function NavigatorLayout({
@@ -47,18 +48,37 @@ export function NavigatorLayout({
   showGoBack = false,
   onGoBack,
   children,
-  customTrigger,
   disableHeaderContainer = false,
-  width = "sm:w-72",               // Default fallback width matching the closed trigger
-  height = "sm:max-h-[288px]",     // Default fallback scroll height
+  width = "sm:w-72",               
+  height = "sm:h-[288px]", 
+  align = "auto",
+  closedIcon
 }: NavigatorLayoutProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [resolvedAlign, setResolvedAlign] = useState<"left" | "right" | "center" | "top">("left");
 
   const closeAll = () => {
     setIsOpen(false);
     setIsSearching(false);
     setSearchQuery("");
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (align !== "auto") {
+      setResolvedAlign(align);
+      return;
+    }
+
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const triggerCenter = rect.left + rect.width / 2;
+      
+      setResolvedAlign(triggerCenter < viewportWidth / 2 ? "left" : "right");
+    }
+  }, [isOpen, align]);
 
   useEffect(() => {
     if (isOpen) {
@@ -91,227 +111,254 @@ export function NavigatorLayout({
     }
   }, [isSearching, inputRef]);
 
+  // Desktop alignments retain custom physical origins, while mobile defaults to origin-center
+  const alignmentClasses = {
+    left: "max-sm:origin-center sm:left-0 sm:origin-top-left",
+    right: "max-sm:origin-center sm:right-0 sm:origin-top-right",
+    center: "max-sm:origin-center sm:left-1/2 sm:-translate-x-1/2 sm:origin-top",
+    top: "max-sm:origin-center sm:bottom-0 sm:left-0 sm:origin-bottom-left"
+  };
+
   return (
-    <div ref={dropdownRef} className="relative inline-block text-left w-full sm:w-auto">
-
-      {/* TRIGGER BUTTON */}
-      <div
-        onClick={() => { if (!isOpen) setIsOpen(true); }}
+    <div 
+      ref={dropdownRef} 
+      className={cn(
+        "relative transition-all duration-300 ease-in-out select-none shrink-0",
+        isOpen 
+          ? cn("max-sm:fixed max-sm:inset-0 max-sm:z-[9999] max-sm:w-screen max-sm:h-screen sm:h-10", width) 
+          : "w-10 h-10"
+      )}
+    >
+      <div 
         className={cn(
-          "transition-all duration-200 shadow-none select-none inline-flex items-center justify-center text-foreground cursor-pointer text-sm font-medium",
-          isOpen
-            ? cn("max-sm:hidden px-2 cursor-default rounded-t-[40px] rounded-b-none border border-border/30 border-b-transparent z-0 justify-between bg-[#fafafa] dark:bg-zinc-900 h-8 sm:h-9", width)
-            : customTrigger
-              ? "rounded-[40px] bg-background border border-border hover:bg-muted/60 p-2 gap-2"
-              : "w-auto max-w-[150px] sm:max-w-[250px] px-3.5 h-8 sm:h-9 rounded-[40px] bg-[#fafafa] dark:bg-zinc-900 border border-border/30 hover:bg-accent justify-between"
+          // Set "origin-center" by default for mobile, layout will smoothly expand centered-outward
+          "origin-center bg-background text-foreground transition-all duration-300 ease-in-out border-2 border-border overflow-hidden",
+          isOpen 
+            ? cn("w-full h-full max-sm:rounded-none max-sm:border-0 max-sm:flex max-sm:flex-col sm:rounded-[32px] shadow-lg sm:absolute sm:top-0", height) 
+            : "w-10 h-10 rounded-[20px] flex items-center justify-center cursor-pointer hover:bg-foreground hover:text-background",
+          
+          isOpen && alignmentClasses[resolvedAlign]
         )}
+        onClick={() => { if (!isOpen) setIsOpen(true); }}
       >
-        {customTrigger ? customTrigger : (
-          <>
-            <span className="truncate mr-1">{buttonLabel}</span>
-            <ChevronDown className="h-5 w-5 opacity-60 shrink-0 mx-1" />
-          </>
-        )}
-      </div>
+        {/* CLOSED TRIGGER */}
+        <div 
+          className={cn(
+            "w-10 h-10 shrink-0 flex items-center justify-center absolute inset-0 transition-opacity duration-200 ease-in-out",
+            isOpen ? "opacity-0 pointer-events-none invisible" : "opacity-100 pointer-events-auto visible"
+          )}
+        >
+          {closedIcon ? (
+            <div className="h-5 w-5 flex items-center justify-center [&_svg]:h-5 [&_svg]:w-5">
+              {closedIcon}
+            </div>
+          ) : (
+            <ChevronDown className="h-5 w-5 opacity-60" />
+          )}
+        </div>
 
-      {isOpen && (
-        // PAGE — the main container. Everything else lives inside this.
-        <div className={cn(
-          "max-sm:fixed max-sm:inset-0 max-sm:w-screen max-sm:h-[100dvh] max-sm:bg-background max-sm:z-[9999] max-sm:flex max-sm:flex-col sm:absolute sm:top-0 sm:left-0 sm:z-50",
-          width
-        )}>
-
-          <div className="bg-background text-foreground w-full max-sm:rounded-none max-sm:border-0 max-sm:flex-1 max-sm:flex max-sm:flex-col sm:rounded-[32px] sm:border sm:border-border/30 overflow-visible relative [.high-contrast_&]:border-black">
-
-            {/* BUTTONS GROUP — mobile. */}
-            <div className="hidden max-sm:flex items-center justify-between w-full h-14 pl-4 pr-6 shrink-0 absolute top-0 left-0 z-30 opacity-100">
-              {!isSearching ? (
-                <>
-                  <div className="flex items-center gap-2 max-w-[65%]">
-                    {showGoBack && (
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8 rounded-full shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onGoBack?.();
-                        }}
-                      >
-                        <ArrowLeft className="h-5 w-5" />
-                      </Button>
-                    )}
-                    {disableHeaderContainer ? (
-                      renderMobileHeaderLeft()
-                    ) : (
-                      <Container className="flex items-center justify-center text-center max-w-full h-8 !py-0 px-4">
-                        {renderMobileHeaderLeft()}
-                      </Container>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2.5">
+        {/* EXPANDED CONTENT (Synchronized zoom expansion from center-outward) */}
+        <div 
+          className={cn(
+            "w-full h-full flex flex-col relative transition-all duration-300 ease-in-out origin-center",
+            isOpen 
+              ? "opacity-100 scale-100 pointer-events-auto visible" 
+              : "opacity-0 scale-95 pointer-events-none invisible"
+          )}
+        >
+          
+          {/* BUTTONS GROUP — mobile. */}
+          <div className="hidden max-sm:flex items-center justify-between w-full h-14 pl-4 pr-6 shrink-0 absolute top-0 left-0 z-30 opacity-100">
+            {!isSearching ? (
+              <>
+                <div className="flex items-center gap-2 max-w-[65%]">
+                  {showGoBack && (
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 rounded-full"
-                      onClick={() => setIsSearching(true)}
+                      className="h-8 w-8 rounded-full shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGoBack?.();
+                      }}
                     >
-                      <Search className="h-5 w-5" />
+                      <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-8 w-8 rounded-full"
-                      onClick={closeAll}
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-between w-full gap-2">
-                  <Container className="flex items-center flex-1 h-9 px-3 min-w-0 rounded-full relative shadow-md">
-                    <Search className="h-5 w-5 text-muted-foreground shrink-0 mr-2" />
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      placeholder="Search entries..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        className="absolute right-3 p-1 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
-                        onClick={() => setSearchQuery("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </Container>
+                  )}
+                  {disableHeaderContainer ? (
+                    renderMobileHeaderLeft()
+                  ) : (
+                    <Container className="flex items-center justify-center text-center max-w-full h-8 !py-0 px-4">
+                      {renderMobileHeaderLeft()}
+                    </Container>
+                  )}
+                </div>
+                <div className="flex items-center gap-2.5">
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-8 w-8 rounded-full shrink-0"
-                    onClick={() => {
-                      setIsSearching(false);
-                      setSearchQuery("");
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setIsSearching(true)}
+                  >
+                    <Search className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeAll();
                     }}
                   >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between w-full gap-2">
+                <Container className="flex items-center flex-1 h-9 px-3 min-w-0 rounded-full relative shadow-md">
+                  <Search className="h-5 w-5 text-muted-foreground shrink-0 mr-2" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Search entries..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="absolute right-3 p-1 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </Container>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 rounded-full shrink-0"
+                  onClick={() => {
+                    setIsSearching(false);
+                    setSearchQuery("");
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </div>
 
-            {/* BUTTONS GROUP — desktop. */}
-            <div className="max-sm:hidden sm:flex items-center justify-between w-full h-11 px-3 absolute top-0 left-0 z-30 opacity-100">
-              {!isSearching ? (
-                <>
-                  <div className="flex items-center gap-1.5 max-w-[55%] ml-1">
-                    {showGoBack && (
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7 rounded-full shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onGoBack?.();
-                        }}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {disableHeaderContainer ? (
-                      renderDesktopHeaderLeft()
-                    ) : (
-                      <Container className="flex items-center justify-center text-center max-w-full h-7 !py-0 px-3">
-                        {renderDesktopHeaderLeft()}
-                      </Container>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 mr-1">
+          {/* BUTTONS GROUP — desktop. */}
+          <div className="max-sm:hidden sm:flex items-center justify-between w-full h-12 px-3.5 absolute top-0 left-0 z-30 opacity-100">
+            {!isSearching ? (
+              <>
+                <div className="flex items-center gap-1.5 max-w-[55%]">
+                  {showGoBack && (
                     <Button
                       variant="secondary"
                       size="icon"
                       className="h-7 w-7 rounded-full shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsSearching(true);
+                        onGoBack?.();
                       }}
                     >
-                      <Search className="h-4 w-4 opacity-90" />
+                      <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7 rounded-full shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeAll();
-                      }}
-                    >
-                      <ChevronDown className="h-4 w-4 opacity-80 transition-transform duration-200 rotate-180" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-between w-full mx-1">
-                  <Container className="!py-0.5 !px-2 flex items-center flex-1 min-w-0 mr-1.5 h-7 relative shadow-sm">
-                    <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-1.5" />
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      placeholder="Search entries..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        className="absolute right-2 p-0.5 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSearchQuery("");
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </Container>
+                  )}
+                  {disableHeaderContainer ? (
+                    renderDesktopHeaderLeft()
+                  ) : (
+                    <Container className="flex items-center justify-center text-center max-w-full h-7 !py-0 px-3">
+                      {renderDesktopHeaderLeft()}
+                    </Container>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-7 w-7 rounded-full shrink-0 mr-0.5"
+                    className="h-7 w-7 rounded-full shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsSearching(false);
-                      setSearchQuery("");
+                      setIsSearching(true);
                     }}
                   >
-                    <X className="h-4 w-4" />
+                    <Search className="h-4 w-4 opacity-90" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-7 w-7 rounded-full shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeAll();
+                    }}
+                  >
+                    <ChevronDown className="h-4 w-4 opacity-80 transition-transform duration-200 rotate-180" />
                   </Button>
                 </div>
-              )}
-            </div>
-
-            {/* SCROLL CONTAINER */}
-            <div
-              className={cn(
-                "space-y-1.5 sm:space-y-0 max-sm:flex-1 max-sm:h-full overflow-y-auto max-sm:px-4 select-none pb-4 relative z-10 max-sm:rounded-none sm:rounded-[32px]",
-                "max-sm:pt-14 sm:pt-11",
-                "scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
-                height
-              )}
-            >
-              {children}
-            </div>
-
+              </>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <Container className="!py-0.5 !px-2 flex items-center flex-1 min-w-0 mr-1.5 h-7 relative shadow-sm">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-1.5" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Search entries..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="absolute right-2 p-0.5 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearchQuery("")}
+                      }
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </Container>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-7 w-7 rounded-full shrink-0 mr-0.5"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSearching(false);
+                    setSearchQuery("");
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
+
+          {/* SCROLL CONTAINER */}
+          <div
+            className={cn(
+              "space-y-1.5 sm:space-y-0 max-sm:flex-1 max-sm:h-full overflow-y-auto max-sm:px-4 select-none pb-4 relative z-10 max-sm:rounded-none sm:rounded-[32px]",
+              "max-sm:pt-14 sm:pt-14",
+              "scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+              "max-sm:h-full",
+              height
+            )}
+          >
+            {children}
+          </div>
+
         </div>
-      )}
+      </div>
     </div>
   );
 }

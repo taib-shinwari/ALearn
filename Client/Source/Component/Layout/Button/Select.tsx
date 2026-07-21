@@ -1,7 +1,6 @@
 // @/Component/Header/Select.tsx
 import { CheckSquare, X } from "lucide-react";
 import { useApp } from "@/Context/App";
-import { Button } from "@/Component/UI/Button";
 
 export function SelectButton() {
   // Safe extraction of global states from useApp
@@ -21,12 +20,10 @@ export function SelectButton() {
   };
 
   return (
-    <Button 
+    <button 
       type="button"
       onClick={handleToggleSelect} 
-      active={selectMode}
-      size="icon"
-      className="h-10 w-10 rounded-full p-0 transition-colors border border-border"
+      className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full border-2 border-border transition-colors bg-background hover:bg-foreground hover:text-background"
       aria-label={selectMode ? "Cancel selection" : "Select words"}
     >
       {selectMode ? (
@@ -34,6 +31,6 @@ export function SelectButton() {
       ) : (
         <CheckSquare className="h-5 w-5" />
       )}
-    </Button>
+    </button>
   );
 }

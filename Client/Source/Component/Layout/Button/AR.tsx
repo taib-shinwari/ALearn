@@ -1,3 +1,4 @@
+// @/Component/Word/Buttons/RecallQueueButton.tsx
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Brain, Clock, Play, Trash2, Layers } from "lucide-react";
@@ -136,6 +137,29 @@ export function RecallQueueButton() {
 
   const showNotificationBadge = hasReady && !hasSeenNotification;
 
+  // Custom trigger icon with conditional notification badge, perfectly matched 
+  // to render cleanly directly inside the NavigatorLayout closedIcon wrapper
+  const closedIcon = (
+    <div className="relative h-5 w-5 flex items-center justify-center">
+      <Layers className="h-5 w-5" />
+      {showNotificationBadge && (
+        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-foreground text-background flex items-center justify-center ring-1 ring-background">
+          <svg 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="4" 
+            strokeLinecap="round" 
+            className="h-2 w-2"
+          >
+            <line x1="12" y1="5" x2="12" y2="14" />
+            <line x1="12" y1="19" x2="12" y2="19" />
+          </svg>
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <NavigatorLayout
       isOpen={isOpen}
@@ -150,26 +174,7 @@ export function RecallQueueButton() {
       renderDesktopHeaderLeft={renderSlidingPill}
       showGoBack={false}
       disableHeaderContainer={true}
-      customTrigger={
-        <div className="relative flex items-center justify-center h-full w-full">
-          <Layers className="h-5 w-5" />
-          {showNotificationBadge && (
-  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-foreground text-background flex items-center justify-center ring-2 ring-background">
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="4" 
-      strokeLinecap="round" 
-      className="h-2.5 w-2.5"
-    >
-      <line x1="12" y1="5" x2="12" y2="14" />
-      <line x1="12" y1="19" x2="12" y2="19" />
-    </svg>
-  </span>
-)}
-        </div>
-      }
+      closedIcon={closedIcon} // <-- Clean, unified trigger element config
     >
       <div className="flex flex-col gap-1.5 px-3 pt-2 sm:p-2 w-full relative">
         {filteredItems.map((item) => (

@@ -1,12 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CheckSquare, Clock, Filter, Square, X } from "lucide-react";
+import { CheckSquare, Clock, Square } from "lucide-react";
 import { useApp } from "@/Context/App";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useMarkedWords } from "@/Hook/useMarkedWords";
 import { useFavoriteWords } from "@/Hook/useFavoriteWords";
 import { useCustomWords } from "@/Hook/useCustomWords";
-import { Button } from "@/Component/UI/Button";
 import { CardButton } from "@/Component/UI/card-button";
 import { cn } from "@/Library/utils";
 import { BACKEND_BASE_URL, DEFAULT_SECTION, wordDetailFromApi, SupportedLang } from "@/Library/Language";
@@ -16,21 +15,22 @@ export default function DictionaryWord() {
   const navigate = useNavigate();
   
   const activeLangName = (langName || "English") as SupportedLang;
-  const { t, courseLang } = useCourseLanguage();
+  const { courseLang } = useCourseLanguage();
   
-  // Safe destructuring with fallback defaults
   const context = useApp();
   const recallQueue = context.recallQueue || [];
   const selectMode = context.selectMode || false;
   const setSelectMode = context.setSelectMode || (() => {});
   const selected = context.selected || new Set<string>();
   const setSelected = context.setSelected || (() => {});
+  
+  // 🚀 Global filter context variables
+  const filter = context.filter || "all";
 
   const { customWords, applyOverride } = useCustomWords(categoryId || "", subcategoryId || "");
   const { isMarked } = useMarkedWords();
   const { isFavorite } = useFavoriteWords();
 
-  const [filter, setFilter] = useState<"all" | "marked" | "favorites" | "custom">("all");
   const [resolvedWords, setResolvedWords] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -58,6 +58,8 @@ export default function DictionaryWord() {
   }, [activeLangName, categoryId, subcategoryId]);
 
   const allWords = useMemo(() => [...resolvedWords, ...customWords].map(applyOverride), [resolvedWords, customWords, applyOverride]);
+  
+  // 🚀 Filters automatically using the global context setting
   const filtered = useMemo(() => {
     switch (filter) {
       case "marked":    return allWords.filter(w => isMarked(courseLang as any, w.id));
@@ -67,7 +69,6 @@ export default function DictionaryWord() {
     }
   }, [allWords, filter, courseLang, isMarked, isFavorite, customWords]);
 
-  // Safely clean up selection states on component unmount
   useEffect(() => {
     return () => {
       if (typeof setSelectMode === "function") setSelectMode(false);
@@ -98,14 +99,13 @@ export default function DictionaryWord() {
 
   return (
     <div className="space-y-4 px-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button onClick={() => setFilter(f => f === "all" ? "marked" : f === "marked" ? "favorites" : f === "favorites" ? "custom" : "all")} active={filter !== "all"}>
-          <Filter className="h-4 w-4 mr-2" />
-          {filter.toUpperCase()}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
+      {/* Grid automatically spans:
+        - 2 columns on mobile (grid-cols-2)
+        - 3 columns on small screens/tablets (sm:grid-cols-3)
+        - 4 columns on medium screens (md:grid-cols-4)
+        - 6 columns on large screens/desktops (lg:grid-cols-6)
+      */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {filtered.map(word => {
           const isSel = selected.has(word.id);
           const cooling = wordCooling(word.id);
@@ -121,16 +121,16 @@ export default function DictionaryWord() {
               }}
               disabled={selectMode && cooling}
               className={cn(
-                "min-h-[80px] flex flex-col justify-between relative rounded-lg", 
+                "h-12 px-4 flex items-center justify-center text-center relative rounded-full border border-border", 
                 selectMode && isSel && "bg-foreground text-background border-foreground"
               )}
             >
               {selectMode && (
-                <span className="absolute top-2 right-2">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">
                   {cooling ? <Clock className="h-4 w-4 opacity-60" /> : isSel ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4 opacity-60" />}
                 </span>
               )}
-              <span className="font-semibold text-sm">{word.id}</span>
+              <span className="font-semibold text-sm leading-none">{word.id}</span>
             </CardButton>
           );
         })}

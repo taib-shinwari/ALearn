@@ -1,6 +1,7 @@
+// @/Component/Word/Buttons/EditButton.tsx
 import { useState, useRef, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Plus, Check } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Pencil, Trash2 } from "lucide-react";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useCustomWords, type WordDetail } from "@/Hook/useCustomWords";
 import { NavigatorLayout } from "@/Component/Layout/Utility";
@@ -8,16 +9,21 @@ import { Button } from "@/Component/UI/Button";
 import { Container } from "@/Component/UI/container";
 import { Input } from "@/Component/UI/Input";
 import { Textarea } from "@/Component/UI/textarea";
+import { BACKEND_BASE_URL, DEFAULT_SECTION, wordDetailFromApi, SupportedLang } from "@/Library/Language";
 
-function makeId(s: string) {
-  return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `w-${Date.now()}`;
-}
+export function EditButton() {
+  const { langName, categoryId, subcategoryId, wordId } = useParams<{
+    langName: string;
+    categoryId: string;
+    subcategoryId: string;
+    wordId: string;
+  }>();
 
-export function AddWord() {
-  const { categoryId, subcategoryId } = useParams<{ categoryId: string; subcategoryId: string }>();
+  const navigate = useNavigate();
   const { t } = useCourseLanguage();
-  
-  const { customWords, addCustomWord } = useCustomWords(
+  const activeLangName = (langName || "English") as SupportedLang;
+
+  const { customWords, updateCustomWord, removeCustomWord, setOverride } = useCustomWords(
     categoryId || "", 
     subcategoryId || ""
   );
@@ -27,6 +33,9 @@ export function AddWord() {
   const [searchQuery, setSearchQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // --- Core Word Data State ---
+  const [word, setWord] = useState<WordDetail | null>(null);
+
   // --- Embedded Form State ---
   const [nlWord, setNlWord] = useState("");
   const [nlDef, setNlDef] = useState("");
@@ -35,58 +44,94 @@ export function AddWord() {
   const [pron, setPron] = useState("");
   const [example, setExample] = useState("");
 
-  // Clear the inline form whenever the dropdown opens/closes
-  useEffect(() => {
-    if (!isOpen) {
-      setNlWord("");
-      setNlDef("");
-      setEnWord("");
-      setEnDef("");
-      setPron("");
-      setExample("");
-    }
-  }, [isOpen]);
+  const isCustom = customWords.some(w => w.id === wordId);
 
-  const filteredWords = customWords.filter((word) =>
-    !searchQuery || word.id.toLowerCase().includes(searchQuery.toLowerCase().trim())
-  );
+  // Fetch target word data to populate the edit form when the dropdown opens
+  useEffect(() => {
+    if (!isOpen || !categoryId || !subcategoryId || !wordId) return;
+
+    // Check if it's a custom word first
+    const localWord = customWords.find(w => w.id === wordId);
+    if (localWord) {
+      setWord(localWord);
+      populateForm(localWord);
+      return;
+    }
+
+    // Fallback to fetch from corpus API
+    fetch(`${BACKEND_BASE_URL}/api/language-corpus?lang=${encodeURIComponent(activeLangName)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(corpus => {
+        const subcategoryData = corpus?.vocabularyGrammar?.[DEFAULT_SECTION]?.[categoryId]?.[subcategoryId] || {};
+        const rawWord = subcategoryData[wordId];
+
+        if (rawWord) {
+          const compiled = wordDetailFromApi(wordId, rawWord, activeLangName);
+          setWord(compiled);
+          populateForm(compiled);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed loading word details in EditButton dropdown:", err);
+      });
+  }, [isOpen, activeLangName, categoryId, subcategoryId, wordId, customWords]);
+
+  const populateForm = (w: WordDetail) => {
+    setNlWord(w.nl?.word || "");
+    setNlDef(w.nl?.definitie || "");
+    setEnWord(w.en?.word || "");
+    setEnDef(w.en?.definition || "");
+    setPron(w.nl?.pronunciation || w.en?.pronunciation || "");
+    setExample(w.nl?.voorbeeld || w.en?.example || "");
+  };
 
   const handleSave = () => {
-    if (!nlWord && !enWord) return;
+    if (!word || (!nlWord && !enWord)) return;
 
-    const generatedId = `c-${makeId(enWord || nlWord)}-${Date.now().toString(36)}`;
-    const newWord: WordDetail = {
-      id: generatedId,
+    const updatedFields: Partial<WordDetail> = {
       nl: {
-        word: nlWord || enWord,
+        ...word.nl,
+        word: nlWord || word.nl?.word || "",
         definitie: nlDef || undefined,
         voorbeeld: example || undefined,
         pronunciation: pron || undefined,
       },
       en: {
-        word: enWord || nlWord,
+        ...word.en,
+        word: enWord || word.en?.word || "",
         definition: enDef || undefined,
         example: example || undefined,
         pronunciation: pron || undefined,
-      },
+      }
     };
 
-    addCustomWord(newWord);
-    setIsOpen(false); // Close dropdown on successful save
+    if (isCustom) {
+      updateCustomWord(word.id, updatedFields);
+    } else {
+      setOverride(word.id, updatedFields);
+    }
+    setIsOpen(false);
+  };
+
+  const handleDelete = () => {
+    if (!word) return;
+    if (isCustom) {
+      removeCustomWord(word.id);
+      setIsOpen(false);
+      navigate(-1); // Go back as the word is deleted
+    }
   };
 
   const renderHeader = () => {
     const containerClasses = "flex items-center justify-center h-7 w-9 rounded-full bg-muted border border-border/40 text-muted-foreground/80 !py-0 !px-0";
     return (
       <Container className={containerClasses}>
-        <Plus className="h-4 w-4 stroke-[2.5]" />
+        <Pencil className="h-4 w-4 stroke-[2.5]" />
       </Container>
     );
   };
 
-  const renderTriggerIcon = () => {
-    return <Plus className="h-5 w-5" />;
-  };
+  if (!wordId) return null;
 
   return (
     <NavigatorLayout
@@ -102,17 +147,28 @@ export function AddWord() {
       renderDesktopHeaderLeft={renderHeader}
       showGoBack={false}
       disableHeaderContainer={true}
-      customTrigger={renderTriggerIcon()}
-      width="sm:w-[420px]"          // Custom desktop width override
-  height="sm:max-h-[616px]"
+      width="sm:w-[420px]"
+      height="sm:max-h-[480px]" // Clean desktop height boundary
+      closedIcon={<Pencil />} // <-- Clean, customized icon config
     >
-      <div className="flex flex-col gap-4 px-3 py-3 sm:p-4 w-full md:min-w-[360px] max-h-[80vh] overflow-y-auto relative">
+      <div className="flex flex-col gap-4 px-3 py-3 sm:p-4 w-full md:min-w-[360px] relative">
         
-        {/* INLINE FORM SECTIONS */}
+        {/* EDIT FORM SECTIONS */}
         <div className="space-y-3">
-          <p className="text-xs font-bold tracking-wider text-muted-foreground/80 uppercase px-1">
-            {t("addWord") || "Add Word"}
-          </p>
+          <div className="flex justify-between items-center px-1">
+            <p className="text-xs font-bold tracking-wider text-muted-foreground/80 uppercase">
+              {t("editWord") || "Edit Word"}
+            </p>
+            {isCustom && (
+              <button 
+                onClick={handleDelete}
+                className="text-destructive hover:text-destructive/80 transition-colors"
+                title="Delete Word"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
@@ -203,26 +259,6 @@ export function AddWord() {
             {t("save") || "Save"}
           </Button>
         </div>
-
-        {/* PREVIOUSLY CREATED CUSTOM WORDS FEED */}
-        {customWords.length > 0 && (
-          <div className="border-t border-border/40 pt-3 mt-1">
-            <p className="text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase px-1 mb-2">
-              Your Custom Words ({customWords.length})
-            </p>
-            <div className="max-h-[140px] overflow-y-auto space-y-1.5 pr-1">
-              {filteredWords.map((word) => (
-                <div
-                  key={word.id}
-                  className="flex items-center justify-between h-8 px-3 rounded-full bg-muted/40 text-xs font-medium text-muted-foreground/80 border border-transparent"
-                >
-                  <span className="truncate">{word.id}</span>
-                  <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 ml-2" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </NavigatorLayout>
   );

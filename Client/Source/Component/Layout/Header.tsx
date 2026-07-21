@@ -1,22 +1,30 @@
+// @/Component/Header.tsx
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Settings, Search, LogIn, X } from "lucide-react";
+import { ArrowLeft, Settings, Search, LogIn } from "lucide-react";
 import { useApp } from "@/Context/App";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useIsMobile } from "@/Hook/Use-Mobile";
 import { type LessonProgressState } from "@/Library/lessonProgress";
 import { cn } from "@/Library/utils";
 import { Button } from "@/Component/UI/Button";
-import { Input } from "@/Component/UI/Input";
 import { TitleBar } from "@/Component/UI/title-bar";
 import { HeaderSearch } from "@/Component/Search/HeaderSearch";
-import { RecallQueueButton } from "./AR"; 
-import { RecallButton } from "./Recall"; 
-import { Add } from "./Add";
-import { AddWord } from "./AddWord";
-import { SelectButton } from "./Select"; // Imported the new Select component
+import { RecallQueueButton } from "./Button/AR";
+import { RecallButton } from "./Button/Recall";
+import { FilterButton } from "./Button/Filter";
+import { Add } from "./Button/Add";
+import { AddWord } from "./Button/AddWord";
+import { SelectButton } from "./Button/Select";
 import { AICallButton } from "@/Component/AICallButton";
 import { mobileSettingsStore } from "@/Component/Settings/mobileSettingsStore";
+import { MobileSettingsHeader } from "@/Component/Layout/MobileSettings";
+
+// 🚀 IMPORT THE 4 WORD ACTION BUTTONS
+import { SpeakButton } from "./Button/Speak";
+import { MarkButton } from "./Button/Mark";
+import { FavoriteButton } from "./Button/Favorite";
+import { EditButton } from "./Button/Edit";
 
 interface HeaderProps {
   searchOpen: boolean;
@@ -38,11 +46,24 @@ function getPageTitle(pathname: string, t: (k: string) => string, hasActiveLangu
     return "Add Language";
   }
 
+  // If we are looking at a specific word detail, use the decoded wordId as the title
+  const isWordDetail =
+    segments[0]?.toLowerCase() === "language" &&
+    segments[2]?.toLowerCase() === "dictionary" &&
+    segments[3]?.toLowerCase() === "vocabulary" &&
+    segments.length === 7;
+
+  if (isWordDetail && segments[6]) {
+    return decodeURIComponent(segments[6]);
+  }
+
   return segments[segments.length - 1]
     .split("-")
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+const customBtnSize = { width: "40px", height: "40px" };
 
 export const Header = memo(function Header({
   searchOpen,
@@ -74,53 +95,6 @@ export const Header = memo(function Header({
   const lastScrollY = useRef(0);
   const [isSplitLayout, setIsSplitLayout] = useState(false);
 
-  // --- mobileSettingsStore wiring ---
-  const [mSettings, setMSettings] = useState(() => mobileSettingsStore.getState());
-  const [settingsSearchActive, setSettingsSearchActive] = useState(false);
-  const [settingsSearchValue, setSettingsSearchValue] = useState("");
-  const settingsSearchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const unsubscribeMode = mobileSettingsStore.subscribe(() => {
-      const state = mobileSettingsStore.getState();
-      setMSettings(state);
-      setSettingsSearchActive(state.isSearchMode);
-    });
-    const unsubscribeSearch = mobileSettingsStore.subscribeSearch(() => {
-      setSettingsSearchValue(mobileSettingsStore.getSearchQuery());
-    });
-    return () => {
-      unsubscribeMode();
-      unsubscribeSearch();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (settingsSearchActive && settingsSearchInputRef.current) {
-      settingsSearchInputRef.current.focus();
-    }
-    if (!settingsSearchActive) setSettingsSearchValue("");
-  }, [settingsSearchActive]);
-
-  useEffect(() => {
-    if (!isSettingsSidebarOpen && settingsSearchActive) {
-      mobileSettingsStore.exitSearchMode();
-    }
-  }, [isSettingsSidebarOpen, settingsSearchActive]);
-
-  const isMobileSettingsOpen = isMobile && !!isSettingsSidebarOpen;
-  const isDesktopSettingsOpen = !isMobile && !!isSettingsSidebarOpen;
-
-  const handleSettingsSearchChange = (v: string) => {
-    setSettingsSearchValue(v);
-    mobileSettingsStore.setSearchQuery(v);
-  };
-
-  const exitSettingsSearch = () => {
-    mobileSettingsStore.exitSearchMode();
-  };
-  // --- end mobileSettingsStore wiring ---
-
   const headerRef = useRef<HTMLHeadingElement>(null);
   const leftGroupRef = useRef<HTMLDivElement>(null);
   const rightGroupRef = useRef<HTMLDivElement>(null);
@@ -135,34 +109,59 @@ export const Header = memo(function Header({
 
   const hasActiveLanguages = activeLanguages.length > 0;
   const inLesson = !!(lessonState && 'current' in lessonState && 'total' in lessonState);
+  const isMobileSettingsOpen = isMobile && !!isSettingsSidebarOpen;
+  const isDesktopSettingsOpen = !isMobile && !!isSettingsSidebarOpen;
   const showBack = (!isSign && !isRootHome) || isDesktopSettingsOpen;
   const showCall = isLanguageTree && browsePath[0] === "Language" && browsePath.length >= 2 && !inLesson;
   const isRtl = uiLang === "ar";
 
-  const customBtnSize = { width: "40px", height: "40px" };
+  // Parse path segments once for dynamic checks
+  const pathSegments = useMemo(() => location.pathname.split("/").filter(Boolean), [location.pathname]);
 
   // --- Dynamic Adjective/Vocabulary Route Validator ---
   const showRecallButton = useMemo(() => {
-    const segments = location.pathname.split("/").filter(Boolean);
     const isUnderAdjectiveVocab =
-      segments[0]?.toLowerCase() === "language" &&
-      segments[2]?.toLowerCase() === "dictionary" &&
-      segments[3]?.toLowerCase() === "vocabulary" &&
-      segments[4]?.toLowerCase() === "adjective";
+      pathSegments[0]?.toLowerCase() === "language" &&
+      pathSegments[2]?.toLowerCase() === "dictionary" &&
+      pathSegments[3]?.toLowerCase() === "vocabulary" &&
+      pathSegments[4]?.toLowerCase() === "adjective";
 
-    return isUnderAdjectiveVocab && segments.length >= 6;
-  }, [location.pathname]);
+    return isUnderAdjectiveVocab && pathSegments.length >= 6;
+  }, [pathSegments]);
+
+  // --- Strict Subcategory "Filter" Validator ---
+  const showFilterButton = useMemo(() => {
+    return (
+      pathSegments[0]?.toLowerCase() === "language" &&
+      pathSegments[2]?.toLowerCase() === "dictionary" &&
+      pathSegments[3]?.toLowerCase() === "vocabulary" &&
+      pathSegments.length === 6
+    );
+  }, [pathSegments]);
 
   // --- Strict Subcategory "AddWord" & "Select" Validator ---
   const showSubcategoryControls = useMemo(() => {
-    const segments = location.pathname.split("/").filter(Boolean);
     return (
-      segments[0]?.toLowerCase() === "language" &&
-      segments[2]?.toLowerCase() === "dictionary" &&
-      segments[3]?.toLowerCase() === "vocabulary" &&
-      segments.length === 6
+      pathSegments[0]?.toLowerCase() === "language" &&
+      pathSegments[2]?.toLowerCase() === "dictionary" &&
+      pathSegments[3]?.toLowerCase() === "vocabulary" &&
+      pathSegments.length === 6
     );
-  }, [location.pathname]);
+  }, [pathSegments]);
+
+  // --- 🚀 Word Detail Action Buttons Validator (Exact 7 segments) ---
+  const wordDetailContext = useMemo(() => {
+    const isDetail =
+      pathSegments[0]?.toLowerCase() === "language" &&
+      pathSegments[2]?.toLowerCase() === "dictionary" &&
+      pathSegments[3]?.toLowerCase() === "vocabulary" &&
+      pathSegments.length === 7;
+
+    return {
+      show: isDetail,
+      wordId: isDetail && pathSegments[6] ? decodeURIComponent(pathSegments[6]) : "",
+    };
+  }, [pathSegments]);
 
   useEffect(() => {
     if (onLayoutChange) {
@@ -250,89 +249,77 @@ export const Header = memo(function Header({
   }, [recallReturnPath, setBrowsePath, setRecallReturnPath]);
 
   const handleBack = useCallback(() => {
-    if (isMobileSettingsOpen && settingsSearchActive) {
-      mobileSettingsStore.exitSearchMode();
-      return;
-    }
-    if (isMobileSettingsOpen) {
-      mobileSettingsStore.goBack();
-      return;
-    }
+    // 1. Close settings panel if open
     if (isDesktopSettingsOpen) {
       setSettingsSidebarOpen(false);
       return;
     }
-    if (searchOpen) { setSearchOpen(false); return; }
-    if (isRecall) { restoreFromRecall(); navigate("/"); return; }
-    if (isSettings) { navigate("/"); return; }
+    
+    // 2. Close active header search bar if open
+    if (searchOpen) { 
+      setSearchOpen(false); 
+      return; 
+    }
+    
+    // 3. Close and clean up active recall environments
+    if (isRecall) { 
+      restoreFromRecall(); 
+      navigate("/"); 
+      return; 
+    }
+    if (isSettings) { 
+      navigate("/"); 
+      return; 
+    }
+
+    // 4. Hierarchical category routing logic (prevents loops)
+    if (isLanguageTree) {
+      const segments = location.pathname.split("/").filter(Boolean);
+      
+      // If we are exactly at "/Language" or "/Language/", go back to Root Picker ("/")
+      if (segments.length === 1 && segments[0].toLowerCase() === "language") {
+        navigate("/");
+        return;
+      }
+
+      // If we are deeper than "/Language", safely pop back one level
+      if (segments.length > 1) {
+        // Preserves exact original casing of your segments (e.g. /Language/English)
+        const parentPath = "/" + segments.slice(0, -1).join("/");
+        navigate(parentPath);
+        return;
+      }
+    }
+
+    // Fallback default back state
     navigate(-1);
   }, [
     searchOpen,
     isRecall,
     isSettings,
+    isLanguageTree,
+    location.pathname,
     navigate,
     restoreFromRecall,
-    isMobileSettingsOpen,
-    settingsSearchActive,
     isDesktopSettingsOpen,
     setSettingsSidebarOpen,
+    setSearchOpen
   ]);
+
+  // Dispatch custom event to trigger the edit modal inside WordDetailView
+  const handleEditClick = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("word:edit-trigger"));
+  }, []);
 
   if (isMobileSettingsOpen) {
     return (
-      <header
-        ref={headerRef}
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-transform duration-300 bg-transparent isolate select-none px-4 md:px-6 py-2 flex flex-row items-center h-16 gap-x-2",
-          isVisible ? "translate-y-0" : "-translate-y-full"
-        )}
-        dir={isRtl ? "rtl" : "ltr"}
-      >
-        <div className="flex items-center h-[40px] w-full gap-2">
-          {settingsSearchActive ? (
-            <>
-              <Button size="icon" onClick={exitSettingsSearch} aria-label={t("Back") || "Back"} className="shrink-0 p-0" style={customBtnSize}>
-                <ArrowLeft className={cn("h-5 w-5", isRtl && "rotate-180")} />
-              </Button>
-              <div className="flex-1 min-w-0">
-                <Input
-                  ref={settingsSearchInputRef}
-                  placeholder="Search settings"
-                  value={settingsSearchValue}
-                  onChange={(e) => handleSettingsSearchChange(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <Button size="icon" onClick={handleBack} aria-label={mSettings.showBack ? (t("Back") || "Back") : (t("Close") || "Close")} className="shrink-0 p-0" style={customBtnSize}>
-                {mSettings.showBack ? (
-                  <ArrowLeft className={cn("h-5 w-5", isRtl && "rotate-180")} />
-                ) : (
-                  <X className="h-5 w-5" />
-                )}
-              </Button>
-              <TitleBar className="font-semibold text-lg truncate h-[40px] flex items-center leading-none">
-                {mSettings.title}
-              </TitleBar>
-              <Button
-                size="icon"
-                aria-label={t("Search") || "Search"}
-                onClick={() => {
-                  mobileSettingsStore.enterSearchMode(() => {
-                    setSettingsSearchValue("");
-                  });
-                }}
-                className="ml-auto p-0 shrink-0"
-                style={customBtnSize}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
+      <MobileSettingsHeader
+        isVisible={isVisible}
+        isRtl={isRtl}
+        t={t}
+        onBack={() => mobileSettingsStore.goBack()}
+        isSettingsSidebarOpen={!!isSettingsSidebarOpen}
+      />
     );
   }
 
@@ -406,11 +393,22 @@ export const Header = memo(function Header({
           </div>
         )}
 
-        {/* Inline Select & Recall Buttons (Row 1 inline sibling layout) */}
+        {/* Inline Select, Filter & Recall Buttons (Unified Row 1 inline layout) */}
         {!isSplitLayout && showSubcategoryControls && (
           <div className="flex items-center gap-2 shrink-0 h-[40px]">
             <SelectButton />
+            {showFilterButton && <FilterButton />}
             {showRecallButton && <RecallButton />}
+          </div>
+        )}
+
+        {/* 🚀 Inline Word Action Buttons (Desktop / Non-Split View) */}
+        {!isSplitLayout && wordDetailContext.show && (
+          <div className="flex items-center gap-2 shrink-0 h-[40px]">
+            <SpeakButton targetText={wordDetailContext.wordId} />
+            <MarkButton wordId={wordDetailContext.wordId} />
+            <FavoriteButton wordId={wordDetailContext.wordId} />
+            <EditButton onClick={handleEditClick} />
           </div>
         )}
       </div>
@@ -431,13 +429,24 @@ export const Header = memo(function Header({
             !isSplitLayout && cn("w-auto shrink-0", isRtl ? "mr-auto" : "ml-auto")
           )}
         >
-          {/* Split Row 2 left: AR queue, Select Button, & Split-positioned RecallButton */}
+          {/* Split Row 2 left: AR queue, Select Button, Filter, & Split-positioned RecallButton */}
           <div className="flex items-center shrink-0 h-[40px] gap-2">
             {isLanguageTree && recallQueue.length > 0 && <RecallQueueButton />}
             {isSplitLayout && showSubcategoryControls && (
               <>
                 <SelectButton />
+                {showFilterButton && <FilterButton />}
                 {showRecallButton && <RecallButton />}
+              </>
+            )}
+
+            {/* 🚀 Split Layout Word Action Buttons (Mobile / Split View bottom bar) */}
+            {isSplitLayout && wordDetailContext.show && (
+              <>
+                <SpeakButton targetText={wordDetailContext.wordId} />
+                <MarkButton wordId={wordDetailContext.wordId} />
+                <FavoriteButton wordId={wordDetailContext.wordId} />
+                <EditButton onClick={handleEditClick} />
               </>
             )}
           </div>
