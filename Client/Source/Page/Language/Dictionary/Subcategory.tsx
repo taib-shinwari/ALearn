@@ -1,6 +1,7 @@
+// Source/Component/Dictionary/DictionarySubcategory.tsx
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { CardButton } from "@/Component/UI/card-button";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/Component/UI/Button";
 import { useCustomCollections } from "@/Hook/useCustomCollections";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { BACKEND_BASE_URL, DEFAULT_SECTION, SupportedLang } from "@/Library/Language";
@@ -8,7 +9,11 @@ import { BACKEND_BASE_URL, DEFAULT_SECTION, SupportedLang } from "@/Library/Lang
 export default function DictionarySubcategory() {
   const { langName, categoryId } = useParams<{ langName: string; categoryId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useCourseLanguage();
+
+  // Read search term directly from URL search params synced with HeaderSearch
+  const searchQuery = searchParams.get("search") || "";
   
   const activeLangName = (langName || "English") as SupportedLang;
   const { collections: customCategories } = useCustomCollections(`__lang_${activeLangName}`);
@@ -45,32 +50,59 @@ export default function DictionarySubcategory() {
     return <div className="px-4 text-sm">{t("notFound")}</div>;
   }
 
+  const queryLower = searchQuery.toLowerCase().trim();
+
+  // Filter subcategories where the subcategory name OR any contained item matches the search input
+  const filteredSubcategories = subcategoryKeys.filter((subId) => {
+    if (!queryLower) return true;
+    
+    // Check if subcategory name matches
+    const nameMatches = subId.toLowerCase().includes(queryLower);
+    
+    // Check if any word slug inside matches
+    const wordSlugs = Object.keys(subcategoriesData[subId] || {});
+    const wordMatches = wordSlugs.some((slug) => slug.toLowerCase().includes(queryLower));
+
+    return nameMatches || wordMatches;
+  });
+
   const handleSubcategoryClick = (subId: string) => {
     navigate(`/Language/${langName}/Dictionary/Vocabulary/${categoryId}/${subId}`);
   };
 
   return (
     <div className="px-4 w-full">
-      <div className="grid grid-cols-2 gap-3">
-        {subcategoryKeys.map((subId) => {
-          const wordSlugs = Object.keys(subcategoriesData[subId] || {});
-          
-          return (
-            <CardButton
-              key={subId}
-              onClick={() => handleSubcategoryClick(subId)}
-              className="rounded-full bg-background border border-border text-foreground p-4 text-center transition-colors duration-200 hover:bg-muted/60 hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none min-h-[64px] py-3 flex items-center justify-center text-base"
-            >
-              <div className="flex items-center gap-2 font-semibold">
-                <span>{subId}</span>
-                <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                  {wordSlugs.length}
-                </span>
-              </div>
-            </CardButton>
-          );
-        })}
-      </div>
+      {filteredSubcategories.length === 0 ? (
+        <div className="text-center py-6 text-sm text-muted-foreground">
+          No items match your search "{searchQuery}"
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {filteredSubcategories.map((subId) => {
+            const wordSlugs = Object.keys(subcategoriesData[subId] || {});
+            
+            // Count matching items if searching, or return total count
+            const matchingCount = queryLower 
+              ? wordSlugs.filter(slug => slug.toLowerCase().includes(queryLower)).length
+              : wordSlugs.length;
+
+            return (
+              <Button
+                key={subId}
+                onClick={() => handleSubcategoryClick(subId)}
+                className="min-h-[64px] py-3 text-base"
+              >
+                <div className="flex items-center gap-2 font-semibold">
+                  <span>{subId}</span>
+                  <span className="text-xs font-normal border border-border bg-background text-foreground group-hover:border-foreground px-2 py-0.5 rounded-full transition-colors">
+                    {matchingCount > 0 ? matchingCount : wordSlugs.length}
+                  </span>
+                </div>
+              </Button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

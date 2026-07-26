@@ -1,34 +1,6 @@
+// @/Component/UI/Button.tsx
 import { cn } from "@/Library/utils";
 import { ReactNode, ButtonHTMLAttributes, forwardRef } from "react";
-
-// Compatibility: buttonVariants as a callable for shadcn components that import it
-export function buttonVariants({
-  variant = "secondary",
-  size = "default",
-  className = "",
-}: {
-  variant?: string;
-  size?: string;
-  className?: string;
-} = {}): string {
-  const sizeClasses: Record<string, string> = {
-    sm: "px-3 py-1.5 text-xs",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
-    default: "px-4 py-2 text-sm",
-    icon: "p-2",
-  };
-
-  return cn(
-    "relative rounded-[40px] bg-background border-2 border-border text-foreground transition-colors duration-200",
-    "inline-flex items-center justify-center gap-2",
-    sizeClasses[size] || sizeClasses.default,
-    variant === "destructive" && "border-destructive text-destructive",
-    variant === "ghost" && "border-transparent bg-transparent",
-    variant === "link" && "border-transparent bg-transparent underline underline-offset-4",
-    className
-  );
-}
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode;
@@ -47,7 +19,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "secondary",
       size = "md",
       className,
-      active,
+      active = false,
       fullWidth,
       asChild,
       ...props
@@ -59,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       md: "px-4 py-2 text-sm",
       lg: "px-6 py-3 text-base",
       default: "px-4 py-2 text-sm",
-      icon: "p-2",
+      icon: "p-0 flex items-center justify-center shrink-0",
     };
 
     const isGhost = variant === "ghost" || variant === "link";
@@ -67,16 +39,41 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
+        data-active={active ? "true" : undefined}
         className={cn(
-          "relative rounded-[40px] transition-colors duration-200 inline-flex items-center justify-center gap-2",
-          !isGhost && "bg-background border border-border text-foreground",
-          isGhost && "bg-transparent border border-transparent text-foreground",
-          !active && "hover:bg-muted/60",
+          // CHANGED: rounded-[40px] -> rounded-full (9999px)
+          "group relative rounded-full border transition-colors duration-200 inline-flex items-center justify-center gap-2 select-none",
+
+          // 1. INACTIVE STATE
+          !active && !isGhost && [
+            "bg-background text-foreground border-border",
+            "hover:bg-foreground hover:text-background hover:border-foreground"
+          ],
+          
+          !active && isGhost && [
+            "bg-transparent text-foreground border-transparent",
+            "hover:bg-foreground hover:text-background"
+          ],
+
+          // 2. ACTIVE STATE (Automatic & Inverted on Hover)
+          active && [
+            "bg-foreground text-background border-foreground",
+            "hover:!bg-background hover:!text-foreground hover:!border-foreground"
+          ],
+
+          // Support manual .active class as fallback
+          "[&.active]:bg-foreground [&.active]:text-background [&.active]:border-foreground",
+          "[&.active]:hover:!bg-background [&.active]:hover:!text-foreground [&.active]:hover:!border-foreground",
+
           sizeClasses[size as string] || sizeClasses.md,
           fullWidth && "w-full",
           variant === "destructive" && "border-destructive text-destructive hover:bg-destructive/10",
           "disabled:opacity-50 disabled:pointer-events-none",
-          active && "bg-foreground text-background border-foreground hover:bg-foreground/90 hover:text-background",
+          
+          // --- HIGH CONTRAST MODES ---
+          "[.high-contrast_&]:border-2 [.high-contrast_&]:border-foreground [.high-contrast_&]:font-bold",
+          "[.hc_&]:border-2 [.hc_&]:border-foreground [.hc_&]:font-bold",
+
           className
         )}
         {...props}

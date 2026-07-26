@@ -14,12 +14,6 @@ interface UseVariationsArgs {
   playMoveSound: (kind: "move" | "capture") => void;
 }
 
-/**
- * Owns variation ("sideline") state while reviewing a finished/in-progress
- * game: creating a new variation off the mainline or an existing one,
- * extending or truncating a variation as the person tries new moves, and
- * tracking which variation/step is currently being viewed.
- */
 export function useVariations({
   stateRef,
   viewIndex,
@@ -36,11 +30,17 @@ export function useVariations({
     const s = stateRef.current;
     if (!s) return false;
 
+    // Ensure array exists
+    if (!s.variations) {
+      s.variations = [];
+    }
+
     // Determine base FEN and current variation context.
     let baseFen: string;
     let parentIndex: number;
     if (varCursor) {
       const v = s.variations[varCursor.varIndex];
+      if (!v) return false;
       baseFen = v.fens[varCursor.step + 1];
       parentIndex = v.parentIndex;
     } else {
@@ -97,11 +97,11 @@ export function useVariations({
     return true;
   }, [stateRef, varCursor, viewIndex, force, setSelected, setHintArrow, setNoAnimateOnce, playMoveSound]);
 
-  /** Variation-specific slice of the "what position is being viewed" computation. */
-  const computeVariationView = useCallback((): { fen: string; lastMove: { from: string; to: string } | null } | null => {
+  const computeVariationView = useCallback(() => {
     const s = stateRef.current;
-    if (!s || !varCursor) return null;
+    if (!s || !varCursor || !s.variations) return null;
     const v = s.variations[varCursor.varIndex];
+    if (!v) return null;
     return { fen: v.fens[varCursor.step + 1], lastMove: v.lastMoves[varCursor.step] };
   }, [stateRef, varCursor]);
 

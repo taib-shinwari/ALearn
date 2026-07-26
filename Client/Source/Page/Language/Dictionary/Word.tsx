@@ -6,7 +6,7 @@ import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useMarkedWords } from "@/Hook/useMarkedWords";
 import { useFavoriteWords } from "@/Hook/useFavoriteWords";
 import { useCustomWords } from "@/Hook/useCustomWords";
-import { CardButton } from "@/Component/UI/card-button";
+import { Button } from "@/Component/UI/Button";
 import { cn } from "@/Library/utils";
 import { BACKEND_BASE_URL, DEFAULT_SECTION, wordDetailFromApi, SupportedLang } from "@/Library/Language";
 
@@ -24,7 +24,7 @@ export default function DictionaryWord() {
   const selected = context.selected || new Set<string>();
   const setSelected = context.setSelected || (() => {});
   
-  // 🚀 Global filter context variables
+  // Global filter context variables
   const filter = context.filter || "all";
 
   const { customWords, applyOverride } = useCustomWords(categoryId || "", subcategoryId || "");
@@ -59,7 +59,7 @@ export default function DictionaryWord() {
 
   const allWords = useMemo(() => [...resolvedWords, ...customWords].map(applyOverride), [resolvedWords, customWords, applyOverride]);
   
-  // 🚀 Filters automatically using the global context setting
+  // Filters automatically using the global context setting
   const filtered = useMemo(() => {
     switch (filter) {
       case "marked":    return allWords.filter(w => isMarked(courseLang as any, w.id));
@@ -99,19 +99,16 @@ export default function DictionaryWord() {
 
   return (
     <div className="space-y-4 px-4">
-      {/* Grid automatically spans:
-        - 2 columns on mobile (grid-cols-2)
-        - 3 columns on small screens/tablets (sm:grid-cols-3)
-        - 4 columns on medium screens (md:grid-cols-4)
-        - 6 columns on large screens/desktops (lg:grid-cols-6)
-      */}
+      {/* Grid automatically spans across viewports */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {filtered.map(word => {
-          const isSel = selected.has(word.id);
+          const isSel = selectMode && selected.has(word.id);
           const cooling = wordCooling(word.id);
+          
           return (
-            <CardButton
+            <Button
               key={word.id}
+              active={isSel}
               onClick={() => {
                 if (selectMode) {
                   toggle(word.id);
@@ -121,17 +118,23 @@ export default function DictionaryWord() {
               }}
               disabled={selectMode && cooling}
               className={cn(
-                "h-12 px-4 flex items-center justify-center text-center relative rounded-full border border-border", 
-                selectMode && isSel && "bg-foreground text-background border-foreground"
+                "h-12 px-4 flex items-center justify-center text-center relative",
+                selectMode && "pr-8"
               )}
             >
               {selectMode && (
                 <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {cooling ? <Clock className="h-4 w-4 opacity-60" /> : isSel ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4 opacity-60" />}
+                  {cooling ? (
+                    <Clock className="h-4 w-4 opacity-60" />
+                  ) : isSel ? (
+                    <CheckSquare className="h-4 w-4" />
+                  ) : (
+                    <Square className="h-4 w-4 opacity-60" />
+                  )}
                 </span>
               )}
               <span className="font-semibold text-sm leading-none">{word.id}</span>
-            </CardButton>
+            </Button>
           );
         })}
       </div>

@@ -1,4 +1,63 @@
 {
-  "lessons": {},
-  "puzzles": {}
+  "lessons": {
+    "beginner": {
+      "learn-to-play": [
+        {
+          "id": "1-the-king",
+          "steps": [
+            [
+              "Ke1",
+              [
+                "d2",
+                "f3",
+                "g1"
+              ],
+              "lesson.king.intro"
+            ]
+          ]
+        },
+        {
+          "id": "2-the-rook",
+          "steps": [
+            [
+              "Ra1",
+              [
+                "a8"
+              ],
+              "lesson.rook.intro"
+            ]
+          ]
+        },
+        {
+          "id": "3-the-bishop",
+          "steps": [
+            [
+              "Bc1",
+              [
+                "f4"
+              ],
+              "lesson.bishop.intro"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "puzzles": {
+    "4k3-8-8-8-8-3q4-8-3RK3-w-----0-1": [
+      "d1d3"
+    ],
+    "4k3-8-8-8-8-8-R7-1R2K3-w-----0-1": [
+      "b1b7,e8d8,a2a8"
+    ],
+    "6k1-5ppp-8-8-8-8-5PPP-4Q1K1-w-----0-1": [
+      "e1e8"
+    ],
+    "6k1-5ppp-8-8-8-8-8-R6K-w-----0-1": [
+      "a1a8"
+    ],
+    "r3k3-8-8-3N4-8-8-8-4K3-w-----0-1": [
+      "d5c7"
+    ]
+  }
 }

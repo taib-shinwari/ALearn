@@ -83,7 +83,7 @@ interface AppContextType extends AppState {
   selectedFilter: FilterType; 
   setSelectedFilter: (filter: FilterType) => void;
   
-  // 🚀 Aliases added to support both naming systems flawlessly
+  // Aliases added to support both naming systems flawlessly
   filter: FilterType;
   setFilter: (filter: FilterType) => void;
 }
@@ -121,6 +121,7 @@ function applyAppearance(theme: ThemeChoice, textSize: TextSize, hc: boolean) {
   const isDark = theme === "dark" || (theme === "system" && prefersDark);
   root.classList.toggle("dark", isDark);
   root.classList.toggle("hc", hc);
+  root.classList.toggle("high-contrast", hc);
   root.classList.remove("text-sm", "text-md", "text-lg");
   root.classList.add(`text-${textSize}`);
 }
@@ -366,7 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       selectedFilter,
       setSelectedFilter,
       
-      // 🚀 EXPOSING ALIASES: Resolves the component system updates!
+      // EXPOSING ALIASES
       filter: selectedFilter,
       setFilter: setSelectedFilter,
     }}>

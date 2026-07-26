@@ -148,7 +148,7 @@ export function EditButton() {
       showGoBack={false}
       disableHeaderContainer={true}
       width="sm:w-[420px]"
-      height="sm:max-h-[480px]" // Clean desktop height boundary
+      height="sm:h-[480px]"
       closedIcon={<Pencil />} // <-- Clean, customized icon config
     >
       <div className="flex flex-col gap-4 px-3 py-3 sm:p-4 w-full md:min-w-[360px] relative">

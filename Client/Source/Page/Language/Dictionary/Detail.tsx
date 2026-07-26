@@ -1,7 +1,7 @@
 // @/Component/Word/WordDetailView.tsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CardButton } from "@/Component/UI/card-button";
+import { Button } from "@/Component/UI/Button";
 import { WordEditDialog } from "@/Component/Word/WordEditDialog";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { useCustomWords } from "@/Hook/useCustomWords";
@@ -134,21 +134,24 @@ export default function WordDetailView() {
 
   return (
     <div className="px-4 max-w-md mx-auto space-y-4 pt-4">
-      <CardButton
+      <Button
         onClick={handleFlip}
-        className={cn("w-full relative rounded-2xl", isFront ? "min-h-[140px]" : "min-h-[260px]")}
+        className={cn(
+          "w-full relative rounded-2xl p-4 flex flex-col justify-start items-stretch text-left",
+          isFront ? "min-h-[140px]" : "min-h-[260px]"
+        )}
       >
         {/* Floating Indicator for active flipping Language context */}
         {!isFront && (
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border-2 border-border bg-background">
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full border border-border bg-background text-foreground group-hover:border-foreground">
               {showLang}
             </span>
           </div>
         )}
 
         {/* Card body */}
-        <div className="flex flex-col h-full text-left">
+        <div className="flex flex-col h-full text-left w-full">
           {isFront ? (
             <div className="flex-1 flex flex-col items-center justify-center min-h-[100px] gap-1">
               <h1 className="text-3xl font-bold text-center">{targetText}</h1>
@@ -156,17 +159,17 @@ export default function WordDetailView() {
             </div>
           ) : (
             <>
-              <div className="flex items-center mb-2 pr-56">
+              <div className="flex items-center mb-2 pr-12">
                 <h1 className="text-2xl font-bold">{data?.word || targetText}</h1>
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 {pronunciation && (
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-full border border-border bg-background text-foreground group-hover:border-foreground">
                     {pronunciation}
                   </span>
                 )}
                 {genderLabel && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border-2 border-border bg-background">
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-border bg-background text-foreground group-hover:border-foreground">
                     {t("gender")}: {genderLabel}
                   </span>
                 )}
@@ -192,7 +195,7 @@ export default function WordDetailView() {
           )}
 
           {imgUrl && (
-            <div className="mt-4 rounded-xl overflow-hidden border-2 border-border bg-background aspect-[4/3]">
+            <div className="mt-4 rounded-xl overflow-hidden border border-border bg-background aspect-[4/3] group-hover:border-foreground transition-colors">
               <img
                 src={imgUrl}
                 alt={targetText}
@@ -205,7 +208,7 @@ export default function WordDetailView() {
 
           <p className="text-xs opacity-60 mt-4 text-center">{t("tapToFlip")}</p>
         </div>
-      </CardButton>
+      </Button>
 
       {/* Global State/Trigger-Controlled Edit Dialog */}
       <WordEditDialog

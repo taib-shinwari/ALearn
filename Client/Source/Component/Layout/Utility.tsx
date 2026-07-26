@@ -111,7 +111,6 @@ export function NavigatorLayout({
     }
   }, [isSearching, inputRef]);
 
-  // Desktop alignments retain custom physical origins, while mobile defaults to origin-center
   const alignmentClasses = {
     left: "max-sm:origin-center sm:left-0 sm:origin-top-left",
     right: "max-sm:origin-center sm:right-0 sm:origin-top-right",
@@ -131,7 +130,6 @@ export function NavigatorLayout({
     >
       <div 
         className={cn(
-          // Set "origin-center" by default for mobile, layout will smoothly expand centered-outward
           "origin-center bg-background text-foreground transition-all duration-300 ease-in-out border-2 border-border overflow-hidden",
           isOpen 
             ? cn("w-full h-full max-sm:rounded-none max-sm:border-0 max-sm:flex max-sm:flex-col sm:rounded-[32px] shadow-lg sm:absolute sm:top-0", height) 
@@ -157,7 +155,7 @@ export function NavigatorLayout({
           )}
         </div>
 
-        {/* EXPANDED CONTENT (Synchronized zoom expansion from center-outward) */}
+        {/* EXPANDED CONTENT */}
         <div 
           className={cn(
             "w-full h-full flex flex-col relative transition-all duration-300 ease-in-out origin-center",
@@ -167,7 +165,7 @@ export function NavigatorLayout({
           )}
         >
           
-          {/* BUTTONS GROUP — mobile. */}
+          {/* BUTTONS GROUP — mobile */}
           <div className="hidden max-sm:flex items-center justify-between w-full h-14 pl-4 pr-6 shrink-0 absolute top-0 left-0 z-30 opacity-100">
             {!isSearching ? (
               <>
@@ -176,13 +174,13 @@ export function NavigatorLayout({
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 rounded-full shrink-0"
+                      className="h-9 w-9 rounded-full shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onGoBack?.();
                       }}
                     >
-                      <ArrowLeft className="h-5 w-5" />
+                      <ArrowLeft className="h-[20px] w-[20px]" />
                     </Button>
                   )}
                   {disableHeaderContainer ? (
@@ -197,21 +195,21 @@ export function NavigatorLayout({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-8 w-8 rounded-full"
+                    className="h-9 w-9 rounded-full"
                     onClick={() => setIsSearching(true)}
                   >
-                    <Search className="h-5 w-5" />
+                    <Search className="h-[20px] w-[20px]" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-8 w-8 rounded-full"
+                    className="h-9 w-9 rounded-full"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeAll();
                     }}
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-[20px] w-[20px]" />
                   </Button>
                 </div>
               </>
@@ -225,34 +223,35 @@ export function NavigatorLayout({
                     placeholder="Search entries..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
+                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-7"
                   />
                   {searchQuery && (
-                    <button
-                      type="button"
-                      className="absolute right-3 p-1 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
+                    <Button
+                      variant="default"
+                      size="icon"
+                      className="h-6 w-6 rounded-full shrink-0 absolute right-2"
                       onClick={() => setSearchQuery("")}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
                   )}
                 </Container>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-8 w-8 rounded-full shrink-0"
+                  className="h-9 w-9 rounded-full shrink-0"
                   onClick={() => {
                     setIsSearching(false);
                     setSearchQuery("");
                   }}
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-[20px] w-[20px]" />
                 </Button>
               </div>
             )}
           </div>
 
-          {/* BUTTONS GROUP — desktop. */}
+          {/* BUTTONS GROUP — desktop */}
           <div className="max-sm:hidden sm:flex items-center justify-between w-full h-12 px-3.5 absolute top-0 left-0 z-30 opacity-100">
             {!isSearching ? (
               <>
@@ -261,13 +260,13 @@ export function NavigatorLayout({
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-7 w-7 rounded-full shrink-0"
+                      className="h-8 w-8 rounded-full shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onGoBack?.();
                       }}
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <ArrowLeft className="h-[16px] w-[16px]" />
                     </Button>
                   )}
                   {disableHeaderContainer ? (
@@ -282,24 +281,24 @@ export function NavigatorLayout({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-7 w-7 rounded-full shrink-0"
+                    className="h-8 w-8 rounded-full shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsSearching(true);
                     }}
                   >
-                    <Search className="h-4 w-4 opacity-90" />
+                    <Search className="h-[16px] w-[16px] opacity-90" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-7 w-7 rounded-full shrink-0"
+                    className="h-8 w-8 rounded-full shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeAll();
                     }}
                   >
-                    <ChevronDown className="h-4 w-4 opacity-80 transition-transform duration-200 rotate-180" />
+                    <X className="h-[16px] w-[16px] opacity-80" />
                   </Button>
                 </div>
               </>
@@ -316,29 +315,30 @@ export function NavigatorLayout({
                     className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
                   />
                   {searchQuery && (
-                    <button
-                      type="button"
-                      className="absolute right-2 p-0.5 rounded-full shrink-0 text-muted-foreground hover:text-foreground active:scale-95 transition-all focus:outline-none"
+                    <Button
+                      variant="default"
+                      size="icon"
+                      className="h-5 w-5 rounded-full shrink-0 absolute right-1"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSearchQuery("")}
-                      }
+                        setSearchQuery("");
+                      }}
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   )}
                 </Container>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-7 w-7 rounded-full shrink-0 mr-0.5"
+                  className="h-8 w-8 rounded-full shrink-0 mr-0.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsSearching(false);
                     setSearchQuery("");
                   }}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-[16px] w-[16px]" />
                 </Button>
               </div>
             )}

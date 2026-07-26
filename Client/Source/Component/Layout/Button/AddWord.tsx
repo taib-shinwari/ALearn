@@ -96,7 +96,7 @@ export function AddWord() {
       showGoBack={false}
       disableHeaderContainer={true}
       width="sm:w-[420px]"
-      height="sm:max-h-[460px]"
+      height="sm:h-[460px]"
       closedIcon={<Plus />} // <-- Clean, declarative customized icon placement
     >
       <div className="flex flex-col gap-4 px-3 py-3 sm:p-4 w-full md:min-w-[360px] relative">

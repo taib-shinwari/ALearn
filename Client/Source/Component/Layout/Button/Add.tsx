@@ -91,8 +91,8 @@ export function Add() {
         options={pillOptions}
         selectedValue={mode}
         onChange={setMode}
-        width="w-20"
-        height="h-7"
+        width="w-24"
+        height="h-8"
       />
     );
   };

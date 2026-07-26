@@ -9,7 +9,7 @@ import { cn } from "@/Library/utils";
 import { toast } from "@/Component/UI/use-toast";
 import { useApp } from "@/Context/App";
 import { Exercise, LessonCompleteScreen } from "@/Component/Lesson/Types/Index";
-import { parseAlphabetLesson, type AlphabetContentBlock } from "@/Parser/Language/Alphabet";
+import { parseAlphabetLesson, type AlphabetContentBlock } from "@/Component/Parser/Language/Alphabet";
 import {
   getMastery,
   isUnlocked,

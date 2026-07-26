@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CardButton } from "@/Component/UI/card-button";
+import { Button } from "@/Component/UI/Button";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 import { DEFAULT_SECTION, BACKEND_BASE_URL, SupportedLang } from "@/Library/Language";
 
@@ -41,13 +41,13 @@ export default function DictionaryCategory() {
     <div className="px-4 w-full">
       <div className="grid grid-cols-2 gap-3">
         {categories.map((category) => (
-          <CardButton
+          <Button
             key={category}
             onClick={() => navigate(`/Language/${activeLangName}/Dictionary/Vocabulary/${category}`)}
-            className="rounded-full bg-background border border-border text-foreground p-4 text-center transition-colors duration-200 hover:bg-muted/60 hover:border-border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none min-h-[64px] py-3 flex items-center justify-center text-base"
+            className="min-h-[64px] py-3 text-base"
           >
             <span className="font-semibold">{t(category) || category}</span>
-          </CardButton>
+          </Button>
         ))}
       </div>
     </div>

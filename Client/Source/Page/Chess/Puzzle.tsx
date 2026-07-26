@@ -4,7 +4,7 @@ import { Container } from "@/Component/UI/container";
 import { Button } from "@/Component/UI/Button";
 import { useCourseLanguage } from "@/Hook/useCourseLanguage";
 
-// FIX: Localized type boundaries to eliminate backend build leakage
+// Localized type boundaries to eliminate backend build leakage
 export type PieceColor = "w" | "b";
 export type PieceType = "P" | "N" | "B" | "R" | "Q" | "K";
 
@@ -164,7 +164,7 @@ export function ChessPuzzleView({ puzzle, fenId, onSolved }: Props) {
     <div className="px-4 w-full">
       <div className="grid gap-3 md:grid-cols-[1fr_260px] max-w-5xl mx-auto">
         <div className="flex justify-center">
-          <Container className={`p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-18rem))] md:max-w-none ${wrong ? "ring-2 ring-destructive" : ""}`}>
+          <Container className={`p-2 rounded-[20px] w-full max-w-[min(100%,calc(100svh-18rem))] md:max-w-none transition-all ${wrong ? "ring-2 ring-destructive" : ""}`}>
             <Chessboard
               pieces={pieces}
               orientation={decoded.orientation}

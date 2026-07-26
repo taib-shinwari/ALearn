@@ -415,7 +415,7 @@ export const Header = memo(function Header({
 
       {/* SEARCH OVERLAY BLOCK */}
       {!inLesson && searchOpen && (
-        <div className={cn("transition-all duration-300 ease-out", isMobile ? "w-[140px]" : "w-[260px]", isRtl ? "mr-auto" : "ml-auto")}>
+        <div className="flex-1 min-w-0 w-full transition-all duration-300 ease-out">
           <HeaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
         </div>
       )}
