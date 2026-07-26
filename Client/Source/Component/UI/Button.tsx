@@ -31,7 +31,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       md: "px-4 py-2 text-sm",
       lg: "px-6 py-3 text-base",
       default: "px-4 py-2 text-sm",
-      icon: "p-0 flex items-center justify-center shrink-0",
+      // Removed gaps, reset line-heights, forced block display on SVGs, and stripped default borders for icons
+      icon: "p-0 gap-0 border-none flex items-center justify-center shrink-0 box-border [&>svg]:block [&>svg]:m-auto [&>svg]:shrink-0",
     };
 
     const isGhost = variant === "ghost" || variant === "link";
@@ -41,7 +42,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         data-active={active ? "true" : undefined}
         className={cn(
-          // CHANGED: rounded-[40px] -> rounded-full (9999px)
           "group relative rounded-full border transition-colors duration-200 inline-flex items-center justify-center gap-2 select-none",
 
           // 1. INACTIVE STATE

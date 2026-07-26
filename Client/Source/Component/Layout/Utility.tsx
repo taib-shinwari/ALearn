@@ -174,13 +174,13 @@ export function NavigatorLayout({
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-9 w-9 rounded-full shrink-0"
+                      className="h-9 w-9 p-0 rounded-full shrink-0 flex items-center justify-center"
                       onClick={(e) => {
                         e.stopPropagation();
                         onGoBack?.();
                       }}
                     >
-                      <ArrowLeft className="h-[20px] w-[20px]" />
+                      <ArrowLeft className="h-5 w-5 shrink-0" />
                     </Button>
                   )}
                   {disableHeaderContainer ? (
@@ -195,21 +195,21 @@ export function NavigatorLayout({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-9 w-9 rounded-full"
+                    className="h-9 w-9 p-0 rounded-full flex items-center justify-center"
                     onClick={() => setIsSearching(true)}
                   >
-                    <Search className="h-[20px] w-[20px]" />
+                    <Search className="h-5 w-5 shrink-0" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-9 w-9 rounded-full"
+                    className="h-9 w-9 p-0 rounded-full flex items-center justify-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeAll();
                     }}
                   >
-                    <X className="h-[20px] w-[20px]" />
+                    <X className="h-5 w-5 shrink-0" />
                   </Button>
                 </div>
               </>
@@ -223,29 +223,29 @@ export function NavigatorLayout({
                     placeholder="Search entries..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-7"
+                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-8"
                   />
                   {searchQuery && (
                     <Button
                       variant="default"
                       size="icon"
-                      className="h-6 w-6 rounded-full shrink-0 absolute right-2"
+                      className="h-6 w-6 p-0 rounded-full shrink-0 absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
                       onClick={() => setSearchQuery("")}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-4 w-4 shrink-0" />
                     </Button>
                   )}
                 </Container>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-9 w-9 rounded-full shrink-0"
+                  className="h-9 w-9 p-0 rounded-full shrink-0 flex items-center justify-center"
                   onClick={() => {
                     setIsSearching(false);
                     setSearchQuery("");
                   }}
                 >
-                  <X className="h-[20px] w-[20px]" />
+                  <X className="h-5 w-5 shrink-0" />
                 </Button>
               </div>
             )}
@@ -260,13 +260,13 @@ export function NavigatorLayout({
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 rounded-full shrink-0"
+                      className="h-8 w-8 p-0 rounded-full shrink-0 flex items-center justify-center"
                       onClick={(e) => {
                         e.stopPropagation();
                         onGoBack?.();
                       }}
                     >
-                      <ArrowLeft className="h-[16px] w-[16px]" />
+                      <ArrowLeft className="h-5 w-5 shrink-0" />
                     </Button>
                   )}
                   {disableHeaderContainer ? (
@@ -281,64 +281,64 @@ export function NavigatorLayout({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-8 w-8 rounded-full shrink-0"
+                    className="h-8 w-8 p-0 rounded-full shrink-0 flex items-center justify-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsSearching(true);
                     }}
                   >
-                    <Search className="h-[16px] w-[16px] opacity-90" />
+                    <Search className="h-5 w-5 opacity-90 shrink-0" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="h-8 w-8 rounded-full shrink-0"
+                    className="h-8 w-8 p-0 rounded-full shrink-0 flex items-center justify-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeAll();
                     }}
                   >
-                    <X className="h-[16px] w-[16px] opacity-80" />
+                    <X className="h-5 w-5 opacity-80 shrink-0" />
                   </Button>
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-between w-full">
-                <Container className="!py-0.5 !px-2 flex items-center flex-1 min-w-0 mr-1.5 h-7 relative shadow-sm">
-                  <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-1.5" />
+              <div className="flex items-center justify-between w-full gap-1.5">
+                <Container className="!py-0 !px-3 flex items-center flex-1 min-w-0 h-8 relative shadow-sm rounded-full">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-2" />
                   <input
                     ref={inputRef}
                     type="text"
                     placeholder="Search entries..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-6"
+                    className="w-full bg-transparent text-xs font-normal outline-none placeholder:text-muted-foreground/60 h-full border-none focus:ring-0 p-0 pr-7"
                   />
                   {searchQuery && (
                     <Button
                       variant="default"
                       size="icon"
-                      className="h-5 w-5 rounded-full shrink-0 absolute right-1"
+                      className="h-5 w-5 p-0 rounded-full shrink-0 absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSearchQuery("");
                       }}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5 shrink-0" />
                     </Button>
                   )}
                 </Container>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-8 w-8 rounded-full shrink-0 mr-0.5"
+                  className="h-8 w-8 p-0 rounded-full shrink-0 flex items-center justify-center"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsSearching(false);
                     setSearchQuery("");
                   }}
                 >
-                  <X className="h-[16px] w-[16px]" />
+                  <X className="h-5 w-5 shrink-0" />
                 </Button>
               </div>
             )}
